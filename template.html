@@ -45,7 +45,6 @@
       color: var(--txt);
       font-family: 'DM Sans', sans-serif;
       font-size: 13px;
-      min-height: 100vh;
       padding: 22px;
     }
 
@@ -193,6 +192,12 @@
       padding: 16px 18px;
       margin-bottom: 14px;
       overflow-x: auto;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+
+    .table-card::-webkit-scrollbar {
+      display: none;
     }
 
     .section-title {
@@ -293,7 +298,10 @@
       background: var(--surf);
       border: 0.5px solid var(--brd);
       border-radius: 10px;
-      padding: 16px 18px;
+      padding: 16px 18px 22px; /* Extra bottom padding for the line */
+      position: relative;
+      display: flex;
+      flex-direction: column;
     }
 
     .chart-header {
@@ -430,12 +438,24 @@
     /* Gold accent footer line on chart cards */
     .chart-card::after {
       content: '';
-      display: block;
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
       height: 2px;
       background: linear-gradient(90deg, #D4AF37, #F5E6B3, #B8962E);
-      border-radius: 0 0 8px 8px;
-      margin: 14px -18px -16px;
+      border-radius: 0 0 10px 10px;
       opacity: 0.5;
+    }
+
+    /* Hide scrollbars for a cleaner look */
+    body {
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+
+    body::-webkit-scrollbar {
+      display: none;
     }
   </style>
 </head>
@@ -444,7 +464,7 @@
 
   <!-- Header -->
   <header class="dash-header">
-    <h1>Overview — This Week</h1>
+    <h1>Overview : This Week</h1>
     <div class="date-badge">
       <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
         <rect x="1" y="3" width="14" height="12" rx="2" stroke="#9CA3AF" stroke-width="1.2" />

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { 
@@ -9,6 +9,31 @@ import { toast } from 'react-hot-toast';
 
 import UserAvatar from './UserAvatar';
 import DashboardResponse from './DashboardResponse';
+
+/**
+ * Helper component to render an iframe that auto-resizes based on its content
+ */
+function IframeResizer({ srcDoc }) {
+  const [height, setHeight] = useState('600px'); // Initial fallback
+
+  useEffect(() => {
+    const handleMessage = (event) => {
+      if (event.data && event.data.type === 'setHeight') {
+        setHeight(`${event.data.height}px`);
+      }
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
+
+  return (
+    <iframe
+      srcDoc={srcDoc}
+      style={{ width: '100%', height, border: 'none', display: 'block' }}
+      title="Dashboard Response"
+    />
+  );
+}
 
 /**
  * Strict message schema expected:
@@ -72,7 +97,7 @@ export default function MessageBubble({ message, onRetry, onRegenerate, onEdit, 
     <div
       id={`message-${message.id}`}
       className={`
-        group flex gap-2 sm:gap-3 py-1.5 sm:py-2 ${isWide ? 'max-w-[1200px]' : 'max-w-[820px]'} w-full mx-auto animate-fade-in-up
+        group flex gap-2 sm:gap-3 py-1.5 sm:py-2 ${isWide ? 'max-w-full' : 'max-w-[1000px]'} w-full mx-auto animate-fade-in-up
         ${isUser ? 'flex-row-reverse' : ''}
         ${message.isStale ? 'message-stale' : ''}
       `}
@@ -167,6 +192,22 @@ export default function MessageBubble({ message, onRetry, onRegenerate, onEdit, 
                   const fullEndIndex = htmlEndIndex + '</html>'.length;
                   extractedHtml = c.substring(htmlStartIndex, fullEndIndex);
                   
+                  // Inject auto-resize script into the HTML if not present
+                  if (!extractedHtml.includes('window.parent.postMessage')) {
+                    const script = `
+                      <script>
+                        function sendHeight() {
+                          const height = document.documentElement.scrollHeight || document.body.scrollHeight;
+                          window.parent.postMessage({ type: 'setHeight', height: height }, '*');
+                        }
+                        window.addEventListener('load', sendHeight);
+                        const observer = new ResizeObserver(sendHeight);
+                        observer.observe(document.body);
+                      </script>
+                    `;
+                    extractedHtml = extractedHtml.replace('</body>', `${script}</body>`);
+                  }
+                  
                   // Extract content before and after the HTML block
                   const beforeHtml = c.substring(0, htmlStartIndex).replace(/```[a-z]*\s*$/i, '').trim();
                   const afterHtml = c.substring(fullEndIndex).replace(/^\s*```/i, '').trim();
@@ -188,12 +229,8 @@ export default function MessageBubble({ message, onRetry, onRegenerate, onEdit, 
                         </ReactMarkdown>
                       )}
 
-                      <div className="w-full bg-white rounded-xl overflow-hidden my-4 border border-gold/[0.3] shadow-lg animate-fade-in-scale" style={{ height: '650px', maxWidth: '100%', display: 'block' }}>
-                        <iframe
-                          srcDoc={extractedHtml}
-                          style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
-                          title="Dashboard Response"
-                        />
+                      <div className="w-full bg-white rounded-xl overflow-hidden my-4 border border-gold/[0.3] shadow-lg animate-fade-in-scale" style={{ maxWidth: '100%', display: 'block' }}>
+                        <IframeResizer srcDoc={extractedHtml} />
                       </div>
 
                       {afterHtml && (
@@ -313,7 +350,7 @@ export default function MessageBubble({ message, onRetry, onRegenerate, onEdit, 
  */
 export function TypingIndicator() {
   return (
-    <div className="flex gap-3 py-2 max-w-[820px] w-full mx-auto animate-fade-in-up" id="typing-indicator">
+    <div className="flex gap-3 py-2 max-w-[1000px] w-full mx-auto animate-fade-in-up" id="typing-indicator">
       <div className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-[var(--surf)] border border-gold/[0.18] mt-0.5">
         <svg width="18" height="18" viewBox="0 0 28 28" fill="none">
           <defs>

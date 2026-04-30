@@ -32,7 +32,7 @@ export default function WelcomeScreen({
       {/* ── Scrollable centre column ── */}
       <main className="
         flex flex-col items-center justify-center
-        flex-1 min-h-0 w-full max-w-[640px]
+        flex-1 min-h-0 w-full max-w-[1200px]
         gap-3 sm:gap-[clamp(8px,1.8vh,18px)]
       ">
 
@@ -191,7 +191,7 @@ export default function WelcomeScreen({
       </main>
 
       {/* ── Bottom input ── */}
-      <footer className="w-full max-w-[580px] flex-shrink-0 pt-2 sm:pt-3">
+      <footer className="w-full max-w-[1200px] flex-shrink-0 pt-2 sm:pt-3">
         <div className="
           relative flex items-center gap-2 sm:gap-2.5
           px-3 sm:px-4 py-1.5

@@ -294,7 +294,7 @@ export default function ChatWindow() {
         onScroll={handleScroll}
       >
         {/* Responsive padding: tight on mobile, comfortable on desktop */}
-        <div className="flex-1 flex flex-col py-4 px-3 sm:py-6 sm:px-5 md:px-6 gap-1.5 sm:gap-2 max-w-[900px] w-full mx-auto">
+        <div className="flex-1 flex flex-col py-4 px-3 sm:py-6 sm:px-5 md:px-6 gap-1.5 sm:gap-2 max-w-[1600px] w-full mx-auto">
           {messages.map((msg) => (
             <MessageBubble
               key={msg.id}
@@ -364,7 +364,7 @@ export default function ChatWindow() {
         {/* Input pill — full width on mobile, capped on desktop */}
         <div
           className={`
-            chat-input-row max-w-[760px] w-full flex items-center gap-1.5 sm:gap-2 relative
+            chat-input-row max-w-[1600px] w-full flex items-center gap-1.5 sm:gap-2 relative
             glass-surface border border-[var(--brd2)] rounded-full
             px-2 sm:px-2.5 py-1.5 pl-2.5 sm:pl-3
             shadow-[0_4px_16px_rgba(0,0,0,0.3)] transition-all duration-150
