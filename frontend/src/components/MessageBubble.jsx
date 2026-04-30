@@ -131,7 +131,7 @@ export default function MessageBubble({ message, onRetry, onRegenerate, onEdit, 
         <div
           className={`
             px-3 sm:px-4 py-2 sm:py-3 rounded-xl
-            text-[0.8375rem] sm:text-[0.9375rem] leading-[1.6] sm:leading-[1.65] break-words
+            text-[0.8375rem] sm:text-[0.9375rem] leading-[1.6] sm:leading-[1.65] break-all
             ${isUser
               ? 'bg-gold-gradient text-black rounded-br-sm shadow-[0_4px_15px_rgba(212,175,55,0.25)]'
               : `bg-[var(--surf)] border border-gold/[0.15] rounded-bl-sm shadow-[0_2px_8px_rgba(0,0,0,0.3)]
