@@ -175,6 +175,27 @@ TIME_KEYWORDS = {
     "last year": "last_year",
 }
 
+def detect_domain(query: str, structured_intent: dict | None = None) -> str:
+    """Detects the primary business domain of the query."""
+    q = query.lower()
+    if structured_intent:
+        metric = structured_intent.get("metric", "")
+        if metric in ["revenue", "forecast_revenue"]:
+            return "revenue"
+        if metric in ["units", "forecast_units"]:
+            return "production"
+        if metric in ["alerts", "affected_units"]:
+            return "quality"
+    
+    if any(k in q for k in ["revenue", "sales", "money", "profit", "earnings", "income"]):
+        return "revenue"
+    if any(k in q for k in ["production", "units", "output", "produced", "volume", "capacity"]):
+        return "production"
+    if any(k in q for k in ["alert", "issue", "quality", "problem", "defect", "affected", "severity"]):
+        return "quality"
+    
+    return "general"
+
 MONTHS = {
     "january": 1,
     "february": 2,
@@ -232,12 +253,14 @@ def render_dashboard_html(data: dict) -> str:
         with open(template_path, "r", encoding="utf-8") as f:
             template_content = f.read()
         
-        # The template expects data in window.__DASHBOARD_DATA__
         json_data = json.dumps(data, indent=2)
-        
-        # Injected script to set the data
-        injection = f"\n  <script>\n    window.__DASHBOARD_DATA__ = {json_data};\n  </script>\n"
-        template_content = template_content.replace("</body>", f"{injection}</body>")
+        # The template has a specific injection point
+        injection = f"window.__DASHBOARD_DATA__ = {json_data};"
+        if "// DATA_INJECTION_POINT" in template_content:
+            template_content = template_content.replace("// DATA_INJECTION_POINT", injection)
+        else:
+            # Fallback to body injection if point missing
+            template_content = template_content.replace("</body>", f"\n  <script>\n    {injection}\n  </script>\n</body>")
             
         return template_content
     except Exception as e:
@@ -1497,6 +1520,14 @@ def execute_dashboard_query(query: str) -> str:
     alert_filters = _parse_filters(query, "alerts_quality")
     fcast_filters = _parse_filters(query, "forecast_data")
 
+    # Build scope label for the dashboard
+    scope_parts = []
+    for f_dict in [prod_filters, alert_filters, fcast_filters]:
+        for col, val in f_dict.items():
+            val_str = str(val).title() if isinstance(val, str) else ", ".join(str(v).title() for v in val)
+            if val_str not in scope_parts:
+                scope_parts.append(val_str)
+
     def _build_filter_clause(filters: dict, table_cols: list[str]) -> str:
         """Build WHERE filter fragment from a filters dict, skipping unknown columns."""
         clauses = []
@@ -1561,6 +1592,7 @@ def execute_dashboard_query(query: str) -> str:
         total_alerts, active_alerts, affected_units = 0, 0, 0
 
     period = time_meta.get("used") or "All Available Data"
+    domain = detect_domain(query)
     
     # Variance calculations
     units_var = total_units - forecast_units
@@ -1568,77 +1600,185 @@ def execute_dashboard_query(query: str) -> str:
     units_var_str = f"+{units_var:,}" if units_var >= 0 else f"{units_var:,}"
     rev_var_str = f"+${rev_var:,.0f}" if rev_var >= 0 else f"-${abs(rev_var):,.0f}"
 
-    # Build KPIs for the unified template
-    kpis = [
-        {
-            "label": "Production Units",
-            "value": f"{total_units:,}",
-            "sub": f"Target: {forecast_units:,}",
-            "delta": units_var_str,
-            "deltaClass": "delta-good" if units_var >= 0 else "delta-bad",
-            "colorClass": "kpi-blue",
-            "icon": "#"
-        },
-        {
-            "label": "Total Revenue",
-            "value": f"${total_revenue:,.0f}",
-            "sub": f"Target: ${forecast_revenue:,.0f}",
-            "delta": rev_var_str,
-            "deltaClass": "delta-good" if rev_var >= 0 else "delta-bad",
-            "colorClass": "kpi-green",
-            "icon": "$"
-        },
-        {
-            "label": "Active Alerts",
-            "value": str(active_alerts),
-            "sub": f"Out of {total_alerts} total",
-            "delta": f"{affected_units:,} units affected",
-            "deltaClass": "delta-bad" if active_alerts > 0 else "delta-neutral",
-            "colorClass": "kpi-red",
-            "icon": "!"
-        }
-    ]
-
-    # Insights
-    insights = []
-    if units_var < 0:
-        insights.append({"text": f"Production is **{abs(units_var):,} units below forecast** for {period}.", "icon": "⚠️", "colorClass": "insight-red"})
-    else:
-        insights.append({"text": f"Production is **{units_var_str} units above forecast** for {period}.", "icon": "✅", "colorClass": "insight-green"})
-    
-    if active_alerts > 0:
-        pct = round(affected_units / total_units * 100, 1) if total_units > 0 else 0
-        insights.append({"text": f"**{active_alerts} active quality alerts** are affecting **{pct}%** of produced units.", "icon": "!", "colorClass": "insight-amber"})
-
-    # Table
-    table = {
-        "title": "Global Metrics Overview",
-        "headers": ["Metric", "Actual", "Forecast", "Variance"],
-        "rows": [
-            ["Production Units", f"{total_units:,}", f"{forecast_units:,}", units_var_str],
-            ["Revenue", f"${total_revenue:,.0f}", f"${forecast_revenue:,.0f}", rev_var_str],
-            ["Total Alerts", str(total_alerts), "—", "—"],
-            ["Active Alerts", str(active_alerts), "—", "—"],
-            ["Affected Units", f"{affected_units:,}", "—", "—"]
+    # --- Domain-Specific KPI Selection ---
+    if domain == "quality":
+        kpis = [
+            {
+                "label": "Active Alerts",
+                "value": str(active_alerts),
+                "sub": f"Out of {total_alerts} total",
+                "delta": f"{affected_units:,} units affected",
+                "deltaClass": "delta-bad" if active_alerts > 0 else "delta-neutral",
+                "colorClass": "kpi-red",
+                "icon": "!"
+            },
+            {
+                "label": "Impact Ratio",
+                "value": f"{round(affected_units / total_units * 100, 1) if total_units > 0 else 0}%",
+                "sub": "of total output",
+                "colorClass": "kpi-amber",
+                "icon": "%"
+            },
+            {
+                "label": "Total Alerts",
+                "value": str(total_alerts),
+                "sub": period,
+                "colorClass": "kpi-blue",
+                "icon": "Σ"
+            }
         ]
-    }
+    elif domain == "revenue":
+        kpis = [
+            {
+                "label": "Total Revenue",
+                "value": f"${total_revenue:,.0f}",
+                "sub": f"Target: ${forecast_revenue:,.0f}",
+                "delta": rev_var_str,
+                "deltaClass": "delta-good" if rev_var >= 0 else "delta-bad",
+                "colorClass": "kpi-green",
+                "icon": "$"
+            },
+            {
+                "label": "Rev Variance",
+                "value": rev_var_str,
+                "sub": "vs Forecast",
+                "colorClass": "kpi-teal",
+                "icon": "Δ"
+            },
+            {
+                "label": "Revenue Perf",
+                "value": f"{round(total_revenue / forecast_revenue * 100, 1) if forecast_revenue > 0 else 100}%",
+                "sub": "of Target",
+                "colorClass": "kpi-blue",
+                "icon": "📈"
+            }
+        ]
+    else: # Production or General
+        kpis = [
+            {
+                "label": "Production Units",
+                "value": f"{total_units:,}",
+                "sub": f"Target: {forecast_units:,}",
+                "delta": units_var_str,
+                "deltaClass": "delta-good" if units_var >= 0 else "delta-bad",
+                "colorClass": "kpi-blue",
+                "icon": "#"
+            },
+            {
+                "label": "Total Revenue",
+                "value": f"${total_revenue:,.0f}",
+                "sub": f"Target: ${forecast_revenue:,.0f}",
+                "delta": rev_var_str,
+                "deltaClass": "delta-good" if rev_var >= 0 else "delta-bad",
+                "colorClass": "kpi-green",
+                "icon": "$"
+            },
+            {
+                "label": "Active Alerts",
+                "value": str(active_alerts),
+                "sub": f"Out of {total_alerts} total",
+                "delta": f"{affected_units:,} units",
+                "deltaClass": "delta-bad" if active_alerts > 0 else "delta-neutral",
+                "colorClass": "kpi-red",
+                "icon": "!"
+            }
+        ]
 
+    # --- Domain-Specific Insights ---
+    insights = []
+    if domain == "quality":
+        if active_alerts > 0:
+            insights.append({"text": f"Priority: **{active_alerts} active alerts** require immediate attention.", "icon": "🚨", "colorClass": "insight-red"})
+        insights.append({"text": f"A total of **{affected_units:,} units** have been impacted by quality events in {period}.", "icon": "⚠️", "colorClass": "insight-amber"})
+    elif domain == "revenue":
+        if rev_var < 0:
+            insights.append({"text": f"Revenue is **${abs(rev_var):,.0f} below target** for {period}.", "icon": "📉", "colorClass": "insight-red"})
+        else:
+            insights.append({"text": f"Revenue performance is strong, exceeding target by **${rev_var:,.0f}**.", "icon": "💰", "colorClass": "insight-green"})
+    else:
+        if units_var < 0:
+            insights.append({"text": f"Production is **{abs(units_var):,} units below forecast**.", "icon": "⚠️", "colorClass": "insight-red"})
+        else:
+            insights.append({"text": f"Production is **{units_var_str} units above forecast**.", "icon": "✅", "colorClass": "insight-green"})
+
+    # --- Domain-Specific Charts (Attempt to add some dynamic visual data) ---
+    bar_chart = None
+    donut_chart = None
+    
+    # Try to get a breakdown for the charts
+    try:
+        if domain == "quality":
+            # Issue type breakdown
+            breakdown_df = data_svc.execute_query(f"SELECT issue_type, COUNT(*) as cnt FROM alerts_quality {alert_where} GROUP BY issue_type ORDER BY cnt DESC LIMIT 5")
+            if not breakdown_df.empty:
+                bar_chart = {"title": "Issues by Type", "items": [{"label": str(row['issue_type']).title(), "value": int(row['cnt']), "colorClass": "bar-red"} for _, row in breakdown_df.iterrows()]}
+                donut_chart = {"title": "Alert Distribution", "items": [{"label": str(row['issue_type']).title(), "value": int(row['cnt'])} for _, row in breakdown_df.iterrows()]}
+        elif domain == "revenue":
+            # Plant revenue breakdown
+            breakdown_df = data_svc.execute_query(f"SELECT plant, SUM(revenue) as rev FROM production_data {prod_where} GROUP BY plant ORDER BY rev DESC LIMIT 5")
+            if not breakdown_df.empty:
+                bar_chart = {"title": "Revenue by Plant", "items": [{"label": str(row['plant']).title(), "value": f"${float(row['rev']):,.0f}", "colorClass": "bar-green"} for _, row in breakdown_df.iterrows()]}
+                donut_chart = {"title": "Revenue Share", "items": [{"label": str(row['plant']).title(), "value": float(row['rev'])} for _, row in breakdown_df.iterrows()]}
+        else:
+            # Plant production breakdown
+            breakdown_df = data_svc.execute_query(f"SELECT plant, SUM(units) as units FROM production_data {prod_where} GROUP BY plant ORDER BY units DESC LIMIT 5")
+            if not breakdown_df.empty:
+                bar_chart = {"title": "Production by Plant", "items": [{"label": str(row['plant']).title(), "value": f"{int(row['units']):,}", "colorClass": "bar-blue"} for _, row in breakdown_df.iterrows()]}
+                donut_chart = {"title": "Output Share", "items": [{"label": str(row['plant']).title(), "value": int(row['units'])} for _, row in breakdown_df.iterrows()]}
+    except Exception as e:
+        logger.error(f"Failed to generate dashboard charts: {e}")
+
+    # --- Table ---
+    if domain == "quality":
+        table_title = "Quality Alerts Detail"
+        headers = ["Issue Type", "Plant", "Status", "Affected Units"]
+        try:
+            detail_df = data_svc.execute_query(f"SELECT issue_type, plant, status, affected_units FROM alerts_quality {alert_where} LIMIT 10")
+            rows = [[str(row[c]).title() if isinstance(row[c], str) else (f"{int(row[c]):,}" if pd.notnull(row[c]) else "0") for c in detail_df.columns] for _, row in detail_df.iterrows()]
+        except: rows = []
+    elif domain == "revenue":
+        table_title = "Revenue Performance by Plant"
+        headers = ["Plant", "Actual Revenue", "Forecast", "Variance"]
+        # Simplified table for overview
+        table_rows = [
+            ["Production", f"${total_revenue:,.0f}", f"${forecast_revenue:,.0f}", rev_var_str],
+            ["Avg per Unit", f"${total_revenue/total_units:,.2f}" if total_units > 0 else "$0", "—", "—"]
+        ]
+        rows = table_rows
+    else:
+        table_title = "Production Overview"
+        headers = ["Metric", "Actual", "Forecast", "Variance"]
+        rows = [
+            ["Production Units", f"{total_units:,}", f"{forecast_units:,}", units_var_str],
+            ["Total Revenue", f"${total_revenue:,.0f}", f"${forecast_revenue:,.0f}", rev_var_str],
+            ["Active Alerts", str(active_alerts), "—", "—"]
+        ]
+
+    period = time_meta.get("used") or "All Available Data"
+    scope_label = ", ".join(scope_parts) if scope_parts else "Global Operations"
+    
     # Summary prose
     summary_prose = (
-        f"Operational overview for **{period}**. "
-        f"Production reached **{total_units:,} units** with revenue of **${total_revenue:,.0f}**. "
-        f"System health monitors report **{active_alerts} active alerts** requiring attention."
+        f"{domain.replace('_', ' ').title()} report for **{scope_label}** during **{period}**. "
+        f"Key metrics show **{total_units:,} units** produced with revenue of **${total_revenue:,.0f}**. "
+        f"System monitors identify **{active_alerts} active alerts**."
     )
 
     dashboard_data = {
-        "title": "Plant Performance Dashboard",
+        "title": f"{domain.replace('_', ' ').title()} Performance Dashboard",
         "period": period,
         "scope": ", ".join(scope_parts) if scope_parts else "Global Operations",
         "summary": summary_prose,
         "fallback": time_meta.get("requested") if time_meta.get("fallback_occurred") else None,
         "kpis": kpis,
         "insights": insights,
-        "table": table
+        "barChart": bar_chart,
+        "donut": donut_chart,
+        "table": {
+            "title": table_title,
+            "headers": headers,
+            "rows": rows
+        }
     }
 
     html = render_dashboard_html(dashboard_data)
@@ -2222,19 +2362,26 @@ async def process_query(
 
     # 2. Check for Structured Data Queries (Single-metric)
     structured_intent = _parse_structured_intent(query)
-    if structured_intent and structured_intent.get("intent_confidence", 1.0) > 0.6:
+    if structured_intent and structured_intent.get("intent_confidence", 1.0) >= 0.8:
         # Check if we should render a dashboard for this single-metric query
         # We'll let execute_structured_query handle the decision
         structured_response = execute_structured_query(query)
         if structured_response:
             logger.info("Returning structured response (possibly dashboard)")
             return structured_response
-    elif structured_intent and structured_intent.get("intent_confidence", 1.0) <= 0.6:
-        # Ambiguous data query - ask for clarification instead of hallucinating
-        return (
-            "I'm not entirely sure which metric or location you're referring to. "
-            "Could you please specify if you want to see **production units**, **revenue**, or **quality alerts**? "
-            "And for which plant or time period?"
+    elif structured_intent and structured_intent.get("intent_confidence", 1.0) < 0.8:
+        # Ambiguous data query - ask for clarification using LLM for natural phrasing
+        logger.info(f"Ambiguous query (confidence {structured_intent.get('intent_confidence')}), asking for clarification.")
+        clarification_prompt = (
+            "The user asked a data-related question but it was slightly ambiguous. "
+            "Ask 1-2 polite counter-questions to understand if they want to see: "
+            "1. Production Units, 2. Revenue, or 3. Quality Alerts. "
+            "Also ask if they are interested in a specific plant (Dearborn, Claycomo, etc.) or time period."
+        )
+        return llm_service.generate_response(
+            user_query=query,
+            data_context=clarification_prompt,
+            conversation_history=conversation_history,
         )
 
     # 2. Fallback to LLM but ONLY for general/diagnostic queries
@@ -2291,14 +2438,20 @@ async def stream_query(
 
     # 2. Check for Structured Data Queries (Single-metric)
     structured_intent = _parse_structured_intent(query)
-    if structured_intent and structured_intent.get("intent_confidence", 1.0) > 0.6:
+    if structured_intent and structured_intent.get("intent_confidence", 1.0) >= 0.8:
         structured_response = execute_structured_query(query)
         if structured_response:
             logger.info("Returning structured response for supported stream query")
             yield structured_response
             return
-    elif structured_intent and structured_intent.get("intent_confidence", 1.0) <= 0.6:
-        yield "I'm not entirely sure which metric or location you're referring to. Could you please specify if you want to see **production units**, **revenue**, or **quality alerts**?"
+    elif structured_intent and structured_intent.get("intent_confidence", 1.0) < 0.8:
+        clarification_prompt = "Ask 1-2 polite counter-questions to clarify if the user wants production, revenue, or quality alerts, and for which plant/period."
+        async for token in llm_service.stream_response(
+            user_query=query,
+            data_context=clarification_prompt,
+            conversation_history=conversation_history,
+        ):
+            yield token
         return
 
     # 2. Fallback to LLM but ONLY for general/diagnostic queries
