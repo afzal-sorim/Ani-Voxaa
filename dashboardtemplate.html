@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -37,8 +38,16 @@
       --radius-sm: 12px;
     }
 
-    * { box-sizing: border-box; }
-    html, body { margin: 0; padding: 0; }
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+    }
+
     body {
       font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       background: linear-gradient(180deg, #f8fbff 0%, var(--bg) 100%);
@@ -88,14 +97,19 @@
       letter-spacing: -0.03em;
     }
 
-    .meta, .summary, .fallback {
+    .meta,
+    .summary,
+    .fallback {
       color: var(--muted);
       font-size: 14px;
       line-height: 1.7;
       margin-top: 10px;
     }
 
-    .summary strong, .fallback strong { color: var(--text); }
+    .summary strong,
+    .fallback strong {
+      color: var(--text);
+    }
 
     .meta-stack {
       display: grid;
@@ -148,6 +162,26 @@
       display: grid;
       gap: 12px;
       min-height: 150px;
+      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
+      animation: slideUp 0.5s ease backwards;
+    }
+
+    .kpi-card:hover {
+      transform: translateY(-6px) scale(1.02);
+      box-shadow: 0 15px 45px rgba(15, 23, 42, 0.1);
+      border-color: var(--primary-soft);
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
 
     .kpi-top {
@@ -198,16 +232,50 @@
       padding: 7px 10px;
     }
 
-    .delta-good { background: var(--success-soft); color: var(--success); }
-    .delta-bad { background: var(--danger-soft); color: var(--danger); }
-    .delta-neutral { background: #eef2ff; color: #4338ca; }
+    .delta-good {
+      background: var(--success-soft);
+      color: var(--success);
+    }
 
-    .kpi-blue .kpi-icon { background: #dbeafe; color: #2563eb; }
-    .kpi-green .kpi-icon { background: #dcfce7; color: #16a34a; }
-    .kpi-red .kpi-icon { background: #fee2e2; color: #dc2626; }
-    .kpi-amber .kpi-icon { background: #fef3c7; color: #d97706; }
-    .kpi-violet .kpi-icon { background: #ede9fe; color: #7c3aed; }
-    .kpi-teal .kpi-icon { background: #ccfbf1; color: #0f766e; }
+    .delta-bad {
+      background: var(--danger-soft);
+      color: var(--danger);
+    }
+
+    .delta-neutral {
+      background: #eef2ff;
+      color: #4338ca;
+    }
+
+    .kpi-blue .kpi-icon {
+      background: #dbeafe;
+      color: #2563eb;
+    }
+
+    .kpi-green .kpi-icon {
+      background: #dcfce7;
+      color: #16a34a;
+    }
+
+    .kpi-red .kpi-icon {
+      background: #fee2e2;
+      color: #dc2626;
+    }
+
+    .kpi-amber .kpi-icon {
+      background: #fef3c7;
+      color: #d97706;
+    }
+
+    .kpi-violet .kpi-icon {
+      background: #ede9fe;
+      color: #7c3aed;
+    }
+
+    .kpi-teal .kpi-icon {
+      background: #ccfbf1;
+      color: #0f766e;
+    }
 
     .content-grid {
       grid-template-columns: repeat(12, minmax(0, 1fr));
@@ -248,10 +316,21 @@
       padding: 0 20px 20px;
     }
 
-    .panel-wide { grid-column: span 8; }
-    .panel-side { grid-column: span 4; }
-    .panel-full { grid-column: 1 / -1; }
-    .panel-half { grid-column: span 6; }
+    .panel-wide {
+      grid-column: span 8;
+    }
+
+    .panel-side {
+      grid-column: span 4;
+    }
+
+    .panel-full {
+      grid-column: 1 / -1;
+    }
+
+    .panel-half {
+      grid-column: span 6;
+    }
 
     .chart-wrap {
       height: 320px;
@@ -313,20 +392,39 @@
       border-radius: inherit;
     }
 
-    .bar-blue { background: linear-gradient(90deg, #60a5fa, #2563eb); }
-    .bar-green { background: linear-gradient(90deg, #4ade80, #16a34a); }
-    .bar-amber { background: linear-gradient(90deg, #fbbf24, #d97706); }
-    .bar-red { background: linear-gradient(90deg, #f87171, #dc2626); }
-    .bar-violet { background: linear-gradient(90deg, #a78bfa, #7c3aed); }
-    .bar-teal { background: linear-gradient(90deg, #2dd4bf, #0f766e); }
+    .bar-blue {
+      background: linear-gradient(90deg, #60a5fa, #2563eb);
+    }
 
-    .insight-list, .alert-list {
+    .bar-green {
+      background: linear-gradient(90deg, #4ade80, #16a34a);
+    }
+
+    .bar-amber {
+      background: linear-gradient(90deg, #fbbf24, #d97706);
+    }
+
+    .bar-red {
+      background: linear-gradient(90deg, #f87171, #dc2626);
+    }
+
+    .bar-violet {
+      background: linear-gradient(90deg, #a78bfa, #7c3aed);
+    }
+
+    .bar-teal {
+      background: linear-gradient(90deg, #2dd4bf, #0f766e);
+    }
+
+    .insight-list,
+    .alert-list {
       display: grid;
       gap: 12px;
       margin-top: 8px;
     }
 
-    .insight-item, .alert-item {
+    .insight-item,
+    .alert-item {
       display: grid;
       grid-template-columns: auto 1fr;
       gap: 12px;
@@ -337,7 +435,8 @@
       background: var(--surface-soft);
     }
 
-    .insight-icon, .alert-dot {
+    .insight-icon,
+    .alert-dot {
       width: 34px;
       height: 34px;
       border-radius: 12px;
@@ -348,27 +447,58 @@
       margin-top: 2px;
     }
 
-    .insight-blue .insight-icon { background: #dbeafe; color: #2563eb; }
-    .insight-green .insight-icon { background: #dcfce7; color: #16a34a; }
-    .insight-amber .insight-icon { background: #fef3c7; color: #d97706; }
-    .insight-red .insight-icon { background: #fee2e2; color: #dc2626; }
+    .insight-blue .insight-icon {
+      background: #dbeafe;
+      color: #2563eb;
+    }
 
-    .insight-text, .alert-main {
+    .insight-green .insight-icon {
+      background: #dcfce7;
+      color: #16a34a;
+    }
+
+    .insight-amber .insight-icon {
+      background: #fef3c7;
+      color: #d97706;
+    }
+
+    .insight-red .insight-icon {
+      background: #fee2e2;
+      color: #dc2626;
+    }
+
+    .insight-text,
+    .alert-main {
       font-size: 14px;
       line-height: 1.7;
       color: var(--text);
     }
 
-    .alert-main strong { display: block; margin-bottom: 4px; }
+    .alert-main strong {
+      display: block;
+      margin-bottom: 4px;
+    }
+
     .alert-meta {
       font-size: 12px;
       color: var(--muted);
       margin-top: 4px;
     }
 
-    .alert-high .alert-dot { background: #fee2e2; color: #dc2626; }
-    .alert-medium .alert-dot { background: #fef3c7; color: #d97706; }
-    .alert-low .alert-dot { background: #dcfce7; color: #16a34a; }
+    .alert-high .alert-dot {
+      background: #fee2e2;
+      color: #dc2626;
+    }
+
+    .alert-medium .alert-dot {
+      background: #fef3c7;
+      color: #d97706;
+    }
+
+    .alert-low .alert-dot {
+      background: #dcfce7;
+      color: #16a34a;
+    }
 
     .table-shell {
       border: 1px solid var(--border);
@@ -410,8 +540,13 @@
       vertical-align: top;
     }
 
-    tbody tr:hover { background: #fbfdff; }
-    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover {
+      background: #fbfdff;
+    }
+
+    tbody tr:last-child td {
+      border-bottom: none;
+    }
 
     .empty-state {
       display: grid;
@@ -434,21 +569,51 @@
     }
 
     @media (max-width: 1180px) {
-      .kpi-card { grid-column: span 6; }
-      .panel-wide, .panel-side, .panel-half { grid-column: 1 / -1; }
+      .kpi-card {
+        grid-column: span 6;
+      }
+
+      .panel-wide,
+      .panel-side,
+      .panel-half {
+        grid-column: 1 / -1;
+      }
     }
 
     @media (max-width: 760px) {
-      .page { padding: 14px; }
-      .header { grid-template-columns: 1fr; padding: 18px; border-radius: 20px; }
-      .kpi-card { grid-column: 1 / -1; }
-      .panel-header { padding: 16px 16px 0; }
-      .panel-body { padding: 0 16px 16px; }
-      .chart-wrap { height: 280px; }
-      table { min-width: 560px; }
+      .page {
+        padding: 14px;
+      }
+
+      .header {
+        grid-template-columns: 1fr;
+        padding: 18px;
+        border-radius: 20px;
+      }
+
+      .kpi-card {
+        grid-column: 1 / -1;
+      }
+
+      .panel-header {
+        padding: 16px 16px 0;
+      }
+
+      .panel-body {
+        padding: 0 16px 16px;
+      }
+
+      .chart-wrap {
+        height: 280px;
+      }
+
+      table {
+        min-width: 560px;
+      }
     }
   </style>
 </head>
+
 <body>
   <div class="page" id="app"></div>
 
@@ -526,9 +691,9 @@
       return `
         <section class="grid kpi-grid">
           ${kpis.map((kpi) => {
-            const colorClass = normalizeColorClass(kpi.colorClass, 'kpi-blue');
-            const deltaClass = kpi.deltaClass || 'delta-neutral';
-            return `
+        const colorClass = normalizeColorClass(kpi.colorClass, 'kpi-blue');
+        const deltaClass = kpi.deltaClass || 'delta-neutral';
+        return `
               <article class="kpi-card ${colorClass}">
                 <div class="kpi-top">
                   <div class="kpi-label">${escapeHtml(kpi.label || 'Metric')}</div>
@@ -539,7 +704,7 @@
                 ${kpi.delta ? `<div class="kpi-delta ${deltaClass}">${escapeHtml(kpi.delta)}</div>` : ''}
               </article>
             `;
-          }).join('')}
+      }).join('')}
         </section>
       `;
     }
@@ -573,9 +738,9 @@
           <div class="panel-body">
             <div class="bar-list">
               ${barChart.items.map(item => {
-                const raw = Number(String(item.value).replace(/,/g, '').replace(/[^\d.-]/g, '')) || 0;
-                const width = Math.max(4, (raw / (max || 1)) * 100);
-                return `
+        const raw = Number(String(item.value).replace(/,/g, '').replace(/[^\d.-]/g, '')) || 0;
+        const width = Math.max(4, (raw / (max || 1)) * 100);
+        return `
                   <div class="bar-row">
                     <div class="bar-meta">
                       <div class="bar-label">${escapeHtml(item.label || 'Item')}</div>
@@ -586,7 +751,7 @@
                     </div>
                   </div>
                 `;
-              }).join('')}
+      }).join('')}
             </div>
           </div>
         </section>
@@ -675,14 +840,14 @@
           <div class="panel-body">
             <div class="insight-list">
               ${insights.map((item, idx) => {
-                const cls = normalizeColorClass(item.colorClass, ['insight-blue','insight-green','insight-amber','insight-red'][idx % 4]);
-                return `
+        const cls = normalizeColorClass(item.colorClass, ['insight-blue', 'insight-green', 'insight-amber', 'insight-red'][idx % 4]);
+        return `
                   <div class="insight-item ${cls}">
                     <div class="insight-icon">${escapeHtml(item.icon || '*')}</div>
                     <div class="insight-text">${item.text || ''}</div>
                   </div>
                 `;
-              }).join('')}
+      }).join('')}
             </div>
           </div>
         </section>
@@ -717,9 +882,9 @@
           <div class="panel-body">
             <div class="alert-list">
               ${alerts.map((alert) => {
-                const sev = String(alert.severity || 'HIGH').toLowerCase();
-                const sevClass = sev.includes('low') ? 'alert-low' : sev.includes('medium') ? 'alert-medium' : 'alert-high';
-                return `
+        const sev = String(alert.severity || 'HIGH').toLowerCase();
+        const sevClass = sev.includes('low') ? 'alert-low' : sev.includes('medium') ? 'alert-medium' : 'alert-high';
+        return `
                   <div class="alert-item ${sevClass}">
                     <div class="alert-dot">!</div>
                     <div class="alert-main">
@@ -728,7 +893,7 @@
                     </div>
                   </div>
                 `;
-              }).join('')}
+      }).join('')}
             </div>
           </div>
         </section>
@@ -771,7 +936,7 @@
 
     function destroyCharts() {
       chartRefs.forEach(c => {
-        try { c.destroy(); } catch (e) {}
+        try { c.destroy(); } catch (e) { }
       });
       chartRefs = [];
     }
@@ -825,10 +990,10 @@
       if (!trend || !Array.isArray(trend.items) || !trend.items.length) return;
       const el = document.getElementById('trendChart');
       if (!el) return;
-      
+
       const labels = trend.items.map(x => x.label);
       const values = trend.items.map(x => Number(String(x.value).replace(/,/g, '').replace(/[^\d.-]/g, '')) || 0);
-      
+
       const chart = new Chart(el, {
         type: 'line',
         data: {
@@ -886,66 +1051,20 @@
           ${renderAlerts(data.alerts || [])}
           ${renderTable(data.table)}
         </section>
-        <div class="footer-note">Dashboard rendered in a fixed light theme for consistent report-style responses.</div>
       `;
       mountDonutChart(data.donut);
       mountTrendChart(data.trend);
     }
 
-    const sampleData = {
-      title: 'Plant Performance Weekly Report',
-      period: 'Week 18, 2026',
-      scope: 'Chennai Plant',
-      summary: 'Production reached <strong>12,480 units</strong> against forecast of <strong>12,000</strong>, while <strong>14 active alerts</strong> affected <strong>310 units</strong>.',
-      fallback: '',
-      kpis: [
-        { label: 'Total Production', value: '12,480', sub: 'Forecast 12,000', icon: '#', colorClass: 'kpi-blue', delta: '+480', deltaClass: 'delta-good' },
-        { label: 'Total Revenue', value: '4.8M', sub: 'Forecast 4.6M', icon: '$', colorClass: 'kpi-green', delta: '+200,000', deltaClass: 'delta-good' },
-        { label: 'Active Alerts', value: '14', sub: '22 total alerts', icon: '!', colorClass: 'kpi-red' },
-        { label: 'Affected Units', value: '310', sub: '2.5% of production', icon: '~', colorClass: 'kpi-amber' }
-      ],
-      barChart: {
-        title: 'Production Units by Department',
-        max: 4200,
-        items: [
-          { label: 'Assembly', value: '4,200', colorClass: 'bar-blue' },
-          { label: 'Paint', value: '3,150', colorClass: 'bar-green' },
-          { label: 'Body', value: '2,680', colorClass: 'bar-amber' },
-          { label: 'QA', value: '2,450', colorClass: 'bar-violet' }
-        ]
-      },
-      donut: {
-        title: 'Alert Mix',
-        items: [
-          { label: 'Quality', value: 8 },
-          { label: 'Supply', value: 4 },
-          { label: 'Machine', value: 2 }
-        ]
-      },
-      insights: [
-        { text: 'Assembly contributed the largest share of total output and remained ahead of every other department in the selected period.', icon: '#', colorClass: 'insight-blue' },
-        { text: 'Revenue outperformed forecast, indicating that output gains translated into higher-value production rather than only volume increase.', icon: '$', colorClass: 'insight-green' },
-        { text: 'Active alerts still affected a meaningful set of units, so quality review should focus on the highest-volume lines first.', icon: '!', colorClass: 'insight-amber' }
-      ],
-      alerts: [
-        { name: 'Paint finish inconsistency', meta: 'Paint • Chennai', severity: 'HIGH' },
-        { name: 'Late supplier batch receipt', meta: 'Assembly • Chennai', severity: 'MEDIUM' }
-      ],
-      table: {
-        title: 'Dashboard Overview',
-        headers: ['Metric', 'Actual', 'Forecast', 'Variance'],
-        rows: [
-          ['Production Units', '12,480', '12,000', '+480'],
-          ['Revenue', '4,800,000', '4,600,000', '+200,000'],
-          ['Total Alerts', '22', '', ''],
-          ['Affected Units', '310', '', '']
-        ]
-      }
-    };
-
     // DATA_INJECTION_POINT
-    const data = window.__DASHBOARD_DATA__ || sampleData;
+    const data = window.__DASHBOARD_DATA__ || {};
+    if (Object.keys(data).length > 0) {
+      renderDashboard(data);
+    } else {
+      document.getElementById('app').innerHTML = '<div class="empty-state">Waiting for database results...</div>';
+    }
     renderDashboard(data);
   </script>
 </body>
+
 </html>

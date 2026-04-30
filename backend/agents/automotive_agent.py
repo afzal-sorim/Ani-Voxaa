@@ -347,7 +347,7 @@ def build_dashboard_report_from_structured_data(query: str, structured_data: dic
     trend_chart = {"title": f"{metric_label} Trend", "items": []}
     
     group_by = structured_data.get("group_by")
-    if group_by and not df.empty:
+    if not df.empty and len(df) > 1:
         val_col = df.columns[-1]
         label_cols = [c for c in df.columns if c != val_col]
         
@@ -367,9 +367,13 @@ def build_dashboard_report_from_structured_data(query: str, structured_data: dic
                 trend_chart["items"].append(item)
             else:
                 bar_chart["items"].append(item)
+                try:
+                    num_val = float(str(raw_val).replace(',', '').replace('$', ''))
+                except:
+                    num_val = 0
                 donut_chart["items"].append({
                     "label": label,
-                    "value": raw_val
+                    "value": num_val
                 })
 
     # 3. Insights
@@ -413,7 +417,8 @@ def build_dashboard_report_from_structured_data(query: str, structured_data: dic
     }
     
     html = render_dashboard_html(dashboard_data)
-    return f"### Summary\n{dashboard_data['summary']}\n\n```html\n{html}\n```"
+    # We return only the code block to keep the UI clean, as the summary is now inside the dashboard
+    return f"```html\n{html}\n```"
 
 def icon_for_metric(metric: str) -> str:
     m = metric.lower()
@@ -434,14 +439,14 @@ def build_prose_summary(structured_data: dict, df: pd.DataFrame) -> str:
         parts = []
         for k, v in filters.items():
             val_str = str(v).title() if isinstance(v, str) else ", ".join(str(i).title() for i in v)
-            parts.append(f"**{val_str}** {k}")
+            parts.append(f"<strong>{val_str}</strong> {k}")
         filter_desc = f" for " + " and ".join(parts)
 
     if val is not None and len(df) <= 1:
-        return f"Analysis of **{metric}**{filter_desc} during **{used_time}** shows a total value of **{val}**. This figure reflects the precise aggregated total from our operational datasets."
+        return f"Analysis of <strong>{metric}</strong>{filter_desc} during <strong>{used_time}</strong> shows a total value of <strong>{val}</strong>. This figure reflects the precise aggregated total from our operational datasets."
     elif not df.empty:
-        return f"This report provides a detailed **{metric}** breakdown{filter_desc} for **{used_time}**. We have analyzed **{len(df)}** distinct segments to identify performance trends and variances."
-    return f"Data summary for **{metric}**{filter_desc} during the requested period."
+        return f"This report provides a detailed <strong>{metric}</strong> breakdown{filter_desc} for <strong>{used_time}</strong>. We have analyzed <strong>{len(df)}</strong> distinct segments to identify performance trends and variances."
+    return f"Data summary for <strong>{metric}</strong>{filter_desc} during the requested period."
 
 # ── Determinism Helpers ──
 
@@ -683,9 +688,18 @@ def _extract_computed_change(intent: dict, df) -> dict:
     if df is None or df.empty:
         return {}
 
-    time_columns = [c for c in df.columns if c in {"week", "date", "quarter", "month"}]
+    time_columns = [c for c in df.columns if c in {"week", "date", "quarter", "month", "week_number", "month_number"}]
     if not time_columns or df.shape[0] < 2:
         return {}
+
+    # NEW: Ensure we have distinct time periods. If all rows are for the same week/month, 
+    # we shouldn't calculate a 'variance' between rows (which are likely different models/plants).
+    first_time = str(df.iloc[0][time_columns[0]])
+    last_time = str(df.iloc[-1][time_columns[0]])
+    if first_time == last_time and df.shape[0] > 1:
+        # Check if there are ANY distinct time periods in the entire column
+        if df[time_columns[0]].nunique() <= 1:
+            return {}
 
     value_columns = [
         c for c in df.columns
@@ -1324,15 +1338,19 @@ def _build_structured_context(intent: dict, df, sql: str, time_meta: dict, row_c
         if "max_units" in df.columns:
             summary["max_units"] = float(df.iloc[0]["max_units"])
 
-        if df.shape[0] > 1 and "total_units" in df.columns:
-            first = df.iloc[0]["total_units"]
-            last = df.iloc[-1]["total_units"]
-            if last > first:
-                trend_label = "increasing"
-            elif last < first:
-                trend_label = "decreasing"
-            else:
-                trend_label = "flat"
+        # Corrected Trend Detection: only if we have distinct time periods
+        time_cols = [c for c in df.columns if c in {"week", "date", "quarter", "month", "week_number", "month_number"}]
+        if df.shape[0] > 1 and "total_units" in df.columns and time_cols:
+            # Only detect trend if there are at least 2 distinct time periods
+            if df[time_cols[0]].nunique() > 1:
+                first = df.iloc[0]["total_units"]
+                last = df.iloc[-1]["total_units"]
+                if last > first:
+                    trend_label = "increasing"
+                elif last < first:
+                    trend_label = "decreasing"
+                else:
+                    trend_label = "flat"
 
     if trend_label:
         summary["trend"] = trend_label
@@ -1688,18 +1706,18 @@ def execute_dashboard_query(query: str) -> str:
     insights = []
     if domain == "quality":
         if active_alerts > 0:
-            insights.append({"text": f"Priority: **{active_alerts} active alerts** require immediate attention.", "icon": "🚨", "colorClass": "insight-red"})
-        insights.append({"text": f"A total of **{affected_units:,} units** have been impacted by quality events in {period}.", "icon": "⚠️", "colorClass": "insight-amber"})
+            insights.append({"text": f"Priority: <strong>{active_alerts} active alerts</strong> require immediate attention.", "icon": "🚨", "colorClass": "insight-red"})
+        insights.append({"text": f"A total of <strong>{affected_units:,} units</strong> have been impacted by quality events in {period}.", "icon": "⚠️", "colorClass": "insight-amber"})
     elif domain == "revenue":
         if rev_var < 0:
-            insights.append({"text": f"Revenue is **${abs(rev_var):,.0f} below target** for {period}.", "icon": "📉", "colorClass": "insight-red"})
+            insights.append({"text": f"Revenue is <strong>${abs(rev_var):,.0f} below target</strong> for {period}.", "icon": "📉", "colorClass": "insight-red"})
         else:
-            insights.append({"text": f"Revenue performance is strong, exceeding target by **${rev_var:,.0f}**.", "icon": "💰", "colorClass": "insight-green"})
+            insights.append({"text": f"Revenue performance is strong, exceeding target by <strong>${rev_var:,.0f}</strong>.", "icon": "💰", "colorClass": "insight-green"})
     else:
         if units_var < 0:
-            insights.append({"text": f"Production is **{abs(units_var):,} units below forecast**.", "icon": "⚠️", "colorClass": "insight-red"})
+            insights.append({"text": f"Production is <strong>{abs(units_var):,} units below forecast</strong>.", "icon": "⚠️", "colorClass": "insight-red"})
         else:
-            insights.append({"text": f"Production is **{units_var_str} units above forecast**.", "icon": "✅", "colorClass": "insight-green"})
+            insights.append({"text": f"Production is <strong>{units_var_str} units above forecast</strong>.", "icon": "✅", "colorClass": "insight-green"})
 
     # --- Domain-Specific Charts (Attempt to add some dynamic visual data) ---
     bar_chart = None
@@ -1759,9 +1777,9 @@ def execute_dashboard_query(query: str) -> str:
     
     # Summary prose
     summary_prose = (
-        f"{domain.replace('_', ' ').title()} report for **{scope_label}** during **{period}**. "
-        f"Key metrics show **{total_units:,} units** produced with revenue of **${total_revenue:,.0f}**. "
-        f"System monitors identify **{active_alerts} active alerts**."
+        f"{domain.replace('_', ' ').title()} report for <strong>{scope_label}</strong> during <strong>{period}</strong>. "
+        f"Key metrics show <strong>{total_units:,} units</strong> produced with revenue of <strong>${total_revenue:,.0f}</strong>. "
+        f"System monitors identify <strong>{active_alerts} active alerts</strong>."
     )
 
     dashboard_data = {
@@ -1782,7 +1800,8 @@ def execute_dashboard_query(query: str) -> str:
     }
 
     html = render_dashboard_html(dashboard_data)
-    return f"### Summary\n{summary_prose}\n\n```html\n{html}\n```"
+    # We return only the code block to keep the UI clean, as the summary is now inside the dashboard
+    return f"```html\n{html}\n```"
 
 
 def execute_actual_vs_forecast_query(query: str) -> str:
@@ -1845,14 +1864,14 @@ def execute_actual_vs_forecast_query(query: str) -> str:
         fallback_note = f"\n> ⚠️ No data for **{time_meta['requested']}**. Showing latest available: **{period}**."
 
     # Summary stats
-    summary_lines = [f"### Summary", f"Actual vs Forecast comparison for **{period}**:{fallback_note}"]
+    summary_lines = [f"### Summary", f"Actual vs Forecast comparison for {period}:{fallback_note}"]
     if want_units and "actual_units" in df.columns:
         total_actual = int(df["actual_units"].sum())
         total_forecast = int(df["forecast_units"].sum())
         variance = total_actual - total_forecast
         var_str = f"+{variance:,}" if variance >= 0 else f"{variance:,}"
         summary_lines.append(
-            f"Total actual production: **{total_actual:,} units** vs forecast **{total_forecast:,} units** (variance: **{var_str}**)."
+            f"Total actual production: {total_actual:,} units vs forecast {total_forecast:,} units (variance: {var_str})."
         )
     if want_revenue and "actual_revenue" in df.columns:
         total_rev = float(df["actual_revenue"].sum())
@@ -2116,12 +2135,12 @@ def execute_structured_query(query: str) -> str | None:
         "2. Every bullet MUST contain a specific figure or entity from computed_results — no generic sentences.\n"
         "3. Explain what the numbers MEAN for operations (e.g., impact on capacity, risk level), don't just repeat them.\n"
         "4. Do NOT write a 'Summary' or 'Introduction' section.\n"
-        "5. Bold all entity names and numeric values.\n\n"
+        "5. DO NOT USE ANY BOLDING (no **). Keep text plain for clean report style.\n\n"
         "FORMAT (use exactly these two markdown headings):\n\n"
         "### Insights\n"
-        "- [3 specific bullets with bolded figures]\n\n"
+        "- [3 specific bullets with figures]\n\n"
         "### Key Takeaways\n"
-        "- [2-3 actionable bullets with bolded figures]"
+        "- [2-3 actionable bullets with figures]"
     )
     safe_context["instructions"] = insights_prompt
 

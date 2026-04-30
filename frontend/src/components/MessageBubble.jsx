@@ -64,11 +64,15 @@ export default function MessageBubble({ message, onRetry, onRegenerate, onEdit, 
     });
   }, [createdAt]);
 
+  const isWide = useMemo(() => {
+    return !isUser && content?.toLowerCase().includes('<!doctype html>');
+  }, [isUser, content]);
+
   return (
     <div
       id={`message-${message.id}`}
       className={`
-        group flex gap-2 sm:gap-3 py-1.5 sm:py-2 max-w-[820px] w-full mx-auto animate-fade-in-up
+        group flex gap-2 sm:gap-3 py-1.5 sm:py-2 ${isWide ? 'max-w-[1200px]' : 'max-w-[820px]'} w-full mx-auto animate-fade-in-up
         ${isUser ? 'flex-row-reverse' : ''}
         ${message.isStale ? 'message-stale' : ''}
       `}
@@ -96,7 +100,7 @@ export default function MessageBubble({ message, onRetry, onRegenerate, onEdit, 
       )}
 
       {/* Content wrapper */}
-      <div className={`flex flex-col gap-0.5 sm:gap-1 max-w-[calc(100%-44px)] sm:max-w-[calc(100%-52px)] min-w-0 ${isUser ? 'items-end' : ''}`}>
+      <div className={`flex flex-col gap-0.5 sm:gap-1 ${isWide ? 'max-w-full w-full' : 'max-w-[calc(100%-44px)] sm:max-w-[calc(100%-52px)]'} min-w-0 ${isUser ? 'items-end' : ''}`}>
         {/* Bubble */}
         <div
           className={`
@@ -107,6 +111,7 @@ export default function MessageBubble({ message, onRetry, onRegenerate, onEdit, 
               : `bg-[var(--surf)] border border-gold/[0.15] rounded-bl-sm shadow-[0_2px_8px_rgba(0,0,0,0.3)]
                  ${isError ? '!bg-red-500/10 !border-red-500/40' : ''}`}
             ${isEditing ? 'w-full !p-0' : ''}
+            ${isWide ? 'w-full' : ''}
           `}
         >
           {/* Voice badge */}
@@ -183,7 +188,7 @@ export default function MessageBubble({ message, onRetry, onRegenerate, onEdit, 
                         </ReactMarkdown>
                       )}
 
-                      <div className="w-full bg-white rounded-xl overflow-hidden my-4 border border-gold/[0.3] shadow-lg animate-fade-in-scale" style={{ height: '650px', maxWidth: '1000px', display: 'block' }}>
+                      <div className="w-full bg-white rounded-xl overflow-hidden my-4 border border-gold/[0.3] shadow-lg animate-fade-in-scale" style={{ height: '650px', maxWidth: '100%', display: 'block' }}>
                         <iframe
                           srcDoc={extractedHtml}
                           style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
