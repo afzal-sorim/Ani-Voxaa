@@ -90,8 +90,9 @@ export default function MessageBubble({ message, onRetry, onRegenerate, onEdit, 
   }, [createdAt]);
 
   const isWide = useMemo(() => {
-    return !isUser && content?.toLowerCase().includes('<!doctype html>');
-  }, [isUser, content]);
+    // All assistant responses should now fit the screen width for a consistent executive dashboard feel
+    return !isUser;
+  }, [isUser]);
 
   return (
     <div

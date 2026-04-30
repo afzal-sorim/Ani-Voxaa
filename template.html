@@ -74,14 +74,7 @@
       color: var(--txt2);
     }
 
-    /* Gold accent line under header */
-    .gold-rule {
-      height: 2px;
-      background: linear-gradient(90deg, #D4AF37, #F5E6B3, #B8962E);
-      border-radius: 2px;
-      margin-bottom: 18px;
-      opacity: 0.7;
-    }
+    /* Gold rule removed */
 
     /* ── KPI Row ── */
     .kpi-row {
@@ -298,10 +291,7 @@
       background: var(--surf);
       border: 0.5px solid var(--brd);
       border-radius: 10px;
-      padding: 16px 18px 22px; /* Extra bottom padding for the line */
-      position: relative;
-      display: flex;
-      flex-direction: column;
+      padding: 16px 18px;
     }
 
     .chart-header {
@@ -435,18 +425,7 @@
       color: var(--txt3);
     }
 
-    /* Gold accent footer line on chart cards */
-    .chart-card::after {
-      content: '';
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      height: 2px;
-      background: linear-gradient(90deg, #D4AF37, #F5E6B3, #B8962E);
-      border-radius: 0 0 10px 10px;
-      opacity: 0.5;
-    }
+    /* Gold accent footer line removed for cleaner look */
 
     /* Hide scrollbars for a cleaner look */
     body {
@@ -473,7 +452,7 @@
       May 12 – May 18, 2024
     </div>
   </header>
-  <div class="gold-rule"></div>
+  <!-- Gold rule removed -->
 
   <!-- Row 1: KPI Cards -->
   <div class="kpi-row">

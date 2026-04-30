@@ -32,7 +32,7 @@ export default function WelcomeScreen({
       {/* ── Scrollable centre column ── */}
       <main className="
         flex flex-col items-center justify-center
-        flex-1 min-h-0 w-full max-w-[1200px]
+        flex-1 min-h-0 w-full max-w-[1600px]
         gap-3 sm:gap-[clamp(8px,1.8vh,18px)]
       ">
 
