@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vehicle Dashboard – This Week</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: #0d0f18;
+      color: #e2e4ea;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    /* ── Header ── */
+    .dash-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+
+    .dash-header h1 {
+      font-size: 15px;
+      font-weight: 500;
+      color: #c8ccd8;
+    }
+
+    .date-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: #1a1d2e;
+      border: 0.5px solid #2a2e45;
+      border-radius: 6px;
+      padding: 3px 10px;
+      font-size: 11px;
+      color: #6b7280;
+    }
+
+    .date-badge svg {
+      opacity: 0.6;
+    }
+
+    /* ── KPI Row ── */
+    .kpi-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .kpi-card {
+      background: #161923;
+      border: 0.5px solid #252a3a;
+      border-radius: 10px;
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .kpi-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .kpi-label {
+      font-size: 11px;
+      color: #6b7280;
+      line-height: 1.4;
+      max-width: 110px;
+    }
+
+    .kpi-icon {
+      width: 30px;
+      height: 30px;
+      border-radius: 7px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .icon-blue {
+      background: #162040;
+    }
+
+    .icon-green {
+      background: #0e2a1a;
+    }
+
+    .icon-amber {
+      background: #2a1c06;
+    }
+
+    .icon-red {
+      background: #2a1010;
+    }
+
+    .icon-purple {
+      background: #1e1640;
+    }
+
+    .kpi-value {
+      font-size: 28px;
+      font-weight: 600;
+      color: #f0f2f8;
+      line-height: 1;
+    }
+
+    .kpi-trend {
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .trend-green {
+      color: #3fc87a;
+    }
+
+    .trend-amber {
+      color: #f0a030;
+    }
+
+    /* ── Table Card ── */
+    .table-card {
+      background: #161923;
+      border: 0.5px solid #252a3a;
+      border-radius: 10px;
+      padding: 16px 18px;
+      margin-bottom: 14px;
+      overflow-x: auto;
+    }
+
+    .section-title {
+      font-size: 13px;
+      font-weight: 500;
+      color: #9ca3af;
+      margin-bottom: 12px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      table-layout: fixed;
+    }
+
+    th {
+      text-align: left;
+      padding: 6px 10px;
+      color: #555d74;
+      font-weight: 400;
+      border-bottom: 0.5px solid #222638;
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 8px 10px;
+      border-bottom: 0.5px solid #1c2030;
+      color: #b0b8cc;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+      color: #e2e4ea;
+      font-weight: 500;
+    }
+
+    tbody tr:hover td {
+      background: #1b1f30;
+    }
+
+    .dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 5px;
+      vertical-align: middle;
+    }
+
+    .col-dept {
+      width: 140px;
+    }
+
+    .col-stat {
+      width: 90px;
+      text-align: right;
+    }
+
+    /* colored values */
+    .v-blue {
+      color: #4a90e2;
+    }
+
+    .v-green {
+      color: #3fc87a;
+    }
+
+    .v-amber {
+      color: #f0a030;
+    }
+
+    .v-red {
+      color: #e05050;
+    }
+
+    .v-purple {
+      color: #a78bfa;
+    }
+
+    /* ── Bottom Charts Row ── */
+    .charts-row {
+      display: grid;
+      grid-template-columns: 1fr 1.55fr;
+      gap: 12px;
+    }
+
+    .chart-card {
+      background: #161923;
+      border: 0.5px solid #252a3a;
+      border-radius: 10px;
+      padding: 16px 18px;
+    }
+
+    .chart-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+
+    .week-badge {
+      font-size: 11px;
+      background: #1e2433;
+      border: 0.5px solid #2e3248;
+      border-radius: 5px;
+      padding: 2px 8px;
+      color: #6b7280;
+    }
+
+    /* Donut */
+    .donut-body {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+
+    .donut-wrap {
+      position: relative;
+      width: 140px;
+      height: 140px;
+      flex-shrink: 0;
+    }
+
+    .donut-center {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+    }
+
+    .donut-total {
+      font-size: 20px;
+      font-weight: 600;
+      color: #f0f2f8;
+    }
+
+    .donut-sub {
+      font-size: 10px;
+      color: #6b7280;
+      margin-top: 1px;
+    }
+
+    .legend {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .legend-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      color: #8a91a8;
+    }
+
+    .ldot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .lval {
+      margin-left: auto;
+      color: #c0c6d8;
+      padding-left: 10px;
+      white-space: nowrap;
+    }
+
+    /* Bar chart */
+    .bar-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+    }
+
+    .bar-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 11px;
+    }
+
+    .bar-label {
+      width: 94px;
+      text-align: right;
+      color: #8a91a8;
+      flex-shrink: 0;
+    }
+
+    .bar-track {
+      flex: 1;
+      height: 20px;
+      background: #1e2433;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      padding-left: 8px;
+      font-size: 11px;
+      font-weight: 500;
+      color: #fff;
+      white-space: nowrap;
+    }
+
+    .axis-labels {
+      display: flex;
+      justify-content: space-between;
+      padding-left: 104px;
+      margin-top: 6px;
+      font-size: 10px;
+      color: #3a4155;
+    }
+
+    /* SVG icons inside kpi cards */
+    .kpi-icon svg {
+      display: block;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ── Header ── -->
+  <header class="dash-header">
+    <h1>Overview — This Week</h1>
+    <div class="date-badge">
+      <svg width="12" height="12" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="1" y="3" width="14" height="12" rx="2" stroke="#6b7280" stroke-width="1.2" />
+        <path d="M5 1v3M11 1v3M1 7h14" stroke="#6b7280" stroke-width="1.2" stroke-linecap="round" />
+      </svg>
+      May 12 – May 18, 2024
+    </div>
+  </header>
+
+  <!-- ── Row 1: KPI Cards ── -->
+  <div class="kpi-row">
+    <!-- Total Vehicles -->
+    <div class="kpi-card">
+      <div class="kpi-top">
+        <div class="kpi-label">Total Vehicles This Week</div>
+        <div class="kpi-icon icon-blue">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4a90e2" stroke-width="1.8"
+            stroke-linecap="round" stroke-linejoin="round">
+            <rect x="1" y="8" width="22" height="10" rx="2" />
+            <path d="M16 18v2M8 18v2M3 8l2-5h14l2 5" />
+            <circle cx="7" cy="18" r="1.5" fill="#4a90e2" />
+            <circle cx="17" cy="18" r="1.5" fill="#4a90e2" />
+          </svg>
+        </div>
+      </div>
+      <div class="kpi-value">1,078</div>
+      <div class="kpi-trend trend-green">
+        <svg width="10" height="10" viewBox="0 0 10 10">
+          <path d="M2 7l3-4 3 4" stroke="#3fc87a" stroke-width="1.5" fill="none" stroke-linecap="round" />
+        </svg>
+        6.4% vs last week
+      </div>
+    </div>
+    <!-- Completed -->
+    <div class="kpi-card">
+      <div class="kpi-top">
+        <div class="kpi-label">Completed Vehicles</div>
+        <div class="kpi-icon icon-green">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3fc87a" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <path d="M8 12l3 3 5-5" />
+          </svg>
+        </div>
+      </div>
+      <div class="kpi-value">365</div>
+      <div class="kpi-trend trend-green">
+        <svg width="10" height="10" viewBox="0 0 10 10">
+          <path d="M2 7l3-4 3 4" stroke="#3fc87a" stroke-width="1.5" fill="none" stroke-linecap="round" />
+        </svg>
+        7.8% vs last week
+      </div>
+    </div>
+    <!-- Quality Hold -->
+    <div class="kpi-card">
+      <div class="kpi-top">
+        <div class="kpi-label">Vehicles on Hold (Quality Hold)</div>
+        <div class="kpi-icon icon-amber">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f0a030" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="10" y1="8" x2="10" y2="16" />
+            <line x1="14" y1="8" x2="14" y2="16" />
+          </svg>
+        </div>
+      </div>
+      <div class="kpi-value">28</div>
+      <div class="kpi-trend trend-amber">
+        <svg width="10" height="10" viewBox="0 0 10 10">
+          <path d="M2 7l3-4 3 4" stroke="#f0a030" stroke-width="1.5" fill="none" stroke-linecap="round" />
+        </svg>
+        12.0% vs last week
+      </div>
+    </div>
+    <!-- Rework -->
+    <div class="kpi-card">
+      <div class="kpi-top">
+        <div class="kpi-label">Rework Count</div>
+        <div class="kpi-icon icon-red">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e05050" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path
+              d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+          </svg>
+        </div>
+      </div>
+      <div class="kpi-value">17</div>
+      <div class="kpi-trend trend-amber">
+        <svg width="10" height="10" viewBox="0 0 10 10">
+          <path d="M2 7l3-4 3 4" stroke="#f0a030" stroke-width="1.5" fill="none" stroke-linecap="round" />
+        </svg>
+        13.3% vs last week
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Row 2: Table ── -->
+  <div class="table-card">
+    <div class="section-title">Vehicle Status by Department</div>
+    <table>
+      <colgroup>
+        <col class="col-dept">
+        <col class="col-stat">
+        <col class="col-stat">
+        <col class="col-stat">
+        <col class="col-stat">
+        <col class="col-stat">
+        <col class="col-stat">
+      </colgroup>
+      <thead>
+        <tr>
+          <th>Department</th>
+          <th style="text-align:right"><span class="dot" style="background:#4a90e2"></span>In Production</th>
+          <th style="text-align:right"><span class="dot" style="background:#3fc87a"></span>Completed</th>
+          <th style="text-align:right"><span class="dot" style="background:#f0a030"></span>Quality Hold</th>
+          <th style="text-align:right"><span class="dot" style="background:#e05050"></span>Rework</th>
+          <th style="text-align:right"><span class="dot" style="background:#a78bfa"></span>Dispatched</th>
+          <th style="text-align:right">Total Vehicles</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Body Shop</td>
+          <td class="v-blue" style="text-align:right">120</td>
+          <td class="v-green" style="text-align:right">95</td>
+          <td class="v-amber" style="text-align:right">8</td>
+          <td class="v-red" style="text-align:right">5</td>
+          <td style="text-align:right;color:#555d74">0</td>
+          <td style="text-align:right">228</td>
+        </tr>
+        <tr>
+          <td>Paint Shop</td>
+          <td class="v-blue" style="text-align:right">110</td>
+          <td class="v-green" style="text-align:right">100</td>
+          <td class="v-amber" style="text-align:right">4</td>
+          <td class="v-red" style="text-align:right">3</td>
+          <td style="text-align:right;color:#555d74">0</td>
+          <td style="text-align:right">217</td>
+        </tr>
+        <tr>
+          <td>Assembly</td>
+          <td class="v-blue" style="text-align:right">98</td>
+          <td class="v-green" style="text-align:right">90</td>
+          <td class="v-amber" style="text-align:right">6</td>
+          <td class="v-red" style="text-align:right">7</td>
+          <td class="v-purple" style="text-align:right">45</td>
+          <td style="text-align:right">246</td>
+        </tr>
+        <tr>
+          <td>Quality Check</td>
+          <td class="v-blue" style="text-align:right">85</td>
+          <td class="v-green" style="text-align:right">80</td>
+          <td class="v-amber" style="text-align:right">10</td>
+          <td class="v-red" style="text-align:right">2</td>
+          <td class="v-purple" style="text-align:right">60</td>
+          <td style="text-align:right">237</td>
+        </tr>
+        <tr>
+          <td>Logistics</td>
+          <td style="text-align:right;color:#555d74">0</td>
+          <td style="text-align:right;color:#555d74">0</td>
+          <td style="text-align:right;color:#555d74">0</td>
+          <td style="text-align:right;color:#555d74">0</td>
+          <td class="v-purple" style="text-align:right">150</td>
+          <td style="text-align:right">150</td>
+        </tr>
+        <tr>
+          <td>Total</td>
+          <td style="text-align:right">413</td>
+          <td style="text-align:right">365</td>
+          <td style="text-align:right">28</td>
+          <td style="text-align:right">17</td>
+          <td style="text-align:right">255</td>
+          <td style="text-align:right">1,078</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ── Row 3: Charts ── -->
+  <div class="charts-row">
+    <!-- Donut -->
+    <div class="chart-card">
+      <div class="section-title">Vehicle Status Distribution</div>
+      <div class="donut-body">
+        <div class="donut-wrap">
+          <canvas id="donutChart" width="140" height="140" role="img"
+            aria-label="Donut chart showing 1078 total vehicles by status">
+            413 in production, 365 completed, 28 quality hold, 17 rework, 255 dispatched.
+          </canvas>
+          <div class="donut-center">
+            <span class="donut-total">1,078</span>
+            <span class="donut-sub">Total</span>
+          </div>
+        </div>
+        <div class="legend">
+          <div class="legend-row">
+            <div class="ldot" style="background:#4a90e2"></div>In Production<span class="lval">413 (38.3%)</span>
+          </div>
+          <div class="legend-row">
+            <div class="ldot" style="background:#3fc87a"></div>Completed<span class="lval">365 (33.9%)</span>
+          </div>
+          <div class="legend-row">
+            <div class="ldot" style="background:#f0a030"></div>Quality Hold<span class="lval">28 (2.6%)</span>
+          </div>
+          <div class="legend-row">
+            <div class="ldot" style="background:#e05050"></div>Rework<span class="lval">17 (1.6%)</span>
+          </div>
+          <div class="legend-row">
+            <div class="ldot" style="background:#a78bfa"></div>Dispatched<span class="lval">255 (23.6%)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Efficiency Bar Chart -->
+    <div class="chart-card">
+      <div class="chart-header">
+        <div class="section-title" style="margin-bottom:0">Efficiency % by Department</div>
+        <span class="week-badge">This Week</span>
+      </div>
+      <div class="bar-grid">
+        <div class="bar-row">
+          <div class="bar-label">Body Shop</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:88.3%;background:#4a90e2">88.3%</div>
+          </div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Paint Shop</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:89.7%;background:#3fc87a">89.7%</div>
+          </div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Assembly</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:86.2%;background:#a78bfa">86.2%</div>
+          </div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Quality Check</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:84.1%;background:#f0a030">84.1%</div>
+          </div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Logistics</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:92.5%;background:#4ec8c8">92.5%</div>
+          </div>
+        </div>
+      </div>
+      <div class="axis-labels">
+        <span>0%</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+  <script>
+    new Chart(document.getElementById('donutChart'), {
+      type: 'doughnut',
+      data: {
+        labels: ['In Production', 'Completed', 'Quality Hold', 'Rework', 'Dispatched'],
+        datasets: [{
+          data: [413, 365, 28, 17, 255],
+          backgroundColor: ['#4a90e2', '#3fc87a', '#f0a030', '#e05050', '#a78bfa'],
+          borderWidth: 2,
+          borderColor: '#161923',
+          hoverOffset: 4
+        }]
+      },
+      options: {
+        responsive: false,
+        cutout: '72%',
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: ctx => ' ' + ctx.label + ': ' + ctx.parsed + ' (' + ((ctx.parsed / 1078) * 100).toFixed(1) + '%)'
+            }
+          }
+        }
+      }
+    });
+  </script>
+</body>
+
+</html>

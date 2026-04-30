@@ -1,4 +1,4 @@
-Date,Week,Month,Quarter,Plant,Department,Model,Units,Revenue
+date,week,month,quarter,plant,department,model,units,revenue
 2026-01-01,W01,1,Q1,Dearborn,Logistics,F-150,138,69000
 2026-01-01,W01,1,Q1,Dearborn,Logistics,Mustang,140,70000
 2026-01-01,W01,1,Q1,Dearborn,Paint Shop,Explorer,151,75500
