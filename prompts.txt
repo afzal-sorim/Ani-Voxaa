@@ -1,5 +1,5 @@
 # =========================================
-# VOXA PROMPT RECIPE SET (v1) - UPDATED FOR NEW DATASET
+# VOXA PROMPT RECIPE SET (v1) 
 # =========================================
 
 # --- BASIC ---
