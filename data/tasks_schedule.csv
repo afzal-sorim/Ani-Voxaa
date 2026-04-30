@@ -1,0 +1,14 @@
+Task_ID,Date,Week,Plant,Department,Task_Name,Task_Type,Priority,Status,Assigned_To
+T1,2026-01-03,W01,Dearborn,Assembly,Calibration,Maintenance,High,Completed,Team 1
+T2,2026-01-08,W02,Chicago,Paint Shop,Inspection,Inspection,Medium,Completed,Team 2
+T3,2026-02-10,W06,Detroit,Body Shop,Welding Repair,Maintenance,High,In Progress,Team 3
+T4,2026-02-15,W07,Dearborn,Logistics,Audit,Audit,Medium,Completed,Team 1
+T5,2026-03-02,W09,Chicago,Assembly,Optimization,Production,Medium,Completed,Team 2
+T6,2026-03-06,W10,Dearborn,Body Shop,Hydraulic Repair,Maintenance,High,Delayed,Team 1
+T7,2026-03-15,W11,Detroit,Logistics,Validation,Audit,Medium,In Progress,Team 3
+T8,2026-04-05,W14,Detroit,Assembly,Robot Calibration,Maintenance,High,Delayed,Team 3
+T9,2026-04-14,W15,Chicago,Logistics,Warehouse Audit,Audit,Low,Scheduled,Team 2
+T10,2026-04-25,W17,Dearborn,Assembly,Speed Adjustment,Production,High,In Progress,Team 1
+T11,2026-05-05,W18,Dearborn,Body Shop,Inspection Cycle,Inspection,High,Completed,Team 2
+T12,2026-05-12,W20,Chicago,Assembly,Setup Task,Production,High,Scheduled,Team 3
+T13,2026-05-18,W20,Detroit,Assembly,Bottleneck Fix,Production,High,Delayed,Team 3

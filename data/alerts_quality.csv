@@ -1,0 +1,16 @@
+Date,Week,Plant,Department,Issue_Type,Severity,Affected_Units,Status
+2026-02-03,W05,Dearborn,Assembly,Machine Failure,High,20,Active
+2026-02-07,W06,Chicago,Paint Shop,Quality Issue,Medium,12,Resolved
+2026-02-15,W07,Dearborn,Logistics,Safety Issue,Medium,10,Active
+2026-02-21,W08,Chicago,Assembly,Machine Failure,High,22,Active
+2026-03-06,W10,Dearborn,Body Shop,Equipment Failure,Medium,15,Active
+2026-03-10,W10,Chicago,Assembly,Quality Issue,High,18,Active
+2026-03-15,W11,Detroit,Logistics,Safety Issue,High,9,Active
+2026-04-01,W13,Chicago,Body Shop,Quality Issue,High,19,Active
+2026-04-05,W14,Detroit,Assembly,Machine Failure,High,25,Active
+2026-04-14,W15,Chicago,Logistics,Equipment Failure,Medium,14,Active
+2026-04-25,W17,Dearborn,Assembly,Safety Issue,High,11,Active
+2026-05-01,W18,Dearborn,Body Shop,Quality Issue,High,12,Active
+2026-05-10,W19,Dearborn,Body Shop,Quality Issue,High,16,Active
+2026-05-20,W21,Detroit,Assembly,Machine Failure,High,22,Active
+2026-05-25,W21,Chicago,Paint Shop,Quality Issue,Medium,13,Resolved
