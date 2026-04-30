@@ -4,12 +4,12 @@ import AudioWaveform, { AudioGlow } from './AudioVisualizer';
 import TextInput from './TextInput';
 
 const EXAMPLES = [
-  { text: 'What are the top selling cars?', icon: '🚗' },
-  { text: 'Show sales by region', icon: '📊' },
-  { text: 'Average customer rating', icon: '⭐' },
-  { text: 'Compare Tesla vs Toyota', icon: '⚡' },
-  { text: 'Show sensor anomalies', icon: '🔍' },
-  { text: 'Revenue trends this quarter', icon: '📈' },
+  { text: 'Top models by revenue this month', icon: '🚗' },
+  { text: 'Production breakdown by plant', icon: '🏭' },
+  { text: 'Active quality alerts by department', icon: '⚠️' },
+  { text: 'Compare Bronco vs Mustang units', icon: '⚖️' },
+  { text: 'Plant with highest quality issues', icon: '🔍' },
+  { text: 'Revenue trends for Q1 2026', icon: '📈' },
 ];
 
 export default function WelcomeScreen({

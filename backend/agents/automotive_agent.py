@@ -1107,6 +1107,10 @@ def _build_sql_for_intent(intent: dict) -> tuple[str, dict, str] | None:
     raw_query = intent.get("raw_query", "")
     all_time_ranges = intent.get("all_time_ranges", [])
 
+    data_svc = get_data_service()
+    table_schemas = data_svc.get_table_schemas()
+    table_cols = [c["name"] for c in table_schemas.get(table_name, [])]
+
     # Check for JOIN requirement (e.g. "impact of alerts on production")
     is_join = any(k in raw_query.lower() for k in ["impact", "correlation", "relation", "versus", " vs ", "against"]) and \
               any(k in raw_query.lower() for k in ["alert", "issue"]) and \
@@ -1213,10 +1217,6 @@ def _build_sql_for_intent(intent: dict) -> tuple[str, dict, str] | None:
                 group_key = "week_number"
                 order_clause = "ORDER BY week_number"
 
-    data_svc = get_data_service()
-    table_schemas = data_svc.get_table_schemas()
-    table_cols = [c["name"] for c in table_schemas.get(table_name, [])]
-    
     group_key = None
     if group_by:
         if isinstance(group_by, str):
@@ -1863,56 +1863,69 @@ def execute_actual_vs_forecast_query(query: str) -> str:
     if time_meta.get("fallback_occurred"):
         fallback_note = f"\n> ⚠️ No data for **{time_meta['requested']}**. Showing latest available: **{period}**."
 
-    # Summary stats
-    summary_lines = [f"### Summary", f"Actual vs Forecast comparison for {period}:{fallback_note}"]
+    # KPIs and Dashboard Assembly
+    kpis = []
+    var_str = "0"
+    rev_var_str = "$0"
     if want_units and "actual_units" in df.columns:
         total_actual = int(df["actual_units"].sum())
         total_forecast = int(df["forecast_units"].sum())
         variance = total_actual - total_forecast
         var_str = f"+{variance:,}" if variance >= 0 else f"{variance:,}"
-        summary_lines.append(
-            f"Total actual production: {total_actual:,} units vs forecast {total_forecast:,} units (variance: {var_str})."
-        )
+        kpis.append({
+            "label": "Actual Production",
+            "value": f"{total_actual:,}",
+            "delta": f"{var_str} vs Forecast",
+            "deltaClass": "delta-good" if variance >= 0 else "delta-bad",
+            "colorClass": "kpi-blue",
+            "icon": "⚙️"
+        })
     if want_revenue and "actual_revenue" in df.columns:
         total_rev = float(df["actual_revenue"].sum())
         total_frev = float(df["forecast_revenue"].sum())
         rev_var = total_rev - total_frev
         rev_var_str = f"+${rev_var:,.0f}" if rev_var >= 0 else f"-${abs(rev_var):,.0f}"
-        summary_lines.append(
-            f"Total actual revenue: **${total_rev:,.0f}** vs forecast **${total_frev:,.0f}** (variance: **{rev_var_str}**)."
-        )
+        kpis.append({
+            "label": "Actual Revenue",
+            "value": f"${total_rev:,.0f}",
+            "delta": f"{rev_var_str} vs Forecast",
+            "deltaClass": "delta-good" if rev_var >= 0 else "delta-bad",
+            "colorClass": "kpi-green",
+            "icon": "$"
+        })
 
-    # Table
-    headers = [c.replace("_", " ").title() for c in df.columns]
-    table_lines = ["### Actual vs Forecast by Week",
-                   "| " + " | ".join(headers) + " |",
-                   "|" + "---|" * len(headers)]
+    # Build trend chart for comparison
+    trend_items = []
     for _, row in df.iterrows():
-        cells = []
-        for col in df.columns:
-            v = row[col]
-            if "revenue" in col:
-                cells.append(f"${float(v):,.0f}")
-            elif isinstance(v, (int, float)):
-                cells.append(f"{float(v):,.0f}")
-            else:
-                cells.append(str(v))
-        table_lines.append("| " + " | ".join(cells) + " |")
+        label = str(row["week"])
+        if want_units:
+            val = row["actual_units"]
+            trend_items.append({"label": label, "value": val, "colorClass": "bar-blue"})
+        elif want_revenue:
+            val = row["actual_revenue"]
+            trend_items.append({"label": label, "value": val, "colorClass": "bar-green"})
 
-    # Key takeaways
-    takeaways = ["### Key Takeaways"]
-    if want_units and "units_variance" in df.columns:
-        below_weeks = df[df["units_variance"] < 0]
-        if not below_weeks.empty:
-            takeaways.append(f"- Production fell short of forecast in **{len(below_weeks)} week(s)** — review capacity constraints.")
-        else:
-            takeaways.append("- ✅ Actual production met or exceeded forecast every week in this period.")
-    if want_revenue and "revenue_variance" in df.columns:
-        below_rev = df[df["revenue_variance"] < 0]
-        if not below_rev.empty:
-            takeaways.append(f"- Revenue underperformed forecast in **{len(below_rev)} week(s)**.")
-
-    return "\n\n".join(["\n".join(summary_lines), "\n".join(table_lines), "\n".join(takeaways)])
+    dashboard_data = {
+        "title": "Actual vs Forecast Performance",
+        "period": period,
+        "scope": "Global Comparison",
+        "summary": f"Performance analysis for {period}. System compares recorded actuals against production targets and revenue forecasts.",
+        "kpis": kpis,
+        "trend": {"title": "Actual Performance Trend", "items": trend_items} if trend_items else None,
+        "insights": [
+            f"Production variance stands at {var_str} units for the period." if want_units else None,
+            f"Revenue variance stands at {rev_var_str} vs targets." if want_revenue else None,
+        ],
+        "table": {
+            "title": "Weekly Variance Detail",
+            "headers": headers,
+            "rows": [[str(item) for item in row] for row in df.values.tolist()]
+        }
+    }
+    dashboard_data["insights"] = [i for i in dashboard_data["insights"] if i]
+    
+    html = render_dashboard_html(dashboard_data)
+    return f"```html\n{html}\n```"
 
 
 
@@ -2012,36 +2025,36 @@ def execute_structured_query(query: str) -> str | None:
             return f"SUMMARY No data available for {time_meta.get('requested', 'the requested period')}."
 
         top = df.iloc[0]
+        # NEW: Build a proper structured context and render as a Dashboard Report
+        structured_data = {
+            "metric": "alerts",
+            "metric_definition": "Active quality alerts recorded in the system",
+            "metric_units": "Alerts",
+            "aggregation": "max",
+            "group_by": "plant",
+            "query_type": "analytical",
+            "time_range": time_meta.get("used") or time_meta.get("requested"),
+            "time_meta": time_meta,
+            "confidence": "high",
+            "confidence_reason": f"Based on {len(df)} plant records",
+            "allow_trend": False,
+            "display_unit": "auto",
+            "notes": f"Aggregated active vs total issues across all manufacturing sites.",
+            "sql": sql,
+            "value": int(top['active_issues']),
+            "summary": {
+                "total_alerts": int(top['active_issues']),
+                "total_issues": int(top['total_issues'])
+            },
+            "computed_change": {},
+            "computed_insights": [
+                f"Plant {top['plant']} has the highest operational risk with {int(top['active_issues'])} active issues.",
+                f"Global total across all plants stands at {int(df['total_issues'].sum())} recorded issues."
+            ],
+            "computed_results": df.to_dict(orient="records")
+        }
         
-        # Format for fallback explanation
-        time_context_msg = ""
-        if time_meta.get("requested") != time_meta.get("used") and time_meta.get("used"):
-            time_context_msg = f"\n\n(Note: No data for {time_meta['requested']}, showing latest available: {time_meta['used']})"
-
-        headers = [str(col) for col in df.columns]
-        rows = df.values.tolist()
-        table_lines = ["| " + " | ".join(headers) + " |", "|" + "---|" * len(headers)]
-        for row in rows:
-            table_lines.append("| " + " | ".join(str(item) for item in row) + " |")
-        table_md = "\n".join(table_lines)
-
-        response = [
-            f"### Summary",
-            f"The plant with the highest number of active issues during **{time_meta.get('used') or 'All Time'}** is **{top['plant']}**, "
-            f"recording **{int(top['active_issues'])}** active issue(s) out of **{int(top['total_issues'])}** total issues logged. "
-            f"This indicates elevated quality risk at this facility and warrants immediate operational review.",
-            "",
-            "### Quality Issues by Plant",
-            table_md,
-            time_context_msg,
-            "",
-            "### Key Takeaways",
-            f"- **{top['plant']}** leads all plants in active quality issues for the period **{time_meta.get('used') or 'All Time'}**, "
-            f"with **{int(top['active_issues'])}** active and **{int(top['total_issues'])}** total issues recorded.",
-            "- Active issues represent unresolved quality alerts that may be impacting production output.",
-            "- Consider prioritising corrective action plans for the departments driving the highest alert volumes at this plant.",
-        ]
-        return "\n".join(response)
+        return build_dashboard_report_from_structured_data(query, structured_data, df)
 
     python_part = ""
     final_insights = ""
