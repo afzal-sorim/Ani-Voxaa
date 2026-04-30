@@ -1,23 +1,16 @@
 import React from 'react';
-import { HiOutlinePlus, HiOutlineMenuAlt2, HiOutlineLogout } from 'react-icons/hi';
-import ThemeToggle from './ThemeToggle';
+import { HiOutlineMenuAlt2, HiOutlineLogout } from 'react-icons/hi';
 import useAuthStore from '../store/useAuthStore';
 import useChatStore from '../store/useChatStore';
 import { toast } from 'react-hot-toast';
 
 export default function Header({ onToggleSidebar, onCloseSidebar }) {
   /* ── Store selectors ── */
-  const newChat              = useChatStore((s) => s.newChat);
   const activeConversationId = useChatStore((s) => s.activeConversationId);
   const conversations        = useChatStore((s) => s.conversations);
   const logout               = useAuthStore((s) => s.logout);
 
-  /* Start a new chat, notify the user, and close the sidebar if open */
-  const handleNewChat = () => {
-    newChat();
-    toast.success('Started new chat', { id: 'new-chat' });
-    onCloseSidebar?.(); // close sidebar whenever a new chat is started from the header
-  };
+
 
   /*
    * isWelcomeScreen: true when there is no active conversation with messages.
@@ -96,29 +89,7 @@ export default function Header({ onToggleSidebar, onCloseSidebar }) {
         )}
       </div>
 
-      {/* ── Right side: theme toggle + new-chat button ── */}
       <div className="flex items-center gap-2 bg-[var(--brd)] px-2 py-1.5 rounded-xl">
-        {/* Slide toggle that switches between dark and light theme */}
-        <ThemeToggle />
-
-        {/* New chat button — only shown when inside an active chat */}
-        {!isWelcomeScreen && (
-          <button
-            id="new-chat-btn"
-            className="
-              w-9 h-9 rounded-xl flex items-center justify-center
-              bg-[var(--brd)] text-[var(--txt)]
-              hover:bg-[var(--brd2)] hover:scale-105 active:scale-95
-              transition-all duration-200 animate-fade-in
-            "
-            onClick={handleNewChat}
-            aria-label="New chat"
-            title="New chat"
-          >
-            <HiOutlinePlus size={20} />
-          </button>
-        )}
-
         {/* Logout button */}
         <button
           id="logout-btn"

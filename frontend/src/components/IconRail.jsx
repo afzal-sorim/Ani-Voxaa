@@ -1,5 +1,5 @@
 import React from 'react';
-import { HiOutlinePlus, HiOutlineChatAlt2, HiOutlineSearch } from 'react-icons/hi';
+import { HiOutlineChatAlt2, HiOutlineSearch } from 'react-icons/hi';
 import useAuthStore from '../store/useAuthStore';
 import useChatStore from '../store/useChatStore';
 import UserAvatar from './UserAvatar';
@@ -10,9 +10,8 @@ import UserAvatar from './UserAvatar';
  * Width: 52px, always dark, sits at z-[80] below the full sidebar (z-[100]).
  * Clicking the chat/list icon or the logo opens the full sidebar drawer.
  */
-export default function IconRail({ onToggleSidebar, onNewChat }) {
+export default function IconRail({ onToggleSidebar }) {
   const user    = useAuthStore((s) => s.user);
-  const newChat = useChatStore((s) => s.newChat);
 
   /* Shared styles for icon buttons */
   const iconBtn = {
@@ -76,17 +75,7 @@ export default function IconRail({ onToggleSidebar, onNewChat }) {
       {/* Thin divider below logo */}
       <div style={{ width: '24px', height: '1px', background: 'var(--sb-brd)', margin: '4px 0' }} />
 
-      {/* ── New Chat button ── */}
-      <button
-        style={iconBtn}
-        onMouseEnter={hoverIn}
-        onMouseLeave={hoverOut}
-        onClick={onNewChat}
-        aria-label="New chat"
-        title="New chat"
-      >
-        <HiOutlinePlus size={19} />
-      </button>
+
 
       {/* ── Open conversation list ── */}
       <button

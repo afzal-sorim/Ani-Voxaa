@@ -1,55 +1,28 @@
 import { create } from 'zustand';
 
 /**
- * Theme priority:
- * 1. localStorage (user's explicit choice)
- * 2. System preference (prefers-color-scheme)
- * 3. Default: dark
+ * Theme is now hardcoded to 'light' as per user request.
  */
-function getSystemPreference() {
-  if (typeof window !== 'undefined' && window.matchMedia) {
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-  }
-  return 'dark';
-}
-
 function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
 }
 
 const useThemeStore = create((set, get) => ({
-  theme: 'dark',
+  theme: 'light',
 
   toggleTheme: () => {
-    const newTheme = get().theme === 'dark' ? 'light' : 'dark';
-    get().setTheme(newTheme);
+    // Theme toggle is disabled
   },
 
   setTheme: (theme) => {
-    applyTheme(theme);
-    localStorage.setItem('voice-ai-theme', theme);
-    set({ theme });
+    applyTheme('light');
+    set({ theme: 'light' });
   },
 
   loadTheme: () => {
-    const saved = localStorage.getItem('voice-ai-theme');
-    const systemTheme = getSystemPreference();
-    const theme = saved || systemTheme;
-    
-    applyTheme(theme);
-    set({ theme });
-
-    // Listen for system changes if no manual preference is saved
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    const handler = (e) => {
-      if (!localStorage.getItem('voice-ai-theme')) {
-        const newTheme = e.matches ? 'dark' : 'light';
-        get().setTheme(newTheme);
-      }
-    };
-    
-    mediaQuery.addEventListener('change', handler);
-    return () => mediaQuery.removeEventListener('change', handler);
+    applyTheme('light');
+    set({ theme: 'light' });
+    return () => {}; // No cleanup needed
   },
 }));
 

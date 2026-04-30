@@ -6,7 +6,6 @@ import {
   HiOutlineX, HiOutlineCog, HiOutlineDocumentAdd,
   HiOutlinePencil, HiCheck
 } from 'react-icons/hi';
-import ThemeToggle from './ThemeToggle';
 import useAuthStore from '../store/useAuthStore';
 import CustomDropdown from './CustomDropdown';
 import ConfirmModal from './ConfirmModal';
@@ -109,6 +108,8 @@ export default function Sidebar({ isOpen, onClose }) {
   const handleNewChat = () => {
     newChat();
   };
+
+
 
   const handleFileChange = async (e) => {
     const file = e.target.files[0];
@@ -240,6 +241,8 @@ export default function Sidebar({ isOpen, onClose }) {
             <span className="text-[0.8125rem] font-medium">New Chat</span>
           </button>
         </div>
+
+
 
         {/* ── Scrollable conversation list ── */}
         <div className="flex-1 overflow-y-auto px-2 pb-2 min-h-0">
@@ -448,19 +451,7 @@ export default function Sidebar({ isOpen, onClose }) {
             {/* Settings sections */}
             <div className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-5">
 
-              {/* Appearance section */}
-              <section className="flex flex-col gap-2">
-                <h3
-                  className="text-[0.6rem] font-bold uppercase tracking-[0.1em]"
-                  style={{ color: 'var(--sb-txt3)' }}
-                >
-                  Appearance
-                </h3>
-                <div className="flex items-center justify-between text-sm">
-                  <span style={{ color: 'var(--sb-txt)' }}>Theme</span>
-                  <ThemeToggle />
-                </div>
-              </section>
+
 
               {/* Audio section */}
               <section className="flex flex-col gap-2">
