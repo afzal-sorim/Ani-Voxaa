@@ -342,39 +342,79 @@ def build_dashboard_report_from_structured_data(query: str, structured_data: dic
         })
 
     # 2. Charts (Trend / Bar / Donut)
-    bar_chart = {"title": f"{metric_label} Breakdown", "items": []}
-    donut_chart = {"title": "Distribution", "items": []}
-    trend_chart = {"title": f"{metric_label} Trend", "items": []}
+    # The dashboard is now dynamic based on the analytical intent
+    intent = structured_data.get("analytical_intent", "distribution")
     
-    group_by = structured_data.get("group_by")
+    bar_chart = None
+    donut_chart = None
+    trend_chart = None
+    
     if not df.empty and len(df) > 1:
-        val_col = df.columns[-1]
-        label_cols = [c for c in df.columns if c != val_col]
+        # Find numeric columns (potential value columns)
+        # Exclude known ID/metadata columns if they are numeric
+        exclude_cols = {"id", "week_number", "month_number", "quarter", "year"}
+        num_cols = [c for c in df.columns if pd.api.types.is_numeric_dtype(df[c]) and c.lower() not in exclude_cols]
+        
+        val_col = df.columns[-1] # Default value column
+        label_cols = [c for c in df.columns if c not in num_cols]
+        if not label_cols: label_cols = [df.columns[0]]
         
         # Check if it's a time-series (Trend)
         time_cols = {"week", "month", "quarter", "date", "week_number", "month_number"}
-        is_trend = any(str(col).lower() in time_cols for col in label_cols)
+        actual_is_trend = any(str(col).lower() in time_cols for col in label_cols)
         
+        # Decide which charts to populate
+        show_trend = intent == "trend" or actual_is_trend
+        show_bar = intent in ["comparison", "ranking", "distribution"] or not show_trend
+        show_donut = intent == "distribution"
+        
+        labels = []
         for _, row in df.iterrows():
-            label = " - ".join(str(row[c]).title() for c in label_cols)
-            raw_val = row[val_col]
-            item = {
-                "label": label,
-                "value": format_val(raw_val, metric_raw),
-                "colorClass": "bar-blue"
-            }
-            if is_trend:
-                trend_chart["items"].append(item)
-            else:
-                bar_chart["items"].append(item)
+            labels.append(" - ".join(str(row[c]).title() for c in label_cols))
+            
+        if show_trend:
+            datasets = []
+            # If we have multiple numeric columns (e.g. from a JOIN), add them as datasets
+            target_cols = num_cols
+            if len(num_cols) > 1:
+                # Prioritize columns that match the requested metric
+                metric_base = metric_raw.replace("forecast_", "").replace("actual_", "")
+                target_cols = [c for c in num_cols if metric_base in c.lower()]
+                if not target_cols: target_cols = num_cols[:2] # Fallback to first two
+            
+            for col in target_cols:
+                datasets.append({
+                    "label": col.replace("_", " ").title(),
+                    "data": [float(str(v).replace(',', '').replace('$', '')) for v in df[col]]
+                })
+            trend_chart = {"title": f"{metric_label} Trend", "labels": labels, "datasets": datasets}
+        
+        if show_bar:
+            items = []
+            for i, row in df.iterrows():
+                raw_val = row[val_col]
+                items.append({
+                    "label": labels[i],
+                    "value": format_val(raw_val, val_col),
+                    "raw_value": raw_val,
+                    "colorClass": "bar-blue"
+                })
+            
+            bar_title = f"{metric_label} Breakdown"
+            if intent == "ranking": bar_title = f"Top {metric_label} Ranking"
+            if intent == "comparison": bar_title = f"{metric_label} Comparison"
+            bar_chart = {"title": bar_title, "items": items}
+            
+        if show_donut:
+            donut_items = []
+            for i, row in df.iterrows():
+                raw_val = row[val_col]
                 try:
                     num_val = float(str(raw_val).replace(',', '').replace('$', ''))
                 except:
                     num_val = 0
-                donut_chart["items"].append({
-                    "label": label,
-                    "value": num_val
-                })
+                donut_items.append({"label": labels[i], "value": num_val})
+            donut_chart = {"title": f"{metric_label} Distribution", "items": donut_items}
 
     # 3. Insights
     insights = []
@@ -409,9 +449,9 @@ def build_dashboard_report_from_structured_data(query: str, structured_data: dic
         "scope": scope_label or "Global Operations",
         "summary": build_prose_summary(structured_data, df),
         "kpis": kpis[:4],
-        "trend": trend_chart if trend_chart["items"] else None,
-        "barChart": bar_chart if bar_chart["items"] else None,
-        "donut": donut_chart if donut_chart["items"] else None,
+        "trend": trend_chart,
+        "barChart": bar_chart,
+        "donut": donut_chart,
         "insights": insights,
         "table": table
     }
@@ -1072,6 +1112,9 @@ def _parse_structured_intent(query: str) -> dict | None:
     time_ranges = _extract_all_time_ranges(query)
     time_range = time_ranges[0] if time_ranges else None
     
+    # Analytical Intent detection
+    analytical_intent = detect_analytical_intent(query, group_by)
+    
     # Confidence Score for intent
     confidence_score = 1.0
     # Penalty if we relied on the generic keyword fallback for the metric
@@ -1094,8 +1137,35 @@ def _parse_structured_intent(query: str) -> dict | None:
         "table_name": table_name,
         "raw_query": query,
         "query_type": classify_query_type(query),
+        "analytical_intent": analytical_intent,
         "intent_confidence": confidence_score
     }
+
+
+def detect_analytical_intent(query: str, group_by: str | None) -> str:
+    """Classifies the user's question into a specific visualization intent."""
+    q = query.lower()
+    
+    # Trend: keywords like 'trend', 'over time', 'weekly', 'monthly'
+    if any(k in q for k in ["trend", "over time", "history", "historical", "weekly", "monthly", "by week", "by month", "vs previous"]):
+        return "trend"
+        
+    # Ranking: keywords like 'top', 'highest', 'best', 'worst', 'lowest', 'bottom'
+    if any(k in q for k in ["top", "highest", "max", "best", "most", "worst", "lowest", "least", "bottom"]):
+        return "ranking"
+        
+    # Distribution: keywords like 'distribution', 'breakdown', 'share', 'percentage', 'ratio'
+    if any(k in q for k in ["distribution", "breakdown", "share", "percentage", "ratio", "portion", "part of"]):
+        return "distribution"
+        
+    # Comparison: keywords like 'compare', 'versus', 'vs', 'against', 'difference'
+    if any(k in q for k in ["compare", "versus", " vs ", "against", "difference", "variance"]):
+        return "comparison"
+        
+    # Default based on grouping
+    if group_by:
+        return "comparison"
+    return "kpi_report"
 
 
 def _build_sql_for_intent(intent: dict) -> tuple[str, dict, str] | None:
@@ -1116,24 +1186,43 @@ def _build_sql_for_intent(intent: dict) -> tuple[str, dict, str] | None:
               any(k in raw_query.lower() for k in ["alert", "issue"]) and \
               any(k in raw_query.lower() for k in ["production", "units", "output", "revenue"])
 
-    if is_join:
+    is_forecast_vs_actual = any(k in raw_query.lower() for k in ["forecast", "projection", "plan"]) and \
+                            any(k in raw_query.lower() for k in ["actual", "real", "production", "units", "output", "revenue", "sales"])
+
+    if is_join or is_forecast_vs_actual:
         # Specialized JOIN query
         time_range = all_time_ranges[0] if all_time_ranges else None
         time_expr, time_meta = _choose_time_clause("production_data", time_range)
         where_clause = f"WHERE {time_expr}" if time_expr else ""
         
-        sql = f"""
-            SELECT p.week, 
-                   COALESCE(SUM(p.units), 0) AS total_units, 
-                   COALESCE(SUM(p.revenue), 0) AS total_revenue,
-                   COUNT(a.id) AS alert_count,
-                   COALESCE(SUM(a.affected_units), 0) AS affected_units
-            FROM production_data p
-            LEFT JOIN alerts_quality a ON p.week = a.week AND p.plant = a.plant
-            {where_clause}
-            GROUP BY p.week
-            ORDER BY p.week
-        """.strip()
+        if is_join:
+            sql = f"""
+                SELECT p.week, 
+                       COALESCE(SUM(p.units), 0) AS total_units, 
+                       COALESCE(SUM(p.revenue), 0) AS total_revenue,
+                       COUNT(a.id) AS alert_count,
+                       COALESCE(SUM(a.affected_units), 0) AS affected_units
+                FROM production_data p
+                LEFT JOIN alerts_quality a ON p.week = a.week AND p.plant = a.plant
+                {where_clause}
+                GROUP BY p.week
+                ORDER BY p.week
+            """.strip()
+        else:
+            # Forecast vs Actual
+            sql = f"""
+                SELECT p.week, 
+                       COALESCE(SUM(p.units), 0) AS actual_units, 
+                       COALESCE(SUM(f.forecast_units), 0) AS forecast_units,
+                       COALESCE(SUM(p.revenue), 0) AS actual_revenue,
+                       COALESCE(SUM(f.forecast_revenue), 0) AS forecast_revenue
+                FROM production_data p
+                FULL OUTER JOIN forecast_data f ON p.week = f.week AND p.plant = f.plant AND p.model = f.model
+                {where_clause}
+                GROUP BY p.week
+                ORDER BY p.week
+            """.strip()
+            
         return sql, time_meta, where_clause
 
     select_clauses = []
@@ -1719,29 +1808,61 @@ def execute_dashboard_query(query: str) -> str:
         else:
             insights.append({"text": f"Production is <strong>{units_var_str} units above forecast</strong>.", "icon": "✅", "colorClass": "insight-green"})
 
-    # --- Domain-Specific Charts (Attempt to add some dynamic visual data) ---
+    # --- Domain-Specific Charts (Dynamic Visual Data) ---
     bar_chart = None
     donut_chart = None
+    trend_chart = None
     
     # Try to get a breakdown for the charts
     try:
+        # 1. Weekly Trend (Multi-dataset)
+        trend_sql = f"""
+            SELECT p.week, 
+                   SUM(p.units) as units, 
+                   SUM(p.revenue) as revenue,
+                   SUM(f.forecast_units) as f_units
+            FROM production_data p
+            LEFT JOIN forecast_data f ON p.week = f.week AND p.plant = f.plant
+            {prod_where}
+            GROUP BY p.week
+            ORDER BY p.week
+        """
+        trend_df = data_svc.execute_query(trend_sql)
+        if not trend_df.empty:
+            labels = [str(w) for w in trend_df['week']]
+            if domain == "revenue":
+                datasets = [{
+                    "label": "Actual Revenue",
+                    "data": [float(v) for v in trend_df['revenue']]
+                }]
+            else:
+                datasets = [
+                    {"label": "Actual Units", "data": [int(v) for v in trend_df['units']]},
+                    {"label": "Forecast Units", "data": [int(v) for v in trend_df['f_units']]}
+                ]
+            trend_chart = {"title": f"{domain.replace('_', ' ').title()} Trend Analysis", "labels": labels, "datasets": datasets}
+
+        # 2. Category Breakdowns
         if domain == "quality":
             # Issue type breakdown
             breakdown_df = data_svc.execute_query(f"SELECT issue_type, COUNT(*) as cnt FROM alerts_quality {alert_where} GROUP BY issue_type ORDER BY cnt DESC LIMIT 5")
             if not breakdown_df.empty:
-                bar_chart = {"title": "Issues by Type", "items": [{"label": str(row['issue_type']).title(), "value": int(row['cnt']), "colorClass": "bar-red"} for _, row in breakdown_df.iterrows()]}
+                items = [{"label": str(row['issue_type']).title(), "value": int(row['cnt']), "raw_value": int(row['cnt']), "colorClass": "bar-red"} for _, row in breakdown_df.iterrows()]
+                bar_chart = {"title": "Issues by Type", "items": items}
                 donut_chart = {"title": "Alert Distribution", "items": [{"label": str(row['issue_type']).title(), "value": int(row['cnt'])} for _, row in breakdown_df.iterrows()]}
         elif domain == "revenue":
             # Plant revenue breakdown
             breakdown_df = data_svc.execute_query(f"SELECT plant, SUM(revenue) as rev FROM production_data {prod_where} GROUP BY plant ORDER BY rev DESC LIMIT 5")
             if not breakdown_df.empty:
-                bar_chart = {"title": "Revenue by Plant", "items": [{"label": str(row['plant']).title(), "value": f"${float(row['rev']):,.0f}", "colorClass": "bar-green"} for _, row in breakdown_df.iterrows()]}
+                items = [{"label": str(row['plant']).title(), "value": f"${float(row['rev']):,.0f}", "raw_value": float(row['rev']), "colorClass": "bar-green"} for _, row in breakdown_df.iterrows()]
+                bar_chart = {"title": "Revenue by Plant", "items": items}
                 donut_chart = {"title": "Revenue Share", "items": [{"label": str(row['plant']).title(), "value": float(row['rev'])} for _, row in breakdown_df.iterrows()]}
         else:
             # Plant production breakdown
             breakdown_df = data_svc.execute_query(f"SELECT plant, SUM(units) as units FROM production_data {prod_where} GROUP BY plant ORDER BY units DESC LIMIT 5")
             if not breakdown_df.empty:
-                bar_chart = {"title": "Production by Plant", "items": [{"label": str(row['plant']).title(), "value": f"{int(row['units']):,}", "colorClass": "bar-blue"} for _, row in breakdown_df.iterrows()]}
+                items = [{"label": str(row['plant']).title(), "value": f"{int(row['units']):,}", "raw_value": int(row['units']), "colorClass": "bar-blue"} for _, row in breakdown_df.iterrows()]
+                bar_chart = {"title": "Production by Plant", "items": items}
                 donut_chart = {"title": "Output Share", "items": [{"label": str(row['plant']).title(), "value": int(row['units'])} for _, row in breakdown_df.iterrows()]}
     except Exception as e:
         logger.error(f"Failed to generate dashboard charts: {e}")
@@ -1790,6 +1911,7 @@ def execute_dashboard_query(query: str) -> str:
         "fallback": time_meta.get("requested") if time_meta.get("fallback_occurred") else None,
         "kpis": kpis,
         "insights": insights,
+        "trend": trend_chart,
         "barChart": bar_chart,
         "donut": donut_chart,
         "table": {
@@ -1819,6 +1941,21 @@ def execute_actual_vs_forecast_query(query: str) -> str:
     want_revenue = any(k in q for k in ["revenue", "sales", "income"])
     if not want_units and not want_revenue:
         want_units = want_revenue = True  # Default: show both
+
+    # Use the unified builder for cross-dataset queries if it matches
+    intent = _parse_structured_intent(query)
+    if intent:
+        intent["analytical_intent"] = "trend"
+        sql, time_meta, _ = _build_sql_for_intent(intent)
+        if sql:
+            df = data_svc.execute_query(sql)
+            if not df.empty:
+                # Add insights manually for this specialized path
+                intent["computed_insights"] = [
+                    f"Production variance is currently tracked across {len(df)} weeks.",
+                    "System comparing actual yield against baseline forecasts."
+                ]
+                return build_dashboard_report_from_structured_data(query, intent, df)
 
     select_parts = ["p.week"]
     if want_units:
@@ -1904,6 +2041,11 @@ def execute_actual_vs_forecast_query(query: str) -> str:
         elif want_revenue:
             val = row["actual_revenue"]
             trend_items.append({"label": label, "value": val, "colorClass": "bar-green"})
+
+    # Table setup
+    headers = ["Week"]
+    if want_units: headers += ["Actual Units", "Forecast Units", "Variance"]
+    if want_revenue: headers += ["Actual Revenue", "Forecast Revenue", "Variance"]
 
     dashboard_data = {
         "title": "Actual vs Forecast Performance",
