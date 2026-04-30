@@ -352,7 +352,7 @@ def build_dashboard_report_from_structured_data(query: str, structured_data: dic
     if not df.empty and len(df) > 1:
         # Find numeric columns (potential value columns)
         # Exclude known ID/metadata columns if they are numeric
-        exclude_cols = {"id", "week_number", "month_number", "quarter", "year"}
+        exclude_cols = {"id", "week_number", "month_number", "quarter", "year", "month", "week", "day", "date_idx"}
         num_cols = [c for c in df.columns if pd.api.types.is_numeric_dtype(df[c]) and c.lower() not in exclude_cols]
         
         val_col = df.columns[-1] # Default value column

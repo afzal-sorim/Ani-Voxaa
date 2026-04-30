@@ -36,6 +36,9 @@
       --shadow-md: 0 10px 30px rgba(120, 107, 94, 0.08);
       --radius: 18px;
       --radius-sm: 12px;
+      --chart-gold: #b45309;
+      --chart-blue: #2563eb;
+      --chart-bg: #fdf6e3;
     }
 
     * {
@@ -95,6 +98,7 @@
       font-size: clamp(28px, 3vw, 40px);
       line-height: 1.05;
       letter-spacing: -0.03em;
+      font-weight: 800;
     }
 
     .meta,
@@ -335,6 +339,11 @@
     .chart-wrap {
       height: 320px;
       position: relative;
+      background: var(--chart-bg);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      margin-top: 10px;
+      border: 1px solid var(--border);
     }
 
     .chart-center-note {
@@ -628,19 +637,21 @@
     };
 
     const CHART_COLORS = [
-      '#d97706', // Amber/Gold (Primary)
       '#2563eb', // Blue
+      '#b45309', // Gold/Brown
       '#0d9488', // Teal
-      '#4f46e5', // Indigo
-      '#dc2626', // Red
       '#7c3aed', // Violet
+      '#dc2626', // Red
+      '#d97706', // Amber
       '#0891b2', // Cyan
       '#16a34a'  // Green
     ];
 
     let chartRefs = [];
     function destroyCharts() {
-      chartRefs.forEach(c => c.destroy());
+      chartRefs.forEach(c => {
+        try { c.destroy(); } catch (e) { }
+      });
       chartRefs = [];
     }
 
@@ -702,14 +713,12 @@
             },
             y: {
               beginAtZero: true,
-              grid: { color: '#f1f5f9' },
+              grid: { color: 'rgba(120, 107, 94, 0.08)' },
               ticks: { 
                 color: '#64748b', 
                 font: { size: 11 },
                 callback: function(value) {
-                  if (value >= 1000000) return (value / 1000000).toFixed(1) + 'M';
-                  if (value >= 1000) return (value / 1000).toFixed(1) + 'K';
-                  return value;
+                  return value.toLocaleString();
                 }
               }
             }
@@ -750,8 +759,8 @@
       return `
         <section class="header">
           <div>
-            <div class="eyebrow">Dashboard Report</div>
-            <h1 class="title">${escapeHtml(data.title || 'Operational Dashboard')}</h1>
+            <div class="eyebrow">Operational Intelligence</div>
+            <h1 class="title">${escapeHtml(data.title || 'Golden Dashboard')}</h1>
             ${data.summary ? `<div class="summary">${data.summary}</div>` : ''}
             ${data.fallback ? `<div class="fallback"><strong>Note:</strong> ${escapeHtml(data.fallback)}</div>` : ''}
           </div>
@@ -852,7 +861,7 @@
     }
 
     function renderTrendCard(trend) {
-      if (!trend || !Array.isArray(trend.items) || !trend.items.length) return '';
+      if (!trend || !Array.isArray(trend.items) && (!trend.datasets || !trend.datasets.length)) return '';
 
       return `
         <section class="panel panel-full">
@@ -863,7 +872,7 @@
             </div>
           </div>
           <div class="panel-body">
-            <div class="chart-wrap" style="height: 350px;">
+            <div class="chart-wrap" style="height: 380px;">
               <canvas id="trendChart"></canvas>
             </div>
           </div>
@@ -993,13 +1002,6 @@
       `;
     }
 
-    function destroyCharts() {
-      chartRefs.forEach(c => {
-        try { c.destroy(); } catch (e) { }
-      });
-      chartRefs = [];
-    }
-
     function mountDonutChart(donut) {
       if (!donut || !Array.isArray(donut.items) || !donut.items.length) return;
       const el = document.getElementById('donutChart');
@@ -1053,19 +1055,28 @@
       let datasets = [];
       let labels = [];
 
+      const ctx = el.getContext('2d');
+
       if (trend.datasets && Array.isArray(trend.datasets)) {
         labels = trend.labels || [];
         datasets = trend.datasets.map((ds, i) => {
           const color = CHART_COLORS[i % CHART_COLORS.length];
+          
+          // Create gradient for fill
+          const gradient = ctx.createLinearGradient(0, 0, 0, 350);
+          gradient.addColorStop(0, `${color}44`);
+          gradient.addColorStop(1, `${color}00`);
+
           return {
             label: ds.label || 'Data',
             data: ds.data,
             borderColor: color,
-            backgroundColor: `${color}15`,
+            backgroundColor: gradient,
             borderWidth: 3,
-            fill: trend.datasets.length === 1 || ds.label.toLowerCase().includes('actual'),
-            tension: 0.4,
-            pointRadius: 4,
+            fill: true,
+            tension: 0.35,
+            pointRadius: 5,
+            pointHoverRadius: 7,
             pointBackgroundColor: '#ffffff',
             pointBorderColor: color,
             pointBorderWidth: 2
@@ -1074,17 +1085,24 @@
       } else if (trend.items && Array.isArray(trend.items)) {
         labels = trend.items.map(x => x.label);
         const values = trend.items.map(x => Number(String(x.value).replace(/,/g, '').replace(/[^\d.-]/g, '')) || 0);
+        
+        const color = CHART_COLORS[0];
+        const gradient = ctx.createLinearGradient(0, 0, 0, 350);
+        gradient.addColorStop(0, `${color}33`);
+        gradient.addColorStop(1, `${color}00`);
+
         datasets = [{
           label: trend.title || 'Trend',
           data: values,
-          borderColor: CHART_COLORS[0],
-          backgroundColor: `${CHART_COLORS[0]}15`,
+          borderColor: color,
+          backgroundColor: gradient,
           borderWidth: 3,
           fill: true,
-          tension: 0.4,
-          pointRadius: 4,
+          tension: 0.35,
+          pointRadius: 5,
+          pointHoverRadius: 7,
           pointBackgroundColor: '#ffffff',
-          pointBorderColor: CHART_COLORS[0],
+          pointBorderColor: color,
           pointBorderWidth: 2
         }];
       }
@@ -1096,36 +1114,48 @@
         data: { labels, datasets },
         options: {
           maintainAspectRatio: false,
+          interaction: {
+            intersect: false,
+            mode: 'index',
+          },
           plugins: {
             legend: { 
-              display: datasets.length > 1,
+              display: true,
               position: 'bottom',
               labels: {
                 usePointStyle: true,
-                padding: 15,
-                font: { family: 'Inter', size: 11, weight: '600' }
+                pointStyle: 'rectRounded',
+                padding: 25,
+                color: '#475569',
+                font: { family: 'Inter', size: 12, weight: '600' }
               }
             },
             tooltip: {
               backgroundColor: '#0f172a',
               padding: 12,
-              cornerRadius: 12
+              cornerRadius: 12,
+              titleFont: { size: 13, weight: '700' },
+              bodyFont: { size: 12 },
+              usePointStyle: true
             }
           },
           scales: {
             x: {
               grid: { display: false },
-              ticks: { color: '#64748b', font: { size: 11, weight: '600' } }
-            },
-            y: {
-              grid: { color: '#f1f5f9' },
               ticks: { 
                 color: '#64748b', 
-                font: { size: 11 },
+                font: { size: 11, weight: '700' },
+                padding: 10
+              }
+            },
+            y: {
+              grid: { color: 'rgba(120, 107, 94, 0.12)', drawBorder: false },
+              ticks: { 
+                color: '#64748b', 
+                font: { size: 11, weight: '500' },
+                padding: 10,
                 callback: function(value) {
-                  if (value >= 1000000) return (value / 1000000).toFixed(1) + 'M';
-                  if (value >= 1000) return (value / 1000).toFixed(1) + 'K';
-                  return value;
+                  return value.toLocaleString();
                 }
               }
             }
@@ -1149,6 +1179,7 @@
           ${renderAlerts(data.alerts || [])}
           ${renderTable(data.table)}
         </section>
+        <div class="footer-note">VOXA Operational Analytics • Deterministic Data Pipeline</div>
       `;
       mountDonutChart(data.donut);
       mountTrendChart(data.trend);
@@ -1162,7 +1193,6 @@
     } else {
       document.getElementById('app').innerHTML = '<div class="empty-state">Waiting for database results...</div>';
     }
-    renderDashboard(data);
   </script>
 </body>
 
