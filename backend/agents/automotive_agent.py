@@ -192,199 +192,252 @@ MONTHS = {
 
 # ── Determinism Helpers ──
 
-def build_deterministic_response(df: pd.DataFrame, structured_data: dict) -> str:
+def should_render_dashboard(query: str, structured_intent: dict | None, df: pd.DataFrame | None) -> bool:
     """
-    Generate high-quality SUMMARY and DATA TABLE sections in Python.
-    Summary is rendered as bullet points for readability.
+    Decides if a dashboard should be rendered instead of plain markdown.
+    Default to dashboard for almost all analytical data queries.
     """
-    def format_val(val, metric_name):
-        if val is None: return "0"
-        try:
-            f_val = float(str(val).replace(',', ''))
-            if "revenue" in metric_name.lower() or "sales" in metric_name.lower():
-                return f"${f_val:,.0f}"
-            return f"{f_val:,.0f}"
-        except:
-            return str(val)
+    if df is None or df.empty:
+        return False
+        
+    q = query.lower()
+    
+    # 1. Explicit dashboard keywords
+    dashboard_keywords = [
+        "dashboard", "report", "overview", "analytics", "breakdown", 
+        "trend", "chart", "graph", "summary", "compare", "performance",
+        "kpi", "distribution", "analysis", "data", "stats", "metrics"
+    ]
+    if any(k in q for k in dashboard_keywords):
+        return True
+        
+    # 2. Structured intent with any data result
+    if structured_intent:
+        # If it's analytical, comparative, or listing, use dashboard
+        if structured_intent.get("query_type") in ["analytical", "comparative", "listing"]:
+            return True
+        # If it has more than 1 row or a group_by, definitely dashboard
+        if structured_intent.get("group_by") or len(df) > 0:
+            return True
 
-    time_meta = structured_data.get("time_meta", {})
-    used_time = time_meta.get("used") or structured_data.get("time_range")
-    if isinstance(used_time, list):
-        used_time = " or ".join(filter(None, [str(t) for t in used_time]))
-    if not used_time:
-        used_time = "the selected period"
+    return False
 
+def render_dashboard_html(data: dict) -> str:
+    """
+    Injects data into dashboardtemplate.html.
+    """
+    try:
+        from pathlib import Path
+        template_path = Path(__file__).parent.parent.parent / "dashboardtemplate.html"
+        with open(template_path, "r", encoding="utf-8") as f:
+            template_content = f.read()
+        
+        # The template expects data in window.__DASHBOARD_DATA__
+        json_data = json.dumps(data, indent=2)
+        
+        # Injected script to set the data
+        injection = f"\n  <script>\n    window.__DASHBOARD_DATA__ = {json_data};\n  </script>\n"
+        template_content = template_content.replace("</body>", f"{injection}</body>")
+            
+        return template_content
+    except Exception as e:
+        logger.error(f"Failed to render dashboard HTML: {e}")
+        return f"<!-- Error rendering dashboard: {e} -->"
+
+def build_dashboard_report_from_structured_data(query: str, structured_data: dict, df: pd.DataFrame) -> str:
+    """
+    Unifies structured data into the format expected by dashboardtemplate.html.
+    # ── Universal Dashboard Formatter ──
+    """
     metric_raw = structured_data.get("metric", "data")
-    metric = metric_raw.replace("_", " ").title()
+    metric_label = metric_raw.replace("_", " ").title()
+    used_time = structured_data.get("time_range") or "Selected Period"
+    
+    # Build a highly specific title based on filters
+    filters = structured_data.get("filters", {}) or {}
+    scope_parts = []
+    if isinstance(filters, dict):
+        for col, val in filters.items():
+            if val:
+                val_str = str(val).title() if isinstance(val, str) else ", ".join(str(v).title() for v in val)
+                scope_parts.append(val_str)
+    
+    scope_label = " - ".join(scope_parts)
+    report_title = f"{metric_label} Report"
+    if scope_label:
+        report_title = f"{metric_label}: {scope_label}"
+
+    # 1. KPIs
+    kpis = []
     val = structured_data.get("value")
-    filters_used = structured_data.get("filters_applied", "")
-    aggregation = structured_data.get("aggregation", "sum")
-
-    # ── Build Summary as 3-4 line prose ──
-    if time_meta.get("fallback_occurred"):
-        req = time_meta.get("requested")
-        summary_text = (
-            f"No data was found for the requested period **{req}**. "
-            f"The figures below reflect the latest available data from **{used_time}**. "
-            f"Please verify the time range or check if data ingestion is up to date."
-        )
-    elif val is not None and not structured_data.get("group_by"):
-        unit = structured_data.get("metric_units", "")
-        formatted_val = format_val(val, metric_raw)
-        val_str = formatted_val if "$" in formatted_val else f"{formatted_val} {unit}".strip()
-        filter_note = f" The results are filtered to **{filters_used}**." if filters_used else ""
-        summary_text = (
-            f"For **{used_time}**, the total **{metric}** recorded is **{val_str}**.{filter_note} "
-            f"This figure is aggregated across all matching records in the dataset and reflects the complete result for the selected period."
-        )
-    elif not df.empty:
+    
+    def format_val(v, m):
+        if v is None: return "0"
         try:
-            group_cols = structured_data.get("group_by")
-            if isinstance(group_cols, str):
-                group_cols = [group_cols]
+            f_v = float(str(v).replace(',', '').replace('$', ''))
+            if "revenue" in m.lower() or "sales" in m.lower():
+                return f"${f_v:,.0f}"
+            return f"{f_v:,.0f}"
+        except:
+            return str(v)
 
-            val_col = df.columns[-1]
-            temp_df = df.copy()
-            temp_df[val_col] = pd.to_numeric(
-                temp_df[val_col].astype(str).str.replace(',', '').str.replace('$', ''), errors='coerce'
-            )
-            top_idx = temp_df[val_col].idxmax()
-            top_row = df.loc[top_idx]
-            total_sum = temp_df[val_col].sum()
+    if val is not None:
+        kpis.append({
+            "label": f"Total {metric_label}",
+            "value": format_val(val, metric_raw),
+            "sub": used_time,
+            "colorClass": "kpi-blue",
+            "icon": icon_for_metric(metric_raw)
+        })
+    
+    # Add extra KPIs from summary if available and not already added
+    summary_data = structured_data.get("summary", {})
+    for key, s_val in summary_data.items():
+        if len(kpis) >= 4: break
+        label = key.replace("_", " ").title()
+        if metric_label in label: continue # Skip if redundant with main KPI
+        kpis.append({
+            "label": label,
+            "value": format_val(s_val, key),
+            "sub": "Period Total",
+            "colorClass": "kpi-teal",
+            "icon": icon_for_metric(key)
+        })
 
-            if group_cols and len(df) > 1:
-                top_entity = ", ".join(str(top_row[col]).title() for col in group_cols if col in df.columns)
-                top_val = format_val(top_row[val_col], metric_raw)
-                total_fmt = format_val(total_sum, metric_raw)
-                contribution = round((float(top_row[val_col]) / float(total_sum)) * 100, 1) if total_sum > 0 else 0
-                filter_note = f" Results are filtered to **{filters_used}**." if filters_used else ""
-                summary_text = (
-                    f"The analysis for **{used_time}** covers **{len(df)} {group_cols[0]}(s)** with a combined total {metric.lower()} of **{total_fmt}**.{filter_note} "
-                    f"The top performer is **{top_entity}**, contributing **{top_val}** — which accounts for **{contribution}%** of the overall total. "
-                    f"The data breakdown below shows the full distribution across all {group_cols[0]}s."
-                )
-                # Add deterministic insight
-                if total_sum > 0:
-                    structured_data.setdefault("computed_insights", []).append(
-                        f"**{top_entity}** leads all {group_cols[0]}s with a **{contribution}%** share of total {metric.lower()} ({total_fmt}) for {used_time}."
-                    )
-            elif len(df) == 1:
-                top_val = format_val(top_row[val_col], metric_raw)
-                if group_cols:
-                    top_entity = ", ".join(str(top_row[col]).title() for col in group_cols if col in df.columns)
-                    filter_note = f" Results are filtered to **{filters_used}**." if filters_used else ""
-                    summary_text = (
-                        f"For **{used_time}**, the **{metric.lower()}** recorded for **{top_entity}** is **{top_val}**.{filter_note} "
-                        f"This represents the complete aggregated result for this {group_cols[0]} during the selected period."
-                    )
-                else:
-                    summary_text = (
-                        f"For **{used_time}**, the total **{metric.lower()}** is **{top_val}**. "
-                        f"This is the complete aggregated result for the selected period across all matching records in the dataset."
-                    )
+    # Add comparative KPI if computed_change exists
+    change = structured_data.get("computed_change")
+    if change and len(kpis) < 4:
+        pct = change.get("percent_change", 0)
+        kpis.append({
+            "label": "Period Variance",
+            "value": f"{pct}%",
+            "sub": f"vs Previous Period",
+            "delta": f"{'+' if pct > 0 else ''}{pct}%",
+            "deltaClass": "delta-good" if (pct > 0 and metric_raw != "alerts") or (pct < 0 and metric_raw == "alerts") else "delta-bad",
+            "colorClass": "kpi-violet",
+            "icon": "Δ"
+        })
+
+    # 2. Charts (Trend / Bar / Donut)
+    bar_chart = {"title": f"{metric_label} Breakdown", "items": []}
+    donut_chart = {"title": "Distribution", "items": []}
+    trend_chart = {"title": f"{metric_label} Trend", "items": []}
+    
+    group_by = structured_data.get("group_by")
+    if group_by and not df.empty:
+        val_col = df.columns[-1]
+        label_cols = [c for c in df.columns if c != val_col]
+        
+        # Check if it's a time-series (Trend)
+        time_cols = {"week", "month", "quarter", "date", "week_number", "month_number"}
+        is_trend = any(str(col).lower() in time_cols for col in label_cols)
+        
+        for _, row in df.iterrows():
+            label = " - ".join(str(row[c]).title() for c in label_cols)
+            raw_val = row[val_col]
+            item = {
+                "label": label,
+                "value": format_val(raw_val, metric_raw),
+                "colorClass": "bar-blue"
+            }
+            if is_trend:
+                trend_chart["items"].append(item)
             else:
-                summary_text = (
-                    f"**{len(df)} record(s)** were found for **{metric.lower()}** in **{used_time}**. "
-                    f"Refer to the data breakdown table below for the full details."
-                )
-        except Exception:
-            summary_text = f"Data retrieved for **{metric.lower()}** in **{used_time}**. Refer to the breakdown table below."
-    else:
-        summary_text = (
-            f"No records were found for **{metric.lower()}** in **{used_time}**. "
-            f"The dataset does not contain any matching entries for this selection. "
-            f"Try adjusting the time range or filter criteria."
-        )
+                bar_chart["items"].append(item)
+                donut_chart["items"].append({
+                    "label": label,
+                    "value": raw_val
+                })
 
-    summary = f"### Summary\n{summary_text}"
+    # 3. Insights
+    insights = []
+    computed_insights = structured_data.get("computed_insights", [])
+    for idx, text in enumerate(computed_insights):
+        insights.append({
+            "text": text,
+            "icon": "⚡",
+            "colorClass": ["insight-blue", "insight-green", "insight-amber"][idx % 3]
+        })
 
-    # ── Build Dashboard JSON ──
-    if df.empty:
-        return f"{summary}\n\nNo data available for this selection."
-
+    # 4. Table
     headers = [str(col).replace("_", " ").title() for col in df.columns]
     rows = []
-    
-    # We will build some dummy KPIs based on the total values if available
-    kpis = []
-    if "total_sum" in locals() and total_sum > 0:
-         kpis.append({
-             "icon": "◎",
-             "iconClass": "icon-teal",
-             "label": f"Total {metric}<br>{used_time}",
-             "value": format_val(total_sum, metric_raw)
-         })
-    elif val is not None and not structured_data.get("group_by"):
-         kpis.append({
-             "icon": "◎",
-             "iconClass": "icon-teal",
-             "label": f"Total {metric}<br>{used_time}",
-             "value": format_val(val, metric_raw)
-         })
-
     for _, row in df.iterrows():
         formatted_row = []
         for i, item in enumerate(row):
             col_name = df.columns[i]
-            if isinstance(item, (int, float)) or (isinstance(item, str) and item.replace('.','',1).isdigit()):
-                formatted_row.append(format_val(item, col_name))
-            else:
-                formatted_row.append(str(item))
+            formatted_row.append(format_val(item, col_name))
         rows.append(formatted_row)
 
+    table = {
+        "title": f"Data Details: {metric_label}",
+        "headers": headers,
+        "rows": rows
+    }
+
+    # 5. Assemble
     dashboard_data = {
-        "kpis": kpis,
-        "table": {
-            "title": f"Data Breakdown: {metric} ({used_time})",
-            "headers": headers,
-            "rows": rows
-        }
+        "title": report_title,
+        "period": used_time,
+        "scope": scope_label or "Global Operations",
+        "summary": build_prose_summary(structured_data, df),
+        "kpis": kpis[:4],
+        "trend": trend_chart if trend_chart["items"] else None,
+        "barChart": bar_chart if bar_chart["items"] else None,
+        "donut": donut_chart if donut_chart["items"] else None,
+        "insights": insights,
+        "table": table
     }
     
-    # ── Inject into dashboard_template.html ──
+    html = render_dashboard_html(dashboard_data)
+    return f"### Summary\n{dashboard_data['summary']}\n\n```html\n{html}\n```"
+
+def icon_for_metric(metric: str) -> str:
+    m = metric.lower()
+    if "revenue" in m or "sales" in m: return "$"
+    if "unit" in m or "production" in m: return "#"
+    if "alert" in m or "issue" in m: return "!"
+    if "forecast" in m: return "~"
+    return "◎"
+
+def build_prose_summary(structured_data: dict, df: pd.DataFrame) -> str:
+    metric = structured_data.get("metric", "data").replace("_", " ").title()
+    val = structured_data.get("value")
+    used_time = structured_data.get("time_range") or "the selected period"
+    filters = structured_data.get("filters", {}) or {}
+    
+    filter_desc = ""
+    if filters:
+        parts = []
+        for k, v in filters.items():
+            val_str = str(v).title() if isinstance(v, str) else ", ".join(str(i).title() for i in v)
+            parts.append(f"**{val_str}** {k}")
+        filter_desc = f" for " + " and ".join(parts)
+
+    if val is not None and len(df) <= 1:
+        return f"Analysis of **{metric}**{filter_desc} during **{used_time}** shows a total value of **{val}**. This figure reflects the precise aggregated total from our operational datasets."
+    elif not df.empty:
+        return f"This report provides a detailed **{metric}** breakdown{filter_desc} for **{used_time}**. We have analyzed **{len(df)}** distinct segments to identify performance trends and variances."
+    return f"Data summary for **{metric}**{filter_desc} during the requested period."
+
+# ── Determinism Helpers ──
+
+def build_deterministic_response(df: pd.DataFrame, structured_data: dict) -> str:
+    """
+    Fallback deterministic response. Now also routes to the universal dashboard
+    to ensure light-theme consistency across all data queries.
+    """
     try:
-        from pathlib import Path
-        import re
-        template_path = Path(__file__).parent.parent.parent / "template1.html"
-        with open(template_path, "r", encoding="utf-8") as f:
-            html = f.read()
-            
-        # Replace Top Title
-        title = dashboard_data["table"]["title"]
-        html = re.sub(r'<span class="topbar-title">.*?</span>', f'<span class="topbar-title">{title}</span>', html, count=1)
-        
-        # Replace KPIs
-        if kpis:
-            kpi_html = '<div class="kpi-strip">\n'
-            for k in kpis:
-                kpi_html += f'''    <div class="kpi-card">
-      <div class="kpi-header">
-        <div class="kpi-icon {k.get('iconClass', 'icon-blue')}">{k.get('icon', '◎')}</div>
-        <div class="kpi-label">{k.get('label', '')}</div>
-      </div>
-      <div class="kpi-value">{k.get('value', '')}</div>
-    </div>\n'''
-            kpi_html += '  </div>'
-            html = re.sub(r'<div class="kpi-strip">.*?</div>\s*<!-- LEFT COLUMN -->', f'{kpi_html}\n\n  <!-- LEFT COLUMN -->', html, flags=re.DOTALL)
-            
-        # Replace Table
-        table_html = '<table class="dept-table">\n        <thead>\n          <tr>\n'
-        for h in headers:
-            table_html += f'            <th>{h}</th>\n'
-        table_html += '          </tr>\n        </thead>\n        <tbody>\n'
-        for row in rows:
-            table_html += '          <tr>\n'
-            for cell in row:
-                table_html += f'            <td>{cell}</td>\n'
-            table_html += '          </tr>\n'
-        table_html += '        </tbody>\n      </table>'
-        html = re.sub(r'<table class="dept-table">.*?</table>', table_html, html, flags=re.DOTALL)
-        
-        return f"{summary}\n\n```html\n{html}\n```"
+        # Re-use the unified dashboard logic even for 'simple' responses
+        # to maintain the requested executive light-theme visual system.
+        query = structured_data.get("raw_query", "Data Analysis")
+        return build_dashboard_report_from_structured_data(query, structured_data, df)
     except Exception as e:
-        logger.error(f"Failed to inject dashboard template: {e}")
-        dashboard_json = json.dumps(dashboard_data, indent=2)
-        return f"{summary}\n\n```dashboard\n{dashboard_json}\n```"
+        logger.error(f"Deterministic dashboard fallback failed: {e}")
+        # Ultra-fallback to markdown table if even that fails
+        summary = build_prose_summary(structured_data, df)
+        table_md = df.to_markdown(index=False)
+        return f"### Summary\n{summary}\n\n{table_md}"
 
 
 def validate_numbers_enforce(text: str, df: pd.DataFrame) -> bool:
@@ -1508,52 +1561,88 @@ def execute_dashboard_query(query: str) -> str:
         total_alerts, active_alerts, affected_units = 0, 0, 0
 
     period = time_meta.get("used") or "All Available Data"
-    fallback_note = ""
-    if time_meta.get("fallback_occurred"):
-        fallback_note = f"\n\n> ⚠️ No data for **{time_meta['requested']}**. Showing latest available: **{period}**."
-
-    # Build a scope label if entity filters were applied (e.g. "Dearborn plant")
-    scope_parts = []
-    for col, val in prod_filters.items():
-        if col in ("plant", "model", "department"):
-            scope_parts.append(str(val).title() if isinstance(val, str) else ", ".join(str(v).title() for v in val))
-    scope_label = f" — **{', '.join(scope_parts)}**" if scope_parts else ""
-
+    
     # Variance calculations
     units_var = total_units - forecast_units
     rev_var = total_revenue - forecast_revenue
     units_var_str = f"+{units_var:,}" if units_var >= 0 else f"{units_var:,}"
     rev_var_str = f"+${rev_var:,.0f}" if rev_var >= 0 else f"-${abs(rev_var):,.0f}"
 
-    summary = (
-        f"### Summary\n"
-        f"For **{period}**{scope_label}, production reached **{total_units:,} units** (forecast: {forecast_units:,}, variance: {units_var_str}) "
-        f"with revenue of **${total_revenue:,.0f}** (forecast: ${forecast_revenue:,.0f}, variance: {rev_var_str}). "
-        f"There are **{active_alerts} active alerts** out of {total_alerts} total, affecting **{affected_units:,} units**."
-        f"{fallback_note}"
-    )
+    # Build KPIs for the unified template
+    kpis = [
+        {
+            "label": "Production Units",
+            "value": f"{total_units:,}",
+            "sub": f"Target: {forecast_units:,}",
+            "delta": units_var_str,
+            "deltaClass": "delta-good" if units_var >= 0 else "delta-bad",
+            "colorClass": "kpi-blue",
+            "icon": "#"
+        },
+        {
+            "label": "Total Revenue",
+            "value": f"${total_revenue:,.0f}",
+            "sub": f"Target: ${forecast_revenue:,.0f}",
+            "delta": rev_var_str,
+            "deltaClass": "delta-good" if rev_var >= 0 else "delta-bad",
+            "colorClass": "kpi-green",
+            "icon": "$"
+        },
+        {
+            "label": "Active Alerts",
+            "value": str(active_alerts),
+            "sub": f"Out of {total_alerts} total",
+            "delta": f"{affected_units:,} units affected",
+            "deltaClass": "delta-bad" if active_alerts > 0 else "delta-neutral",
+            "colorClass": "kpi-red",
+            "icon": "!"
+        }
+    ]
 
-    table = (
-        f"### Dashboard Overview{scope_label}\n"
-        "| Metric | Actual | Forecast | Variance |\n"
-        "|--------|--------|----------|----------|\n"
-        f"| Production Units | {total_units:,} | {forecast_units:,} | {units_var_str} |\n"
-        f"| Revenue | ${total_revenue:,.0f} | ${forecast_revenue:,.0f} | {rev_var_str} |\n"
-        f"| Total Alerts | {total_alerts:,} | — | — |\n"
-        f"| Active Alerts | {active_alerts:,} | — | — |\n"
-        f"| Affected Units | {affected_units:,} | — | — |"
-    )
-
-    takeaways = ["### Key Takeaways"]
+    # Insights
+    insights = []
     if units_var < 0:
-        takeaways.append(f"- ⚠️ Production is **{abs(units_var):,} units below forecast** for {period}.")
+        insights.append({"text": f"Production is **{abs(units_var):,} units below forecast** for {period}.", "icon": "⚠️", "colorClass": "insight-red"})
     else:
-        takeaways.append(f"- ✅ Production is **{units_var_str} units above forecast** for {period}.")
+        insights.append({"text": f"Production is **{units_var_str} units above forecast** for {period}.", "icon": "✅", "colorClass": "insight-green"})
+    
     if active_alerts > 0:
         pct = round(affected_units / total_units * 100, 1) if total_units > 0 else 0
-        takeaways.append(f"- **{active_alerts} active quality alerts** are affecting **{pct}%** of produced units.")
+        insights.append({"text": f"**{active_alerts} active quality alerts** are affecting **{pct}%** of produced units.", "icon": "!", "colorClass": "insight-amber"})
 
-    return "\n\n".join([summary, table, "\n".join(takeaways)])
+    # Table
+    table = {
+        "title": "Global Metrics Overview",
+        "headers": ["Metric", "Actual", "Forecast", "Variance"],
+        "rows": [
+            ["Production Units", f"{total_units:,}", f"{forecast_units:,}", units_var_str],
+            ["Revenue", f"${total_revenue:,.0f}", f"${forecast_revenue:,.0f}", rev_var_str],
+            ["Total Alerts", str(total_alerts), "—", "—"],
+            ["Active Alerts", str(active_alerts), "—", "—"],
+            ["Affected Units", f"{affected_units:,}", "—", "—"]
+        ]
+    }
+
+    # Summary prose
+    summary_prose = (
+        f"Operational overview for **{period}**. "
+        f"Production reached **{total_units:,} units** with revenue of **${total_revenue:,.0f}**. "
+        f"System health monitors report **{active_alerts} active alerts** requiring attention."
+    )
+
+    dashboard_data = {
+        "title": "Plant Performance Dashboard",
+        "period": period,
+        "scope": ", ".join(scope_parts) if scope_parts else "Global Operations",
+        "summary": summary_prose,
+        "fallback": time_meta.get("requested") if time_meta.get("fallback_occurred") else None,
+        "kpis": kpis,
+        "insights": insights,
+        "table": table
+    }
+
+    html = render_dashboard_html(dashboard_data)
+    return f"### Summary\n{summary_prose}\n\n```html\n{html}\n```"
 
 
 def execute_actual_vs_forecast_query(query: str) -> str:
@@ -1821,6 +1910,13 @@ def execute_structured_query(query: str) -> str | None:
     # --- DETERMINISTIC LAYER (Python) ---
     df = execution["results_df"]
     structured_data = json.loads(execution["structured_context"])
+    
+    # ── Universal Dashboard Formatter ──
+    if should_render_dashboard(query, structured_intent, df):
+        try:
+            return build_dashboard_report_from_structured_data(query, structured_data, df)
+        except Exception as e:
+            logger.error(f"Universal dashboard formatting failed: {e}")
     
     try:
         python_part = build_deterministic_response(df, structured_data)
@@ -2122,16 +2218,16 @@ async def process_query(
     # 1. Check for Dashboard/Summary Queries (Multi-metric)
     if _is_dashboard_query(query) or _is_filtered_dashboard_query(query):
         logger.info("Routing to dashboard handler")
-        structured_response = execute_dashboard_query(query)
-        if structured_response:
-            return structured_response
+        return execute_dashboard_query(query)
 
     # 2. Check for Structured Data Queries (Single-metric)
     structured_intent = _parse_structured_intent(query)
     if structured_intent and structured_intent.get("intent_confidence", 1.0) > 0.6:
+        # Check if we should render a dashboard for this single-metric query
+        # We'll let execute_structured_query handle the decision
         structured_response = execute_structured_query(query)
         if structured_response:
-            logger.info("Returning structured response for supported query")
+            logger.info("Returning structured response (possibly dashboard)")
             return structured_response
     elif structured_intent and structured_intent.get("intent_confidence", 1.0) <= 0.6:
         # Ambiguous data query - ask for clarification instead of hallucinating
@@ -2190,10 +2286,8 @@ async def stream_query(
     # 1. Check for Dashboard/Summary Queries (Multi-metric)
     if _is_dashboard_query(query) or _is_filtered_dashboard_query(query):
         logger.info("Routing to dashboard handler (stream)")
-        structured_response = execute_dashboard_query(query)
-        if structured_response:
-            yield structured_response
-            return
+        yield execute_dashboard_query(query)
+        return
 
     # 2. Check for Structured Data Queries (Single-metric)
     structured_intent = _parse_structured_intent(query)
