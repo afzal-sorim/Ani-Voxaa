@@ -425,15 +425,13 @@
       background: var(--teal);
     }
 
-    .insight-list,
-    .alert-list {
+    .insight-list {
       display: grid;
       gap: 12px;
       margin-top: 8px;
     }
 
-    .insight-item,
-    .alert-item {
+    .insight-item {
       display: grid;
       grid-template-columns: auto 1fr;
       gap: 12px;
@@ -444,8 +442,7 @@
       background: var(--surface);
     }
 
-    .insight-icon,
-    .alert-dot {
+    .insight-icon {
       width: 34px;
       height: 34px;
       border-radius: 12px;
@@ -476,38 +473,12 @@
       color: #dc2626;
     }
 
-    .insight-text,
-    .alert-main {
+    .insight-text {
       font-size: 14px;
       line-height: 1.7;
       color: var(--text);
     }
 
-    .alert-main strong {
-      display: block;
-      margin-bottom: 4px;
-    }
-
-    .alert-meta {
-      font-size: 12px;
-      color: var(--muted);
-      margin-top: 4px;
-    }
-
-    .alert-high .alert-dot {
-      background: #fee2e2;
-      color: #dc2626;
-    }
-
-    .alert-medium .alert-dot {
-      background: #fef3c7;
-      color: #d97706;
-    }
-
-    .alert-low .alert-dot {
-      background: #dcfce7;
-      color: #16a34a;
-    }
 
     .table-shell {
       border: 1px solid var(--border);
@@ -630,7 +601,6 @@
     const ICON_MAP = {
       revenue: '$',
       units: '#',
-      alerts: '!',
       forecast: '~',
       production: '#',
       generic: '*'
@@ -750,7 +720,6 @@
       const l = String(label).toLowerCase();
       if (l.includes('revenue') || l.includes('sales')) return ICON_MAP.revenue;
       if (l.includes('unit') || l.includes('production')) return ICON_MAP.units;
-      if (l.includes('alert') || l.includes('issue')) return ICON_MAP.alerts;
       if (l.includes('forecast')) return ICON_MAP.forecast;
       return ICON_MAP.generic;
     }
@@ -883,7 +852,7 @@
     function renderInsights(insights = []) {
       if (!Array.isArray(insights) || !insights.length) {
         return `
-          <section class="panel panel-half">
+          <section class="panel panel-full">
             <div class="panel-header">
               <div>
                 <h3 class="panel-title">Insights</h3>
@@ -898,7 +867,7 @@
       }
 
       return `
-        <section class="panel panel-half">
+        <section class="panel panel-full">
           <div class="panel-header">
             <div>
               <h3 class="panel-title">Insights</h3>
@@ -922,51 +891,6 @@
       `;
     }
 
-    function renderAlerts(alerts = []) {
-      if (!Array.isArray(alerts) || !alerts.length) {
-        return `
-          <section class="panel panel-half">
-            <div class="panel-header">
-              <div>
-                <h3 class="panel-title">Alerts</h3>
-                <div class="panel-subtitle">Current records in scope</div>
-              </div>
-            </div>
-            <div class="panel-body">
-              <div class="empty-state">No active alerts for the selected period.</div>
-            </div>
-          </section>
-        `;
-      }
-
-      return `
-        <section class="panel panel-half">
-          <div class="panel-header">
-            <div>
-              <h3 class="panel-title">Alerts</h3>
-              <div class="panel-subtitle">Prioritised operational issues</div>
-            </div>
-          </div>
-          <div class="panel-body">
-            <div class="alert-list">
-              ${alerts.map((alert) => {
-        const sev = String(alert.severity || 'HIGH').toLowerCase();
-        const sevClass = sev.includes('low') ? 'alert-low' : sev.includes('medium') ? 'alert-medium' : 'alert-high';
-        return `
-                  <div class="alert-item ${sevClass}">
-                    <div class="alert-dot">!</div>
-                    <div class="alert-main">
-                      <strong>${escapeHtml(alert.name || 'Alert')}</strong>
-                      ${alert.meta ? `<div class="alert-meta">${escapeHtml(alert.meta)}</div>` : ''}
-                    </div>
-                  </div>
-                `;
-      }).join('')}
-            </div>
-          </div>
-        </section>
-      `;
-    }
 
     function renderTable(table) {
       if (!table || !Array.isArray(table.headers) || !table.headers.length) {
@@ -1176,7 +1100,6 @@
           ${renderBarChartCard(data.barChart)}
           ${renderDonutCard(data.donut)}
           ${renderInsights(data.insights || [])}
-          ${renderAlerts(data.alerts || [])}
           ${renderTable(data.table)}
         </section>
         <div class="footer-note">VOXA Operational Analytics • Deterministic Data Pipeline</div>

@@ -7,7 +7,6 @@ const EXAMPLES = [
   { text: 'Top models by revenue this month', icon: '🚗' },
   { text: 'Production breakdown by plant', icon: '🏭' },
   { text: 'Active quality alerts by department', icon: '⚠️' },
-  { text: 'Compare Bronco vs Mustang units', icon: '⚖️' },
   { text: 'Plant with highest quality issues', icon: '🔍' },
   { text: 'Revenue trends for Q1 2026', icon: '📈' },
 ];
