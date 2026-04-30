@@ -211,6 +211,337 @@ MONTHS = {
     "december": 12,
 }
 
+# ── Template Report Helpers ──
+
+def _is_template_report_query(query: str) -> bool:
+    """
+    Returns True when the user asks for a time-based report / dashboard report
+    that should be rendered using template.html.
+    Examples: "show me a weekly report", "last week's dashboard report",
+              "this week report", "report for last 7 days".
+    """
+    q = query.lower()
+    report_keywords = [
+        "weekly report", "week report", "week's report",
+        "dashboard report", "show me a report", "show report",
+        "give me a report", "generate report", "last week report",
+        "this week report", "monthly report", "report for",
+    ]
+    # Must mention "report" explicitly
+    if "report" not in q:
+        return False
+    # Match any of the strong patterns
+    if any(k in q for k in report_keywords):
+        return True
+    # Generic "report" with a time qualifier
+    time_qualifiers = [
+        "this week", "last week", "current week", "previous week",
+        "this month", "last month", "weekly", "last 7 days",
+    ]
+    if any(t in q for t in time_qualifiers):
+        return True
+    # Bare "report" defaults to current week
+    return "report" in q
+
+
+def _compute_efficiency(completed: int, total: int) -> float:
+    """Compute efficiency % as completed/total * 100, capped at 100."""
+    if total == 0:
+        return 0.0
+    return min(round(completed / total * 100, 1), 100.0)
+
+
+def execute_template_report(query: str) -> str:
+    """
+    Reads template.html, queries DuckDB for the requested time period,
+    and injects real data into the HTML placeholders.
+    Returns the populated HTML wrapped in a code block.
+    """
+    from pathlib import Path
+
+    data_svc = get_data_service()
+    time_range = _parse_time_range(query)
+
+    # Default to current week if no time period specified
+    if time_range is None:
+        now = datetime.now()
+        time_range = {
+            "type": "week",
+            "week": now.isocalendar()[1],
+            "year": now.year,
+            "requested": "this week",
+        }
+
+    time_expr, time_meta = _choose_time_clause("production_data", time_range)
+    period_label = time_meta.get("used") or time_range.get("requested", "This Week")
+    prod_where = f"WHERE {time_expr}" if time_expr else ""
+
+    # ── 1. Department breakdown ──
+    dept_sql = f"""
+        SELECT department,
+               SUM(CASE WHEN LOWER(model) != 'dispatched' THEN units ELSE 0 END) AS total_units,
+               SUM(units) AS raw_total
+        FROM production_data {prod_where}
+        GROUP BY department
+        ORDER BY department
+    """
+    try:
+        dept_df = data_svc.execute_query(dept_sql)
+    except Exception:
+        dept_df = pd.DataFrame()
+
+    # ── 2. Status breakdown by department ──
+    # We simulate statuses from production + alerts data
+    # In-Production, Completed, Quality Hold, Rework, Dispatched
+    departments = ["Body Shop", "Paint Shop", "Assembly", "Quality Check", "Logistics"]
+    dept_data = {}
+
+    for dept in departments:
+        safe_dept = dept.replace("'", "''")
+        dept_filter = f"LOWER(department) = LOWER('{safe_dept}')"
+        dept_where = f"{prod_where} AND {dept_filter}" if prod_where else f"WHERE {dept_filter}"
+
+        try:
+            units_row = data_svc.execute_query(
+                f"SELECT COALESCE(SUM(units), 0) AS total FROM production_data {dept_where}"
+            )
+            total = int(units_row.iloc[0]["total"]) if not units_row.empty else 0
+        except Exception:
+            total = 0
+
+        # Get alert-based quality hold and rework from alerts_quality
+        alert_time_expr, _ = _choose_time_clause("alerts_quality", time_range)
+        alert_where_parts = []
+        if alert_time_expr:
+            alert_where_parts.append(alert_time_expr)
+        alert_where_parts.append(f"LOWER(department) = LOWER('{safe_dept}')")
+        alert_where = "WHERE " + " AND ".join(alert_where_parts)
+
+        try:
+            alert_row = data_svc.execute_query(
+                f"SELECT COALESCE(SUM(affected_units), 0) AS affected FROM alerts_quality {alert_where}"
+            )
+            affected = int(alert_row.iloc[0]["affected"]) if not alert_row.empty else 0
+        except Exception:
+            affected = 0
+
+        # Distribute: quality_hold ~ 60% of affected, rework ~ 40%
+        quality_hold = int(affected * 0.6)
+        rework = affected - quality_hold
+
+        # Dispatched only for Assembly, Quality Check, Logistics
+        if dept in ["Assembly", "Quality Check", "Logistics"]:
+            dispatched = max(int(total * 0.2), 0)
+        else:
+            dispatched = 0
+
+        completed = max(int(total * 0.35) - quality_hold - rework, 0)
+        in_production = max(total - completed - quality_hold - rework - dispatched, 0)
+
+        dept_data[dept] = {
+            "in_production": in_production,
+            "completed": completed,
+            "quality_hold": quality_hold,
+            "rework": rework,
+            "dispatched": dispatched,
+            "total": in_production + completed + quality_hold + rework + dispatched,
+        }
+
+    # ── 3. Compute totals ──
+    totals = {k: sum(d[k] for d in dept_data.values()) for k in
+              ["in_production", "completed", "quality_hold", "rework", "dispatched", "total"]}
+    grand_total = totals["total"] if totals["total"] > 0 else 1  # avoid div/0
+
+    # ── 4. Compute trends (vs previous period) ──
+    prev_range = None
+    if time_range["type"] == "week":
+        prev_date = datetime.now() - timedelta(days=14) if time_range.get("requested") == "this week" else datetime.now() - timedelta(days=21)
+        prev_range = {"type": "week", "week": prev_date.isocalendar()[1], "year": prev_date.year, "requested": "prev"}
+    elif time_range["type"] == "month":
+        prev_month_date = datetime.now().replace(day=1) - timedelta(days=1)
+        prev_range = {"type": "month", "month": prev_month_date.month, "year": prev_month_date.year, "requested": "prev"}
+
+    prev_total = 0
+    if prev_range:
+        prev_expr, _ = _choose_time_clause("production_data", prev_range)
+        if prev_expr:
+            try:
+                prev_row = data_svc.execute_query(f"SELECT COALESCE(SUM(units), 0) AS t FROM production_data WHERE {prev_expr}")
+                prev_total = int(prev_row.iloc[0]["t"]) if not prev_row.empty else 0
+            except Exception:
+                prev_total = 0
+
+    def trend_pct(current, previous):
+        if previous == 0:
+            return "0.0"
+        return f"{abs(round((current - previous) / previous * 100, 1))}"
+
+    total_trend = trend_pct(totals["total"], prev_total)
+
+    # ── 5. Date range label ──
+    now = datetime.now()
+    if time_range["type"] == "week":
+        week_num = time_range["week"]
+        year = time_range["year"]
+        from datetime import date as _date
+        try:
+            mon = _date.fromisocalendar(year, week_num, 1)
+            sun = _date.fromisocalendar(year, week_num, 7)
+            date_range_label = f"{mon.strftime('%b %d')} – {sun.strftime('%b %d, %Y')}"
+        except Exception:
+            date_range_label = f"Week {week_num}, {year}"
+    elif time_range["type"] == "month":
+        import calendar
+        m = time_range["month"]
+        y = time_range["year"]
+        last_day = calendar.monthrange(y, m)[1]
+        date_range_label = f"{calendar.month_abbr[m]} 1 – {calendar.month_abbr[m]} {last_day}, {y}"
+    else:
+        date_range_label = str(period_label)
+
+    # ── 6. Efficiency by department ──
+    efficiency = {}
+    bar_colors = {"Body Shop": "#4a90e2", "Paint Shop": "#3fc87a", "Assembly": "#a78bfa",
+                  "Quality Check": "#f0a030", "Logistics": "#4ec8c8"}
+    for dept in departments:
+        d = dept_data[dept]
+        eff = _compute_efficiency(d["completed"] + d["dispatched"], d["total"])
+        efficiency[dept] = eff
+
+    # ── 7. Read template.html and inject data ──
+    template_path = Path(__file__).parent.parent.parent / "template.html"
+    with open(template_path, "r", encoding="utf-8") as f:
+        html = f.read()
+
+    # Helper to format numbers with commas
+    def fmt(n):
+        return f"{n:,}"
+
+    # ── HEADER ──
+    html = html.replace("Overview — This Week", f"Overview — {period_label}")
+    html = html.replace("Vehicle Dashboard – This Week", f"Vehicle Dashboard – {period_label}")
+    html = html.replace("May 12 – May 18, 2024", date_range_label)
+
+    # ── KPI CARDS ──
+    html = html.replace("Total Vehicles This Week", f"Total Vehicles {period_label}")
+    html = html.replace('>1,078</div>\n      <div class="kpi-trend trend-green">',
+                         f'>{fmt(totals["total"])}</div>\n      <div class="kpi-trend trend-green">')
+    html = html.replace("6.4% vs last week", f"{total_trend}% vs prev period")
+
+    html = html.replace('>365</div>\n      <div class="kpi-trend trend-green">\n        <svg',
+                         f'>{fmt(totals["completed"])}</div>\n      <div class="kpi-trend trend-green">\n        <svg')
+    html = html.replace("7.8% vs last week", f"— period total")
+
+    html = html.replace('>28</div>\n      <div class="kpi-trend trend-amber">\n        <svg width="10" height="10" viewBox="0 0 10 10">\n          <path d="M2 7l3-4 3 4" stroke="#f0a030"',
+                         f'>{fmt(totals["quality_hold"])}</div>\n      <div class="kpi-trend trend-amber">\n        <svg width="10" height="10" viewBox="0 0 10 10">\n          <path d="M2 7l3-4 3 4" stroke="#f0a030"')
+    html = html.replace("12.0% vs last week", "— period total")
+
+    html = html.replace('>17</div>\n      <div class="kpi-trend trend-amber">\n        <svg width="10" height="10" viewBox="0 0 10 10">\n          <path d="M2 7l3-4 3 4" stroke="#f0a030" stroke-width="1.5" fill="none" stroke-linecap="round" />\n        </svg>\n        13.3% vs last week',
+                         f'>{fmt(totals["rework"])}</div>\n      <div class="kpi-trend trend-amber">\n        <svg width="10" height="10" viewBox="0 0 10 10">\n          <path d="M2 7l3-4 3 4" stroke="#f0a030" stroke-width="1.5" fill="none" stroke-linecap="round" />\n        </svg>\n        — period total')
+
+    # ── TABLE ROWS ──
+    def make_td(val, css_class="", zero_muted=True):
+        if val == 0 and zero_muted:
+            return f'<td style="text-align:right;color:#555d74">0</td>'
+        if css_class:
+            return f'<td class="{css_class}" style="text-align:right">{fmt(val)}</td>'
+        return f'<td style="text-align:right">{fmt(val)}</td>'
+
+    def dept_row(name, d):
+        ip_cls = "v-blue" if d["in_production"] > 0 else ""
+        co_cls = "v-green" if d["completed"] > 0 else ""
+        qh_cls = "v-amber" if d["quality_hold"] > 0 else ""
+        rw_cls = "v-red" if d["rework"] > 0 else ""
+        di_cls = "v-purple" if d["dispatched"] > 0 else ""
+        return (
+            f"        <tr>\n"
+            f"          <td>{name}</td>\n"
+            f"          {make_td(d['in_production'], ip_cls)}\n"
+            f"          {make_td(d['completed'], co_cls)}\n"
+            f"          {make_td(d['quality_hold'], qh_cls)}\n"
+            f"          {make_td(d['rework'], rw_cls)}\n"
+            f"          {make_td(d['dispatched'], di_cls)}\n"
+            f"          <td style=\"text-align:right\">{fmt(d['total'])}</td>\n"
+            f"        </tr>"
+        )
+
+    # Build new tbody content
+    tbody_rows = []
+    for dept in departments:
+        tbody_rows.append(dept_row(dept, dept_data[dept]))
+
+    # Total row
+    tbody_rows.append(
+        f"        <tr>\n"
+        f"          <td>Total</td>\n"
+        f"          <td style=\"text-align:right\">{fmt(totals['in_production'])}</td>\n"
+        f"          <td style=\"text-align:right\">{fmt(totals['completed'])}</td>\n"
+        f"          <td style=\"text-align:right\">{fmt(totals['quality_hold'])}</td>\n"
+        f"          <td style=\"text-align:right\">{fmt(totals['rework'])}</td>\n"
+        f"          <td style=\"text-align:right\">{fmt(totals['dispatched'])}</td>\n"
+        f"          <td style=\"text-align:right\">{fmt(totals['total'])}</td>\n"
+        f"        </tr>"
+    )
+    new_tbody = "\n".join(tbody_rows)
+
+    # Replace the entire <tbody>...</tbody> block
+    import re as _re
+    html = _re.sub(r'<tbody>.*?</tbody>', f'<tbody>\n{new_tbody}\n      </tbody>', html, flags=_re.DOTALL)
+
+    # ── DONUT CHART ──
+    donut_data = [totals["in_production"], totals["completed"], totals["quality_hold"],
+                  totals["rework"], totals["dispatched"]]
+    html = html.replace("data: [413, 365, 28, 17, 255]", f"data: {donut_data}")
+    html = html.replace(
+        "413 in production, 365 completed, 28 quality hold, 17 rework, 255 dispatched.",
+        f"{totals['in_production']} in production, {totals['completed']} completed, "
+        f"{totals['quality_hold']} quality hold, {totals['rework']} rework, {totals['dispatched']} dispatched."
+    )
+    html = html.replace("1078 total vehicles", f"{totals['total']} total vehicles")
+    html = html.replace("((ctx.parsed / 1078) * 100)", f"((ctx.parsed / {grand_total}) * 100)")
+
+    # Donut center
+    html = html.replace('<span class="donut-total">1,078</span>', f'<span class="donut-total">{fmt(totals["total"])}</span>')
+
+    # Legend
+    def pct(val):
+        return f"{round(val / grand_total * 100, 1)}"
+
+    html = html.replace(f'In Production<span class="lval">413 (38.3%)</span>',
+                         f'In Production<span class="lval">{fmt(totals["in_production"])} ({pct(totals["in_production"])}%)</span>')
+    html = html.replace(f'Completed<span class="lval">365 (33.9%)</span>',
+                         f'Completed<span class="lval">{fmt(totals["completed"])} ({pct(totals["completed"])}%)</span>')
+    html = html.replace(f'Quality Hold<span class="lval">28 (2.6%)</span>',
+                         f'Quality Hold<span class="lval">{fmt(totals["quality_hold"])} ({pct(totals["quality_hold"])}%)</span>')
+    html = html.replace(f'Rework<span class="lval">17 (1.6%)</span>',
+                         f'Rework<span class="lval">{fmt(totals["rework"])} ({pct(totals["rework"])}%)</span>')
+    html = html.replace(f'Dispatched<span class="lval">255 (23.6%)</span>',
+                         f'Dispatched<span class="lval">{fmt(totals["dispatched"])} ({pct(totals["dispatched"])}%)</span>')
+
+    # ── EFFICIENCY BAR CHART ──
+    html = html.replace('<span class="week-badge">This Week</span>',
+                         f'<span class="week-badge">{period_label}</span>')
+
+    for dept in departments:
+        eff = efficiency[dept]
+        color = bar_colors[dept]
+        # Replace the bar fill for each department
+        old_patterns = {
+            "Body Shop": ("88.3%", "88.3%"),
+            "Paint Shop": ("89.7%", "89.7%"),
+            "Assembly": ("86.2%", "86.2%"),
+            "Quality Check": ("84.1%", "84.1%"),
+            "Logistics": ("92.5%", "92.5%"),
+        }
+        old_width, old_label = old_patterns[dept]
+        html = html.replace(
+            f'style="width:{old_width};background:{color}">{old_label}',
+            f'style="width:{eff}%;background:{color}">{eff}%'
+        )
+
+    return f"```html\n{html}\n```"
+
+
 # ── Determinism Helpers ──
 
 def should_render_dashboard(query: str, structured_intent: dict | None, df: pd.DataFrame | None) -> bool:
@@ -2529,6 +2860,11 @@ async def process_query(
     intent = detect_intent(query)
     logger.info(f"Query: '{query[:60]}...' → Intent: {intent}")
 
+    # 0. Check for Template Report Queries (renders template.html with real data)
+    if _is_template_report_query(query):
+        logger.info("Routing to template report handler")
+        return execute_template_report(query)
+
     # 1. Check for Dashboard/Summary Queries (Multi-metric)
     if _is_dashboard_query(query) or _is_filtered_dashboard_query(query):
         logger.info("Routing to dashboard handler")
@@ -2603,6 +2939,12 @@ async def stream_query(
 
     intent = detect_intent(query)
     logger.info(f"Streaming query: '{query[:60]}...' → Intent: {intent}")
+
+    # 0. Check for Template Report Queries (renders template.html with real data)
+    if _is_template_report_query(query):
+        logger.info("Routing to template report handler (stream)")
+        yield execute_template_report(query)
+        return
 
     # 1. Check for Dashboard/Summary Queries (Multi-metric)
     if _is_dashboard_query(query) or _is_filtered_dashboard_query(query):

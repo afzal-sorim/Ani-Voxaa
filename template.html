@@ -15,13 +15,38 @@
       padding: 0;
     }
 
+    :root {
+      --bg: #F8F7F4;
+      --bg2: #F0EDE6;
+      --surf: #FFFFFF;
+      --surf-hover: #F5F3EE;
+      --txt: #1A1A1F;
+      --txt2: #6B6B7B;
+      --txt3: #9CA3AF;
+      --brd: rgba(0, 0, 0, 0.08);
+      --brd2: rgba(0, 0, 0, 0.15);
+      --gold: #B8962E;
+      --gold-mid: #D4AF37;
+      --gold-lt: #F5E6B3;
+      --blue: #2E6DB8;
+      --green: #1E8A52;
+      --amber: #C07820;
+      --red: #C03030;
+      --purple: #6B4ED4;
+      --blue-bg: #EAF1FB;
+      --green-bg: #E4F5EC;
+      --amber-bg: #FDF3E0;
+      --red-bg: #FDEAEA;
+      --purple-bg: #F0ECFD;
+    }
+
     body {
-      background: #0d0f18;
-      color: #e2e4ea;
+      background: var(--bg);
+      color: var(--txt);
       font-family: 'DM Sans', sans-serif;
       font-size: 13px;
       min-height: 100vh;
-      padding: 20px;
+      padding: 22px;
     }
 
     /* ── Header ── */
@@ -34,24 +59,29 @@
 
     .dash-header h1 {
       font-size: 15px;
-      font-weight: 500;
-      color: #c8ccd8;
+      font-weight: 600;
+      color: var(--txt);
     }
 
     .date-badge {
       display: flex;
       align-items: center;
       gap: 6px;
-      background: #1a1d2e;
-      border: 0.5px solid #2a2e45;
+      background: var(--surf);
+      border: 0.5px solid var(--brd2);
       border-radius: 6px;
-      padding: 3px 10px;
+      padding: 4px 10px;
       font-size: 11px;
-      color: #6b7280;
+      color: var(--txt2);
     }
 
-    .date-badge svg {
-      opacity: 0.6;
+    /* Gold accent line under header */
+    .gold-rule {
+      height: 2px;
+      background: linear-gradient(90deg, #D4AF37, #F5E6B3, #B8962E);
+      border-radius: 2px;
+      margin-bottom: 18px;
+      opacity: 0.7;
     }
 
     /* ── KPI Row ── */
@@ -63,24 +93,46 @@
     }
 
     .kpi-card {
-      background: #161923;
-      border: 0.5px solid #252a3a;
+      background: var(--surf);
+      border: 0.5px solid var(--brd);
+      border-top: 2px solid transparent;
       border-radius: 10px;
       padding: 14px 16px;
       display: flex;
       flex-direction: column;
       gap: 6px;
+      transition: background 0.15s;
+    }
+
+    .kpi-card:hover {
+      background: var(--surf-hover);
+    }
+
+    .kpi-card.k-blue {
+      border-top-color: var(--blue);
+    }
+
+    .kpi-card.k-green {
+      border-top-color: var(--green);
+    }
+
+    .kpi-card.k-amber {
+      border-top-color: var(--amber);
+    }
+
+    .kpi-card.k-red {
+      border-top-color: var(--red);
     }
 
     .kpi-top {
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       justify-content: space-between;
     }
 
     .kpi-label {
       font-size: 11px;
-      color: #6b7280;
+      color: var(--txt2);
       line-height: 1.4;
       max-width: 110px;
     }
@@ -96,29 +148,25 @@
     }
 
     .icon-blue {
-      background: #162040;
+      background: var(--blue-bg);
     }
 
     .icon-green {
-      background: #0e2a1a;
+      background: var(--green-bg);
     }
 
     .icon-amber {
-      background: #2a1c06;
+      background: var(--amber-bg);
     }
 
     .icon-red {
-      background: #2a1010;
-    }
-
-    .icon-purple {
-      background: #1e1640;
+      background: var(--red-bg);
     }
 
     .kpi-value {
       font-size: 28px;
       font-weight: 600;
-      color: #f0f2f8;
+      color: var(--txt);
       line-height: 1;
     }
 
@@ -130,17 +178,17 @@
     }
 
     .trend-green {
-      color: #3fc87a;
+      color: var(--green);
     }
 
     .trend-amber {
-      color: #f0a030;
+      color: var(--amber);
     }
 
     /* ── Table Card ── */
     .table-card {
-      background: #161923;
-      border: 0.5px solid #252a3a;
+      background: var(--surf);
+      border: 0.5px solid var(--brd);
       border-radius: 10px;
       padding: 16px 18px;
       margin-bottom: 14px;
@@ -149,8 +197,8 @@
 
     .section-title {
       font-size: 13px;
-      font-weight: 500;
-      color: #9ca3af;
+      font-weight: 600;
+      color: var(--txt);
       margin-bottom: 12px;
     }
 
@@ -163,27 +211,37 @@
 
     th {
       text-align: left;
-      padding: 6px 10px;
-      color: #555d74;
-      font-weight: 400;
-      border-bottom: 0.5px solid #222638;
+      padding: 7px 10px;
+      color: var(--txt3);
+      font-weight: 500;
+      border-bottom: 1px solid var(--brd);
       white-space: nowrap;
+      background: var(--bg2);
+    }
+
+    th:first-child {
+      border-radius: 6px 0 0 6px;
+    }
+
+    th:last-child {
+      border-radius: 0 6px 6px 0;
     }
 
     td {
       padding: 8px 10px;
-      border-bottom: 0.5px solid #1c2030;
-      color: #b0b8cc;
+      border-bottom: 0.5px solid var(--brd);
+      color: var(--txt2);
     }
 
-    tr:last-child td {
+    tbody tr:last-child td {
       border-bottom: none;
-      color: #e2e4ea;
-      font-weight: 500;
+      color: var(--txt);
+      font-weight: 600;
+      background: var(--bg2);
     }
 
-    tbody tr:hover td {
-      background: #1b1f30;
+    tbody tr:not(:last-child):hover td {
+      background: var(--surf-hover);
     }
 
     .dot {
@@ -204,28 +262,27 @@
       text-align: right;
     }
 
-    /* colored values */
     .v-blue {
-      color: #4a90e2;
+      color: var(--blue);
     }
 
     .v-green {
-      color: #3fc87a;
+      color: var(--green);
     }
 
     .v-amber {
-      color: #f0a030;
+      color: var(--amber);
     }
 
     .v-red {
-      color: #e05050;
+      color: var(--red);
     }
 
     .v-purple {
-      color: #a78bfa;
+      color: var(--purple);
     }
 
-    /* ── Bottom Charts Row ── */
+    /* ── Charts Row ── */
     .charts-row {
       display: grid;
       grid-template-columns: 1fr 1.55fr;
@@ -233,8 +290,8 @@
     }
 
     .chart-card {
-      background: #161923;
-      border: 0.5px solid #252a3a;
+      background: var(--surf);
+      border: 0.5px solid var(--brd);
       border-radius: 10px;
       padding: 16px 18px;
     }
@@ -248,11 +305,11 @@
 
     .week-badge {
       font-size: 11px;
-      background: #1e2433;
-      border: 0.5px solid #2e3248;
+      background: var(--bg2);
+      border: 0.5px solid var(--brd2);
       border-radius: 5px;
       padding: 2px 8px;
-      color: #6b7280;
+      color: var(--txt2);
     }
 
     /* Donut */
@@ -282,12 +339,12 @@
     .donut-total {
       font-size: 20px;
       font-weight: 600;
-      color: #f0f2f8;
+      color: var(--txt);
     }
 
     .donut-sub {
       font-size: 10px;
-      color: #6b7280;
+      color: var(--txt3);
       margin-top: 1px;
     }
 
@@ -302,7 +359,7 @@
       align-items: center;
       gap: 8px;
       font-size: 11px;
-      color: #8a91a8;
+      color: var(--txt2);
     }
 
     .ldot {
@@ -314,9 +371,10 @@
 
     .lval {
       margin-left: auto;
-      color: #c0c6d8;
+      color: var(--txt);
       padding-left: 10px;
       white-space: nowrap;
+      font-weight: 500;
     }
 
     /* Bar chart */
@@ -336,14 +394,14 @@
     .bar-label {
       width: 94px;
       text-align: right;
-      color: #8a91a8;
+      color: var(--txt2);
       flex-shrink: 0;
     }
 
     .bar-track {
       flex: 1;
       height: 20px;
-      background: #1e2433;
+      background: var(--bg2);
       border-radius: 4px;
       overflow: hidden;
     }
@@ -355,7 +413,7 @@
       align-items: center;
       padding-left: 8px;
       font-size: 11px;
-      font-weight: 500;
+      font-weight: 600;
       color: #fff;
       white-space: nowrap;
     }
@@ -366,60 +424,66 @@
       padding-left: 104px;
       margin-top: 6px;
       font-size: 10px;
-      color: #3a4155;
+      color: var(--txt3);
     }
 
-    /* SVG icons inside kpi cards */
-    .kpi-icon svg {
+    /* Gold accent footer line on chart cards */
+    .chart-card::after {
+      content: '';
       display: block;
+      height: 2px;
+      background: linear-gradient(90deg, #D4AF37, #F5E6B3, #B8962E);
+      border-radius: 0 0 8px 8px;
+      margin: 14px -18px -16px;
+      opacity: 0.5;
     }
   </style>
 </head>
 
 <body>
 
-  <!-- ── Header ── -->
+  <!-- Header -->
   <header class="dash-header">
     <h1>Overview — This Week</h1>
     <div class="date-badge">
-      <svg width="12" height="12" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect x="1" y="3" width="14" height="12" rx="2" stroke="#6b7280" stroke-width="1.2" />
-        <path d="M5 1v3M11 1v3M1 7h14" stroke="#6b7280" stroke-width="1.2" stroke-linecap="round" />
+      <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
+        <rect x="1" y="3" width="14" height="12" rx="2" stroke="#9CA3AF" stroke-width="1.2" />
+        <path d="M5 1v3M11 1v3M1 7h14" stroke="#9CA3AF" stroke-width="1.2" stroke-linecap="round" />
       </svg>
       May 12 – May 18, 2024
     </div>
   </header>
+  <div class="gold-rule"></div>
 
-  <!-- ── Row 1: KPI Cards ── -->
+  <!-- Row 1: KPI Cards -->
   <div class="kpi-row">
-    <!-- Total Vehicles -->
-    <div class="kpi-card">
+    <div class="kpi-card k-blue">
       <div class="kpi-top">
         <div class="kpi-label">Total Vehicles This Week</div>
         <div class="kpi-icon icon-blue">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4a90e2" stroke-width="1.8"
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2E6DB8" stroke-width="1.8"
             stroke-linecap="round" stroke-linejoin="round">
             <rect x="1" y="8" width="22" height="10" rx="2" />
             <path d="M16 18v2M8 18v2M3 8l2-5h14l2 5" />
-            <circle cx="7" cy="18" r="1.5" fill="#4a90e2" />
-            <circle cx="17" cy="18" r="1.5" fill="#4a90e2" />
+            <circle cx="7" cy="18" r="1.5" fill="#2E6DB8" />
+            <circle cx="17" cy="18" r="1.5" fill="#2E6DB8" />
           </svg>
         </div>
       </div>
       <div class="kpi-value">1,078</div>
       <div class="kpi-trend trend-green">
         <svg width="10" height="10" viewBox="0 0 10 10">
-          <path d="M2 7l3-4 3 4" stroke="#3fc87a" stroke-width="1.5" fill="none" stroke-linecap="round" />
+          <path d="M2 7l3-4 3 4" stroke="#1E8A52" stroke-width="1.5" fill="none" stroke-linecap="round" />
         </svg>
         6.4% vs last week
       </div>
     </div>
-    <!-- Completed -->
-    <div class="kpi-card">
+
+    <div class="kpi-card k-green">
       <div class="kpi-top">
         <div class="kpi-label">Completed Vehicles</div>
         <div class="kpi-icon icon-green">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3fc87a" stroke-width="2"
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1E8A52" stroke-width="2"
             stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="10" />
             <path d="M8 12l3 3 5-5" />
@@ -429,17 +493,17 @@
       <div class="kpi-value">365</div>
       <div class="kpi-trend trend-green">
         <svg width="10" height="10" viewBox="0 0 10 10">
-          <path d="M2 7l3-4 3 4" stroke="#3fc87a" stroke-width="1.5" fill="none" stroke-linecap="round" />
+          <path d="M2 7l3-4 3 4" stroke="#1E8A52" stroke-width="1.5" fill="none" stroke-linecap="round" />
         </svg>
         7.8% vs last week
       </div>
     </div>
-    <!-- Quality Hold -->
-    <div class="kpi-card">
+
+    <div class="kpi-card k-amber">
       <div class="kpi-top">
         <div class="kpi-label">Vehicles on Hold (Quality Hold)</div>
         <div class="kpi-icon icon-amber">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f0a030" stroke-width="2"
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C07820" stroke-width="2"
             stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="10" />
             <line x1="10" y1="8" x2="10" y2="16" />
@@ -450,17 +514,17 @@
       <div class="kpi-value">28</div>
       <div class="kpi-trend trend-amber">
         <svg width="10" height="10" viewBox="0 0 10 10">
-          <path d="M2 7l3-4 3 4" stroke="#f0a030" stroke-width="1.5" fill="none" stroke-linecap="round" />
+          <path d="M2 7l3-4 3 4" stroke="#C07820" stroke-width="1.5" fill="none" stroke-linecap="round" />
         </svg>
         12.0% vs last week
       </div>
     </div>
-    <!-- Rework -->
-    <div class="kpi-card">
+
+    <div class="kpi-card k-red">
       <div class="kpi-top">
         <div class="kpi-label">Rework Count</div>
         <div class="kpi-icon icon-red">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e05050" stroke-width="2"
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C03030" stroke-width="2"
             stroke-linecap="round" stroke-linejoin="round">
             <path
               d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
@@ -470,14 +534,14 @@
       <div class="kpi-value">17</div>
       <div class="kpi-trend trend-amber">
         <svg width="10" height="10" viewBox="0 0 10 10">
-          <path d="M2 7l3-4 3 4" stroke="#f0a030" stroke-width="1.5" fill="none" stroke-linecap="round" />
+          <path d="M2 7l3-4 3 4" stroke="#C07820" stroke-width="1.5" fill="none" stroke-linecap="round" />
         </svg>
         13.3% vs last week
       </div>
     </div>
   </div>
 
-  <!-- ── Row 2: Table ── -->
+  <!-- Row 2: Table -->
   <div class="table-card">
     <div class="section-title">Vehicle Status by Department</div>
     <table>
@@ -493,11 +557,11 @@
       <thead>
         <tr>
           <th>Department</th>
-          <th style="text-align:right"><span class="dot" style="background:#4a90e2"></span>In Production</th>
-          <th style="text-align:right"><span class="dot" style="background:#3fc87a"></span>Completed</th>
-          <th style="text-align:right"><span class="dot" style="background:#f0a030"></span>Quality Hold</th>
-          <th style="text-align:right"><span class="dot" style="background:#e05050"></span>Rework</th>
-          <th style="text-align:right"><span class="dot" style="background:#a78bfa"></span>Dispatched</th>
+          <th style="text-align:right"><span class="dot" style="background:#2E6DB8"></span>In Production</th>
+          <th style="text-align:right"><span class="dot" style="background:#1E8A52"></span>Completed</th>
+          <th style="text-align:right"><span class="dot" style="background:#C07820"></span>Quality Hold</th>
+          <th style="text-align:right"><span class="dot" style="background:#C03030"></span>Rework</th>
+          <th style="text-align:right"><span class="dot" style="background:#6B4ED4"></span>Dispatched</th>
           <th style="text-align:right">Total Vehicles</th>
         </tr>
       </thead>
@@ -508,7 +572,7 @@
           <td class="v-green" style="text-align:right">95</td>
           <td class="v-amber" style="text-align:right">8</td>
           <td class="v-red" style="text-align:right">5</td>
-          <td style="text-align:right;color:#555d74">0</td>
+          <td style="text-align:right;color:var(--txt3)">0</td>
           <td style="text-align:right">228</td>
         </tr>
         <tr>
@@ -517,7 +581,7 @@
           <td class="v-green" style="text-align:right">100</td>
           <td class="v-amber" style="text-align:right">4</td>
           <td class="v-red" style="text-align:right">3</td>
-          <td style="text-align:right;color:#555d74">0</td>
+          <td style="text-align:right;color:var(--txt3)">0</td>
           <td style="text-align:right">217</td>
         </tr>
         <tr>
@@ -540,10 +604,10 @@
         </tr>
         <tr>
           <td>Logistics</td>
-          <td style="text-align:right;color:#555d74">0</td>
-          <td style="text-align:right;color:#555d74">0</td>
-          <td style="text-align:right;color:#555d74">0</td>
-          <td style="text-align:right;color:#555d74">0</td>
+          <td style="text-align:right;color:var(--txt3)">0</td>
+          <td style="text-align:right;color:var(--txt3)">0</td>
+          <td style="text-align:right;color:var(--txt3)">0</td>
+          <td style="text-align:right;color:var(--txt3)">0</td>
           <td class="v-purple" style="text-align:right">150</td>
           <td style="text-align:right">150</td>
         </tr>
@@ -560,11 +624,11 @@
     </table>
   </div>
 
-  <!-- ── Row 3: Charts ── -->
+  <!-- Row 3: Charts -->
   <div class="charts-row">
     <!-- Donut -->
     <div class="chart-card">
-      <div class="section-title">Vehicle Status Distribution</div>
+      <div class="section-title" style="margin-bottom:14px">Vehicle Status Distribution</div>
       <div class="donut-body">
         <div class="donut-wrap">
           <canvas id="donutChart" width="140" height="140" role="img"
@@ -578,19 +642,19 @@
         </div>
         <div class="legend">
           <div class="legend-row">
-            <div class="ldot" style="background:#4a90e2"></div>In Production<span class="lval">413 (38.3%)</span>
+            <div class="ldot" style="background:#2E6DB8"></div>In Production<span class="lval">413 (38.3%)</span>
           </div>
           <div class="legend-row">
-            <div class="ldot" style="background:#3fc87a"></div>Completed<span class="lval">365 (33.9%)</span>
+            <div class="ldot" style="background:#1E8A52"></div>Completed<span class="lval">365 (33.9%)</span>
           </div>
           <div class="legend-row">
-            <div class="ldot" style="background:#f0a030"></div>Quality Hold<span class="lval">28 (2.6%)</span>
+            <div class="ldot" style="background:#C07820"></div>Quality Hold<span class="lval">28 (2.6%)</span>
           </div>
           <div class="legend-row">
-            <div class="ldot" style="background:#e05050"></div>Rework<span class="lval">17 (1.6%)</span>
+            <div class="ldot" style="background:#C03030"></div>Rework<span class="lval">17 (1.6%)</span>
           </div>
           <div class="legend-row">
-            <div class="ldot" style="background:#a78bfa"></div>Dispatched<span class="lval">255 (23.6%)</span>
+            <div class="ldot" style="background:#6B4ED4"></div>Dispatched<span class="lval">255 (23.6%)</span>
           </div>
         </div>
       </div>
@@ -606,31 +670,31 @@
         <div class="bar-row">
           <div class="bar-label">Body Shop</div>
           <div class="bar-track">
-            <div class="bar-fill" style="width:88.3%;background:#4a90e2">88.3%</div>
+            <div class="bar-fill" style="width:88.3%;background:#2E6DB8">88.3%</div>
           </div>
         </div>
         <div class="bar-row">
           <div class="bar-label">Paint Shop</div>
           <div class="bar-track">
-            <div class="bar-fill" style="width:89.7%;background:#3fc87a">89.7%</div>
+            <div class="bar-fill" style="width:89.7%;background:#1E8A52">89.7%</div>
           </div>
         </div>
         <div class="bar-row">
           <div class="bar-label">Assembly</div>
           <div class="bar-track">
-            <div class="bar-fill" style="width:86.2%;background:#a78bfa">86.2%</div>
+            <div class="bar-fill" style="width:86.2%;background:#6B4ED4">86.2%</div>
           </div>
         </div>
         <div class="bar-row">
           <div class="bar-label">Quality Check</div>
           <div class="bar-track">
-            <div class="bar-fill" style="width:84.1%;background:#f0a030">84.1%</div>
+            <div class="bar-fill" style="width:84.1%;background:#C07820">84.1%</div>
           </div>
         </div>
         <div class="bar-row">
           <div class="bar-label">Logistics</div>
           <div class="bar-track">
-            <div class="bar-fill" style="width:92.5%;background:#4ec8c8">92.5%</div>
+            <div class="bar-fill" style="width:92.5%;background:#1A8A8A">92.5%</div>
           </div>
         </div>
       </div>
@@ -648,9 +712,9 @@
         labels: ['In Production', 'Completed', 'Quality Hold', 'Rework', 'Dispatched'],
         datasets: [{
           data: [413, 365, 28, 17, 255],
-          backgroundColor: ['#4a90e2', '#3fc87a', '#f0a030', '#e05050', '#a78bfa'],
+          backgroundColor: ['#2E6DB8', '#1E8A52', '#C07820', '#C03030', '#6B4ED4'],
           borderWidth: 2,
-          borderColor: '#161923',
+          borderColor: '#FFFFFF',
           hoverOffset: 4
         }]
       },
