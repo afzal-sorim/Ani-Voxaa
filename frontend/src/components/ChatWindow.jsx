@@ -1,8 +1,12 @@
-import React, { useRef, useEffect, useCallback } from 'react';
+import React, { useRef, useEffect, useCallback, useState } from 'react';
 import useChatStore from '../store/useChatStore';
 import useVoiceStore from '../store/useVoiceStore';
 import useVoiceRecorder from '../hooks/useVoiceRecorder';
 import { transcribeAudio, streamMessage, closeStream } from '../services/api';
+import { 
+  HiOutlineClipboardCopy, HiOutlineThumbUp, HiOutlineThumbDown, 
+  HiCheck, HiOutlineRefresh, HiOutlinePencilAlt, HiOutlineX, HiArrowDown
+} from 'react-icons/hi';
 import { toast } from 'react-hot-toast';
 import useAppStatus from '../hooks/useAppStatus';
 import MessageBubble, { TypingIndicator } from './MessageBubble';
@@ -24,6 +28,7 @@ export default function ChatWindow() {
   const messagesEndRef       = useRef(null);   // invisible sentinel at the bottom
   const streamHandleRef      = useRef(null);   // holds the active stream handle for cancellation
   const shouldAutoScrollRef  = useRef(true);   // tracks if user is near the bottom
+  const [showScrollBottom, setShowScrollBottom] = useState(false);
 
   /* ── Chat store selectors ── */
   const activeConversationId = useChatStore((s) => s.activeConversationId);
@@ -61,7 +66,15 @@ export default function ChatWindow() {
    * we don't hijack their scroll position.
    */
   const handleScroll = useCallback(() => {
-    shouldAutoScrollRef.current = isNearBottom(messagesContainerRef.current);
+    const nearBottom = isNearBottom(messagesContainerRef.current);
+    shouldAutoScrollRef.current = nearBottom;
+    setShowScrollBottom(!nearBottom);
+  }, []);
+
+  const scrollToBottom = useCallback(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
   }, []);
 
   useEffect(() => {
@@ -306,6 +319,16 @@ export default function ChatWindow() {
           {isLoading && !isStreaming && <TypingIndicator />}
           <div ref={messagesEndRef} />
         </div>
+
+        {showScrollBottom && (
+          <button
+            onClick={scrollToBottom}
+            className="fixed bottom-[120px] right-6 sm:right-10 z-30 w-10 h-10 rounded-full bg-[var(--surf)] border border-gold/[0.4] text-[#D4AF37] shadow-[0_4px_12px_rgba(0,0,0,0.4)] flex items-center justify-center hover:bg-[var(--surf-hover)] active:scale-90 transition-all duration-200 animate-fade-in"
+            title="Scroll to bottom"
+          >
+            <HiArrowDown size={18} />
+          </button>
+        )}
       </div>
 
       {/* Input bar — safe-area aware, responsive padding */}
