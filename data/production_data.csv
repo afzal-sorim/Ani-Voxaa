@@ -1,32 +1,107 @@
-Date,Week,Month,Quarter,Plant,Department,Model,Units,Revenue
-2026-01-02,W01,1,Q1,Dearborn,Assembly,F-150,94,47000
-2026-01-04,W01,1,Q1,Chicago,Paint Shop,Mustang,107,53500
-2026-01-07,W02,1,Q1,Dearborn,Body Shop,F-150,101,50500
-2026-01-10,W02,1,Q1,Chicago,Assembly,Mustang,113,56500
-2026-01-14,W03,1,Q1,Dearborn,Quality Check,F-150,98,49000
-2026-01-18,W03,1,Q1,Chicago,Logistics,Mustang,110,55000
-2026-01-22,W04,1,Q1,Dearborn,Assembly,F-150,105,52500
-2026-01-26,W04,1,Q1,Chicago,Body Shop,Mustang,115,57500
-2026-02-01,W05,2,Q1,Chicago,Assembly,Mustang,118,59000
-2026-02-04,W05,2,Q1,Dearborn,Paint Shop,F-150,122,61000
-2026-02-08,W06,2,Q1,Chicago,Body Shop,Mustang,129,64500
-2026-02-12,W06,2,Q1,Dearborn,Logistics,F-150,121,60500
-2026-02-16,W07,2,Q1,Chicago,Quality Check,Mustang,134,67000
-2026-02-20,W07,2,Q1,Dearborn,Assembly,F-150,130,65000
-2026-02-24,W08,2,Q1,Chicago,Paint Shop,Mustang,136,68000
-2026-03-02,W09,3,Q1,Dearborn,Assembly,F-150,140,70000
-2026-03-05,W09,3,Q1,Chicago,Paint Shop,Mustang,145,72500
-2026-03-09,W10,3,Q1,Dearborn,Body Shop,F-150,142,71000
-2026-03-13,W10,3,Q1,Chicago,Assembly,Mustang,150,75000
-2026-03-17,W11,3,Q1,Dearborn,Quality Check,F-150,138,69000
-2026-03-21,W11,3,Q1,Chicago,Logistics,Mustang,148,74000
-2026-03-25,W12,3,Q1,Dearborn,Assembly,F-150,152,76000
-2026-03-29,W12,3,Q1,Chicago,Body Shop,Mustang,155,77500
-2026-04-02,W13,4,Q2,Chicago,Assembly,Mustang,150,75000
-2026-04-06,W14,4,Q2,Dearborn,Paint Shop,F-150,153,76500
-2026-04-10,W14,4,Q2,Chicago,Body Shop,Mustang,158,79000
-2026-04-14,W15,4,Q2,Dearborn,Logistics,F-150,146,73000
-2026-04-18,W15,4,Q2,Chicago,Quality Check,Mustang,160,80000
-2026-04-22,W16,4,Q2,Dearborn,Assembly,F-150,148,74000
-2026-04-26,W17,4,Q2,Chicago,Paint Shop,Mustang,162,81000
-2026-04-29,W17,4,Q2,Dearborn,Body Shop,F-150,150,75000
+Date,Week,Plant,Department,Issue_Type,Severity,Affected_Units,Status
+2026-03-09,W10,Dearborn,Body Shop,Equipment Failure,Medium,15,Active
+2026-03-09,W10,Dearborn,Assembly,Machine Failure,High,18,Active
+2026-03-10,W10,Chicago,Assembly,Quality Issue,High,18,Active
+2026-03-10,W10,Chicago,Paint Shop,Quality Issue,Medium,10,Resolved
+2026-03-11,W10,Dearborn,Logistics,Safety Issue,Low,6,Resolved
+2026-03-11,W10,Chicago,Body Shop,Equipment Failure,Medium,12,Active
+2026-03-12,W10,Dearborn,Assembly,Machine Failure,High,20,Active
+2026-03-12,W10,Chicago,Assembly,Quality Issue,Medium,11,Resolved
+2026-03-13,W10,Chicago,Assembly,Quality Issue,High,16,Active
+2026-03-13,W10,Dearborn,Paint Shop,Quality Issue,Medium,9,Resolved
+2026-03-14,W10,Dearborn,Body Shop,Equipment Failure,Medium,13,Active
+2026-03-14,W10,Chicago,Logistics,Safety Issue,Low,5,Resolved
+2026-03-15,W11,Detroit,Logistics,Safety Issue,High,9,Active
+2026-03-15,W11,Dearborn,Assembly,Machine Failure,High,21,Active
+2026-03-16,W11,Chicago,Assembly,Quality Issue,Medium,14,Resolved
+2026-03-16,W11,Chicago,Paint Shop,Quality Issue,High,17,Active
+2026-03-17,W11,Dearborn,Quality Check,Inspection Failure,Medium,10,Resolved
+2026-03-17,W11,Chicago,Logistics,Safety Issue,Low,6,Resolved
+2026-03-18,W11,Dearborn,Assembly,Machine Failure,High,22,Active
+2026-03-18,W11,Chicago,Body Shop,Equipment Failure,Medium,13,Active
+2026-03-19,W11,Dearborn,Paint Shop,Quality Issue,Medium,11,Resolved
+2026-03-19,W11,Chicago,Assembly,Quality Issue,High,19,Active
+2026-03-20,W11,Dearborn,Logistics,Safety Issue,Low,7,Resolved
+2026-03-20,W11,Chicago,Quality Check,Inspection Failure,Medium,12,Active
+2026-03-21,W11,Chicago,Logistics,Safety Issue,Medium,10,Active
+2026-03-21,W11,Dearborn,Assembly,Machine Failure,High,23,Active
+2026-03-22,W12,Dearborn,Assembly,Machine Failure,High,24,Active
+2026-03-22,W12,Chicago,Body Shop,Equipment Failure,Medium,14,Active
+2026-03-23,W12,Dearborn,Paint Shop,Quality Issue,Medium,12,Resolved
+2026-03-23,W12,Chicago,Assembly,Quality Issue,High,20,Active
+2026-03-24,W12,Dearborn,Logistics,Safety Issue,Low,8,Resolved
+2026-03-24,W12,Chicago,Quality Check,Inspection Failure,Medium,13,Active
+2026-03-25,W12,Dearborn,Assembly,Machine Failure,High,25,Active
+2026-03-25,W12,Chicago,Assembly,Quality Issue,High,21,Active
+2026-03-26,W12,Dearborn,Body Shop,Equipment Failure,Medium,15,Active
+2026-03-26,W12,Chicago,Paint Shop,Quality Issue,Medium,12,Resolved
+2026-03-27,W12,Dearborn,Assembly,Machine Failure,High,26,Active
+2026-03-27,W12,Chicago,Logistics,Safety Issue,Low,6,Resolved
+2026-03-28,W12,Dearborn,Quality Check,Inspection Failure,Medium,11,Resolved
+2026-03-28,W12,Chicago,Assembly,Quality Issue,High,22,Active
+2026-03-29,W12,Chicago,Body Shop,Equipment Failure,Medium,13,Active
+2026-03-29,W12,Dearborn,Assembly,Machine Failure,High,27,Active
+2026-03-30,W13,Chicago,Assembly,Quality Issue,High,23,Active
+2026-03-30,W13,Dearborn,Paint Shop,Quality Issue,Medium,14,Resolved
+2026-03-31,W13,Dearborn,Assembly,Machine Failure,High,28,Active
+2026-03-31,W13,Chicago,Logistics,Safety Issue,Low,7,Resolved
+2026-04-01,W13,Chicago,Body Shop,Quality Issue,High,19,Active
+2026-04-01,W13,Dearborn,Assembly,Machine Failure,High,29,Active
+2026-04-02,W13,Dearborn,Body Shop,Equipment Failure,Medium,16,Active
+2026-04-02,W13,Chicago,Assembly,Quality Issue,Medium,15,Resolved
+2026-04-03,W13,Dearborn,Logistics,Safety Issue,Low,9,Resolved
+2026-04-03,W13,Chicago,Paint Shop,Quality Issue,High,18,Active
+2026-04-04,W14,Dearborn,Assembly,Machine Failure,High,30,Active
+2026-04-04,W14,Chicago,Assembly,Quality Issue,High,21,Active
+2026-04-05,W14,Detroit,Assembly,Machine Failure,High,25,Active
+2026-04-05,W14,Dearborn,Paint Shop,Quality Issue,Medium,13,Resolved
+2026-04-06,W14,Dearborn,Paint Shop,Equipment Failure,Medium,15,Active
+2026-04-06,W14,Chicago,Body Shop,Quality Issue,High,22,Active
+2026-04-07,W14,Dearborn,Assembly,Machine Failure,High,31,Active
+2026-04-07,W14,Chicago,Logistics,Safety Issue,Low,8,Resolved
+2026-04-08,W14,Dearborn,Body Shop,Equipment Failure,Medium,17,Active
+2026-04-08,W14,Chicago,Assembly,Quality Issue,High,23,Active
+2026-04-09,W14,Dearborn,Assembly,Machine Failure,High,32,Active
+2026-04-09,W14,Chicago,Paint Shop,Quality Issue,Medium,14,Resolved
+2026-04-10,W14,Chicago,Body Shop,Quality Issue,High,24,Active
+2026-04-10,W14,Dearborn,Assembly,Machine Failure,High,33,Active
+2026-04-11,W15,Dearborn,Logistics,Safety Issue,Low,10,Resolved
+2026-04-11,W15,Chicago,Assembly,Quality Issue,High,25,Active
+2026-04-12,W15,Dearborn,Assembly,Machine Failure,High,34,Active
+2026-04-12,W15,Chicago,Body Shop,Equipment Failure,Medium,16,Active
+2026-04-13,W15,Dearborn,Paint Shop,Quality Issue,Medium,15,Resolved
+2026-04-13,W15,Chicago,Assembly,Quality Issue,High,26,Active
+2026-04-14,W15,Chicago,Logistics,Equipment Failure,Medium,14,Active
+2026-04-14,W15,Dearborn,Assembly,Machine Failure,High,35,Active
+2026-04-15,W15,Dearborn,Body Shop,Equipment Failure,Medium,18,Active
+2026-04-15,W15,Chicago,Assembly,Quality Issue,High,27,Active
+2026-04-16,W16,Dearborn,Assembly,Machine Failure,High,36,Active
+2026-04-16,W16,Chicago,Paint Shop,Quality Issue,Medium,16,Resolved
+2026-04-17,W16,Dearborn,Assembly,Machine Failure,High,37,Active
+2026-04-17,W16,Chicago,Assembly,Quality Issue,High,28,Active
+2026-04-18,W16,Chicago,Quality Check,Inspection Failure,Medium,15,Active
+2026-04-18,W16,Dearborn,Assembly,Machine Failure,High,38,Active
+2026-04-19,W16,Dearborn,Logistics,Safety Issue,Low,11,Resolved
+2026-04-19,W16,Chicago,Assembly,Quality Issue,High,29,Active
+2026-04-20,W17,Dearborn,Assembly,Machine Failure,High,39,Active
+2026-04-20,W17,Chicago,Body Shop,Equipment Failure,Medium,17,Active
+2026-04-21,W17,Dearborn,Assembly,Machine Failure,High,40,Active
+2026-04-21,W17,Chicago,Assembly,Quality Issue,High,30,Active
+2026-04-22,W17,Dearborn,Paint Shop,Quality Issue,Medium,18,Resolved
+2026-04-22,W17,Chicago,Assembly,Quality Issue,High,31,Active
+2026-04-23,W17,Dearborn,Assembly,Machine Failure,High,41,Active
+2026-04-23,W17,Chicago,Logistics,Safety Issue,Low,12,Resolved
+2026-04-24,W17,Dearborn,Assembly,Machine Failure,High,42,Active
+2026-04-24,W17,Chicago,Assembly,Quality Issue,High,32,Active
+2026-04-25,W17,Dearborn,Assembly,Safety Issue,High,11,Active
+2026-04-25,W17,Chicago,Paint Shop,Quality Issue,Medium,13,Resolved
+2026-04-26,W17,Dearborn,Body Shop,Equipment Failure,Medium,19,Active
+2026-04-26,W17,Chicago,Assembly,Quality Issue,High,33,Active
+2026-04-27,W18,Dearborn,Assembly,Machine Failure,High,43,Active
+2026-04-27,W18,Chicago,Assembly,Quality Issue,High,34,Active
+2026-04-28,W18,Dearborn,Assembly,Machine Failure,High,44,Active
+2026-04-28,W18,Chicago,Body Shop,Equipment Failure,Medium,20,Active
+2026-04-29,W18,Dearborn,Assembly,Machine Failure,High,45,Active
+2026-04-29,W18,Chicago,Assembly,Quality Issue,High,35,Active
+2026-04-30,W18,Dearborn,Assembly,Machine Failure,High,46,Active
+2026-04-30,W18,Chicago,Assembly,Quality Issue,High,36,Active

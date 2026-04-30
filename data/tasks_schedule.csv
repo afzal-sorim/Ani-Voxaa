@@ -9,6 +9,39 @@ T7,2026-03-15,W11,Detroit,Logistics,Validation,Audit,Medium,In Progress,Team 3
 T8,2026-04-05,W14,Detroit,Assembly,Robot Calibration,Maintenance,High,Delayed,Team 3
 T9,2026-04-14,W15,Chicago,Logistics,Warehouse Audit,Audit,Low,Scheduled,Team 2
 T10,2026-04-25,W17,Dearborn,Assembly,Speed Adjustment,Production,High,In Progress,Team 1
-T11,2026-05-05,W18,Dearborn,Body Shop,Inspection Cycle,Inspection,High,Completed,Team 2
-T12,2026-05-12,W20,Chicago,Assembly,Setup Task,Production,High,Scheduled,Team 3
-T13,2026-05-18,W20,Detroit,Assembly,Bottleneck Fix,Production,High,Delayed,Team 3
+T11,2026-05-02,W18,Dearborn,Assembly,Machine Overhaul,Maintenance,High,Scheduled,Team 1
+T12,2026-05-05,W18,Chicago,Paint Shop,Paint Line Inspection,Inspection,Medium,Scheduled,Team 2
+T13,2026-05-08,W19,Dearborn,Body Shop,Hydraulic Check,Maintenance,High,Scheduled,Team 1
+T14,2026-05-12,W20,Chicago,Assembly,Line Balancing,Production,Medium,Scheduled,Team 3
+T15,2026-05-15,W20,Dearborn,Quality Check,Inspection Cycle,Inspection,High,Completed,Team 2
+T16,2026-05-18,W21,Chicago,Assembly,Setup Task,Production,High,Scheduled,Team 3
+T17,2026-05-20,W21,Detroit,Assembly,Bottleneck Fix,Production,High,Delayed,Team 3
+T18,2026-05-22,W21,Dearborn,Paint Shop,Surface Calibration,Maintenance,Medium,Scheduled,Team 2
+T19,2026-05-25,W22,Chicago,Body Shop,Welding Optimization,Production,Medium,Scheduled,Team 1
+T20,2026-05-28,W22,Dearborn,Assembly,Throughput Tuning,Production,High,Scheduled,Team 1
+T21,2026-06-03,W23,Dearborn,Assembly,Machine Calibration,Maintenance,High,Scheduled,Team 1
+T22,2026-06-07,W23,Chicago,Paint Shop,Color Accuracy Check,Inspection,Medium,Scheduled,Team 2
+T23,2026-06-10,W24,Dearborn,Body Shop,Hydraulic Maintenance,Maintenance,High,Scheduled,Team 3
+T24,2026-06-14,W25,Chicago,Assembly,Process Optimization,Production,Medium,Scheduled,Team 2
+T25,2026-06-18,W25,Dearborn,Logistics,Inventory Audit,Audit,Medium,Scheduled,Team 1
+T26,2026-07-02,W27,Dearborn,Assembly,Equipment Upgrade,Maintenance,High,Scheduled,Team 1
+T27,2026-07-06,W27,Chicago,Body Shop,Welding Calibration,Maintenance,High,Scheduled,Team 3
+T28,2026-07-10,W28,Dearborn,Paint Shop,Paint System Check,Inspection,Medium,Scheduled,Team 2
+T29,2026-07-15,W29,Chicago,Assembly,Line Optimization,Production,Medium,Scheduled,Team 3
+T30,2026-08-03,W31,Dearborn,Assembly,Machine Upgrade,Maintenance,High,Scheduled,Team 1
+T31,2026-08-08,W32,Chicago,Quality Check,Inspection Cycle,Inspection,Medium,Scheduled,Team 2
+T32,2026-08-15,W33,Dearborn,Body Shop,Structural Check,Maintenance,High,Scheduled,Team 3
+T33,2026-09-05,W36,Chicago,Assembly,Throughput Optimization,Production,High,Scheduled,Team 1
+T34,2026-10-10,W41,Dearborn,Assembly,High Load Calibration,Maintenance,High,Scheduled,Team 1
+T35,2026-11-15,W46,Chicago,Paint Shop,Paint Surge Adjustment,Maintenance,High,Scheduled,Team 2
+T36,2026-12-05,W49,Dearborn,Assembly,Year-End Calibration,Maintenance,High,Scheduled,Team 1
+T37,2027-01-10,W02,Dearborn,Assembly,New Year Calibration,Maintenance,High,Scheduled,Team 1
+T38,2027-02-15,W07,Chicago,Body Shop,Welding System Upgrade,Maintenance,High,Scheduled,Team 3
+T39,2027-03-20,W11,Dearborn,Logistics,Supply Audit,Audit,Medium,Scheduled,Team 2
+T40,2027-04-25,W17,Chicago,Assembly,Line Expansion Setup,Production,High,Scheduled,Team 3
+T41,2027-06-10,W23,Dearborn,Assembly,Mid-Year Calibration,Maintenance,High,Scheduled,Team 1
+T42,2027-07-15,W29,Chicago,Paint Shop,Paint Line Upgrade,Maintenance,High,Scheduled,Team 2
+T43,2027-09-05,W36,Dearborn,Body Shop,Structural Optimization,Production,High,Scheduled,Team 3
+T44,2027-10-20,W42,Chicago,Assembly,High Demand Scaling,Production,High,Scheduled,Team 1
+T45,2027-11-25,W47,Dearborn,Assembly,Peak Load Calibration,Maintenance,High,Scheduled,Team 1
+T46,2027-12-15,W50,Chicago,Assembly,Year-End Shutdown Prep,Maintenance,High,Scheduled,Team 3
