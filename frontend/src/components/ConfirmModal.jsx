@@ -4,10 +4,14 @@ export default function ConfirmModal({ isOpen, onClose, onConfirm, title, messag
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape' && isOpen) onClose();
+      if (e.key === 'Enter' && isOpen) {
+        e.preventDefault();
+        onConfirm();
+      }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, onConfirm]);
 
   if (!isOpen) return null;
 
@@ -30,6 +34,7 @@ export default function ConfirmModal({ isOpen, onClose, onConfirm, title, messag
             Cancel
           </button>
           <button
+            autoFocus
             className="px-4 py-2 rounded-xl text-[0.8125rem] font-medium text-white bg-red-500 shadow-[0_2px_8px_rgba(239,68,68,0.3)] hover:-translate-y-px hover:shadow-[0_4px_12px_rgba(239,68,68,0.4)] hover:brightness-110 transition-all duration-150 cursor-pointer"
             onClick={onConfirm}
           >
