@@ -225,9 +225,14 @@ TIME_KEYWORDS = {
     "next year": "next_year",
 }
 
-def detect_domain(query: str, structured_intent: dict | None = None) -> str:
+def detect_domain(query: str, structured_intent: dict | None = None, llm_entities: dict | None = None) -> str:
     """Detects the primary business domain of the query."""
     q = query.lower()
+    
+    # Check AI relevance flag first if available
+    if llm_entities and llm_entities.get("is_automotive_related") is False:
+        return "irrelevant"
+
     if structured_intent:
         metric = structured_intent.get("metric", "")
         if metric in ["revenue", "forecast_revenue"]:
@@ -1720,7 +1725,7 @@ def _choose_table(metric: str) -> str:
     return "production_data"
 
 
-def _parse_structured_intent(query: str) -> dict | None:
+def _parse_structured_intent(query: str, llm_entities: dict | None = None) -> dict | None:
     query_lower = query.lower()
     raw = _normalize_text(query_lower)
     metric = None
@@ -1803,22 +1808,29 @@ def _parse_structured_intent(query: str) -> dict | None:
     # If the rule-based confidence is low, or we have a complex query, use the LLM to verify/extract.
     if confidence_score < 1.0 or any(k in query_lower for k in ["between", "and", "split", "breakdown"]):
         try:
-            llm_entities = llm_service.extract_entities(query)
-            if llm_entities:
+            # Use provided entities or fetch new ones
+            entities = llm_entities or llm_service.extract_entities(query)
+            if entities:
+                # ── Relevance Check ──
+                # If the LLM explicitly says this is not automotive related, fail the intent
+                if entities.get("is_automotive_related") is False:
+                    logger.warning(f"Hybrid NLU: Query detected as out-of-domain: {query}")
+                    return {"intent_confidence": 0.0, "error": "out_of_domain"}
+
                 # Merge LLM results if they seem more specific
-                if llm_entities.get("metric") and rely_on_metric_fallback:
-                    metric = llm_entities["metric"]
+                if entities.get("metric") and rely_on_metric_fallback:
+                    metric = entities["metric"]
                     confidence_score += 0.2
-                if llm_entities.get("aggregation") and rely_on_agg_fallback:
-                    aggregation = llm_entities["aggregation"]
+                if entities.get("aggregation") and rely_on_agg_fallback:
+                    aggregation = entities["aggregation"]
                     confidence_score += 0.1
-                if llm_entities.get("plant") and not filters.get("plant"):
-                    filters["plant"] = llm_entities["plant"]
-                if llm_entities.get("model") and not filters.get("model"):
-                    filters["model"] = llm_entities["model"]
-                if llm_entities.get("time_range") and not time_range:
+                if entities.get("plant") and not filters.get("plant"):
+                    filters["plant"] = entities["plant"]
+                if entities.get("model") and not filters.get("model"):
+                    filters["model"] = entities["model"]
+                if entities.get("time_range") and not time_range:
                     # Re-parse the LLM's suggested time range string
-                    llm_time = _parse_time_range(llm_entities["time_range"])
+                    llm_time = _parse_time_range(entities["time_range"])
                     if llm_time:
                         time_range = llm_time
                         time_ranges = [time_range]
@@ -3447,20 +3459,37 @@ async def process_query(
             conversation_history=conversation_history,
         )
 
+    # ── AI-Powered Domain Relevance Check ──
+    # Before proceeding to any data logic, we use the LLM to ensure the query is automotive-related.
+    # This prevents responding to "Meta's revenue" or "Google sales" with internal data.
+    llm_entities = llm_service.extract_entities(query)
+    if llm_entities.get("is_automotive_related") is not True:
+        logger.info(f"AI Domain Check: Query detected as out-of-domain or ambiguous: '{query}'.")
+        clarification_prompt = (
+            "The user asked about a subject outside the VOXA Automotive domain (e.g., Meta, Google, Apple, weather, etc.).\n\n"
+            "STRICT RULES:\n"
+            "1. Politely explain that you are the VOXA Automotive Assistant for Manufacturing Operations.\n"
+            "2. Clarify that you only have access to Production, Revenue, and Quality data for OUR specific automotive plants and vehicle models (like F-150, Mustang, Explorer).\n"
+            "3. DO NOT provide any numbers or data dashboards for external companies or unrelated topics.\n"
+            "4. Ask if they would like to see an internal production or revenue report instead."
+        )
+        return llm_service.generate_response(
+            user_query=query,
+            data_context=clarification_prompt + typo_correction_note,
+            conversation_history=conversation_history,
+        )
+
     intent = detect_intent(query)
     logger.info(f"Query: '{query[:60]}...' → Intent: {intent}")
 
-    # ── Ambiguity / Out-of-Domain Detection ──
+    # ── Ambiguity Detection ──
     if _is_unclear_data_query(query):
         logger.info(f"Unclear data query detected: '{query}'. Asking for clarification.")
         clarification_prompt = (
-            "The user asked for a report or data on a subject you don't recognize or that is out-of-scope (e.g., 'bus').\n\n"
+            "The user asked for a report or data but it is too vague or lacks context.\n\n"
             "STRICT RULES:\n"
             "1. DO NOT use the SUMMARY / DATA TABLE format.\n"
-            "2. DO NOT provide any numbers or data from your context.\n"
-            "3. DO NOT guess or substitute with 'business' data.\n"
-            "4. Politely explain that you are the VOXA Automotive Assistant and you specialize in Production, Revenue, and Quality data for our manufacturing plants.\n"
-            "5. Ask if they would like to see a report on one of those core areas instead, or for a specific model (like F-150, Mustang) or plant."
+            "2. Politely ask for clarification (e.g., which plant or which metric they mean)."
         )
         return llm_service.generate_response(
             user_query=query,
@@ -3490,7 +3519,7 @@ async def process_query(
         return execute_dashboard_query(query)
 
     # 2. Check for Structured Data Queries (Single-metric)
-    structured_intent = _parse_structured_intent(query)
+    structured_intent = _parse_structured_intent(query, llm_entities=llm_entities)
     if structured_intent and structured_intent.get("intent_confidence", 1.0) >= 0.8:
         # Check if we should render a dashboard for this single-metric query
         # We'll let execute_structured_query handle the decision
@@ -3565,20 +3594,37 @@ async def stream_query(
             yield token
         return
 
+    # ── AI-Powered Domain Relevance Check (stream) ──
+    llm_entities = llm_service.extract_entities(query)
+    if llm_entities.get("is_automotive_related") is not True:
+        logger.info(f"AI Domain Check (stream): Query detected as out-of-domain: '{query}'.")
+        clarification_prompt = (
+            "The user asked about a subject outside the VOXA Automotive domain (e.g., Meta, Google, etc.).\n\n"
+            "STRICT RULES:\n"
+            "1. Politely explain that you are the VOXA Automotive Assistant for Manufacturing Operations.\n"
+            "2. Clarify that you only have access to internal production, revenue, and quality data for our plants and models.\n"
+            "3. DO NOT provide numbers or dashboards.\n"
+            "4. Ask if they would like to see an automotive report instead."
+        )
+        async for token in llm_service.stream_response(
+            user_query=query,
+            data_context=clarification_prompt + typo_correction_note,
+            conversation_history=conversation_history,
+        ):
+            yield token
+        return
+
     intent = detect_intent(query)
     logger.info(f"Streaming query: '{query[:60]}...' → Intent: {intent}")
 
-    # ── Ambiguity / Out-of-Domain Detection (stream) ──
+    # ── Ambiguity Detection (stream) ──
     if _is_unclear_data_query(query):
         logger.info(f"Unclear data stream query detected: '{query}'. Asking for clarification.")
         clarification_prompt = (
-            "The user asked for a report or data on a subject you don't recognize or that is out-of-scope (e.g., 'bus').\n\n"
+            "The user asked for a report or data but it is too vague.\n\n"
             "STRICT RULES:\n"
             "1. DO NOT use the SUMMARY / DATA TABLE format.\n"
-            "2. DO NOT provide any numbers or data from your context.\n"
-            "3. DO NOT guess or substitute with 'business' data.\n"
-            "4. Politely explain that you are the VOXA Automotive Assistant and you specialize in Production, Revenue, and Quality data for our manufacturing plants.\n"
-            "5. Ask if they would like to see a report on one of those core areas instead, or for a specific model (like F-150, Mustang) or plant."
+            "2. Politely ask for clarification."
         )
         async for token in llm_service.stream_response(
             user_query=query,
@@ -3607,7 +3653,7 @@ async def stream_query(
         return
 
     # 2. Check for Structured Data Queries (Single-metric)
-    structured_intent = _parse_structured_intent(query)
+    structured_intent = _parse_structured_intent(query, llm_entities=llm_entities)
     if structured_intent and structured_intent.get("intent_confidence", 1.0) >= 0.8:
         structured_response = execute_structured_query(query)
         if structured_response:
