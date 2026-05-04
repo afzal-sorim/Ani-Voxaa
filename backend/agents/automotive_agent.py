@@ -12,6 +12,7 @@ This is the brain of the assistant. It:
 import json
 import logging
 import re
+import calendar
 from typing import AsyncGenerator, Dict, Any
 from datetime import datetime, date, timedelta
 
@@ -487,11 +488,20 @@ def execute_template_report(query: str) -> str:
         except Exception:
             date_range_label = f"Week {week_num}, {year}"
     elif time_range["type"] == "month":
-        import calendar
         m = time_range["month"]
         y = time_range["year"]
         last_day = calendar.monthrange(y, m)[1]
         date_range_label = f"{calendar.month_abbr[m]} 1 – {calendar.month_abbr[m]} {last_day}, {y}"
+    elif time_range["type"] == "quarter":
+        q = time_range["quarter"]
+        y = time_range["year"]
+        q_start = (q - 1) * 3 + 1
+        q_end = q * 3
+        last_day = calendar.monthrange(y, q_end)[1]
+        date_range_label = f"{calendar.month_abbr[q_start]} 1 – {calendar.month_abbr[q_end]} {last_day}, {y}"
+    elif time_range["type"] == "year":
+        y = time_range["year"]
+        date_range_label = f"Jan 1 – Dec 31, {y}"
     else:
         date_range_label = str(period_label)
 
@@ -1583,7 +1593,9 @@ def _choose_time_clause(table_name: str, time_range: dict | None) -> tuple[str |
                 f"EXTRACT(year FROM {date_expr}) = {yr}"
             )
     elif time_range["type"] == "year":
-        expr = f"EXTRACT(year FROM {date_expr}) = {time_range['year']}"
+        yr = time_range["year"]
+        display_range = f"Jan 1 – Dec 31, {yr}"
+        expr = f"EXTRACT(year FROM {date_expr}) = {yr}"
     else:
         return None, {"used": requested, "requested": requested}
 
