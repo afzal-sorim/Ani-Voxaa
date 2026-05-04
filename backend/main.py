@@ -21,12 +21,12 @@ if CURRENT_DIR not in sys.path:
     sys.path.append(CURRENT_DIR)
 
 try:
-    from backend.config import HOST, PORT, CORS_ORIGINS, DATA_DIR, WHISPER_MODEL
+    from backend.config import HOST, PORT, CORS_ORIGINS, DATA_DIR
     from backend.services.data_service import init_data_service
     from backend.services.stt_service import init_stt_service
     from backend.routers import health, speech, chat, query, history, auth
 except ImportError:
-    from config import HOST, PORT, CORS_ORIGINS, DATA_DIR, WHISPER_MODEL
+    from config import HOST, PORT, CORS_ORIGINS, DATA_DIR
     from services.data_service import init_data_service
     from services.stt_service import init_stt_service
     from routers import health, speech, chat, query, history, auth
@@ -67,11 +67,10 @@ async def startup_event():
         # We don't exit here to allow other services to start, 
         # but queries will fail.
     
-    # Initialize STT Service (Whisper)
+    # Initialize STT Service (Unified Groq API)
     try:
-        # Note: This might be slow on first run as it downloads the model
-        init_stt_service(WHISPER_MODEL)
-        logger.info(f"STT service initialized with model: {WHISPER_MODEL}")
+        init_stt_service()
+        logger.info("STT service initialized (Groq API mode)")
     except Exception as e:
         logger.error(f"Failed to initialize STT service: {e}")
 

@@ -17,8 +17,7 @@ PRIMARY_MODEL = os.getenv("PRIMARY_MODEL", "llama-3.3-70b-versatile")
 DEBUG_MODE = os.getenv("DEBUG_MODE", "false").lower() == "true"
 FALLBACK_MODEL = os.getenv("FALLBACK_MODEL", "llama3-8b-8192")
 
-# ── Whisper STT ──
-WHISPER_MODEL = os.getenv("WHISPER_MODEL", "base.en")
+
 
 # ── Server ──
 HOST = os.getenv("HOST", "0.0.0.0")
