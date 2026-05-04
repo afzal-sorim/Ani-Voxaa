@@ -10,10 +10,25 @@ except ImportError:
 
 router = APIRouter()
 
+from fastapi import APIRouter, Request
+
 @router.get("/health")
-async def health_check():
+async def health_check(request: Request):
     """
-    Check the health of the backend and its services.
+    Instant health check for Render/Load Balancers.
+    Should always respond fast and never block.
+    """
+    is_ready = getattr(request.app.state, "ready", False)
+    return {
+        "status": "ok", 
+        "ready": is_ready,
+        "message": "VOXA Backend is alive" if is_ready else "VOXA Backend is initializing..."
+    }
+
+@router.get("/health/detailed")
+async def detailed_health_check():
+    """
+    Check the health of the backend and its external services (Groq).
     """
     llm_health = check_llm_health()
     

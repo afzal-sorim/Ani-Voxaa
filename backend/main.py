@@ -56,23 +56,35 @@ app.add_middleware(
 # ── Service Initialization ──
 @app.on_event("startup")
 async def startup_event():
-    logger.info("Initializing VOXA backend services...")
+    import asyncio
+    logger.info("VOXA Backend starting... (Initialization moved to background)")
+    app.state.ready = False
     
-    # Initialize Data Service (DuckDB + Excel)
+    # Start heavy loading in the background so we don't block the health check
+    asyncio.create_task(run_background_initialization())
+
+async def run_background_initialization():
+    """
+    Handles heavy data loading and service setup without blocking the main event loop.
+    """
+    logger.info("🚀 Background Initialization started...")
+    
+    # 1. Initialize Data Service (DuckDB + Excel)
     try:
         init_data_service(DATA_DIR)
-        logger.info("Data service initialized")
+        logger.info("✅ Data service initialized")
     except Exception as e:
-        logger.error(f"Failed to initialize data service: {e}")
-        # We don't exit here to allow other services to start, 
-        # but queries will fail.
+        logger.error(f"❌ Failed to initialize data service: {e}")
     
-    # Initialize STT Service (Unified Groq API)
+    # 2. Initialize STT Service (Unified Groq API)
     try:
         init_stt_service()
-        logger.info("STT service initialized (Groq API mode)")
+        logger.info("✅ STT service initialized (Groq API mode)")
     except Exception as e:
-        logger.error(f"Failed to initialize STT service: {e}")
+        logger.error(f"❌ Failed to initialize STT service: {e}")
+    
+    app.state.ready = True
+    logger.info("🌟 VOXA Backend is FULLY READY and data is loaded.")
 
 from fastapi.staticfiles import StaticFiles
 
@@ -96,6 +108,7 @@ app.mount("/uploads", StaticFiles(directory=str(uploads_dir)), name="uploads")
 async def root():
     return {
         "message": "VOXA Backend is running",
+        "ready": getattr(app.state, "ready", False),
         "docs": "/docs",
         "health": "/api/health"
     }
