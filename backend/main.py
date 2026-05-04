@@ -9,7 +9,8 @@ from fastapi.middleware.cors import CORSMiddleware
 import logging
 from pathlib import Path
 
-from config import HOST, PORT, CORS_ORIGINS, DATA_DIR, WHISPER_MODEL
+# from config import HOST, PORT, CORS_ORIGINS, DATA_DIR, WHISPER_MODEL
+from backend.config import HOST, PORT, CORS_ORIGINS, DATA_DIR, WHISPER_MODEL
 from services.data_service import init_data_service
 from services.stt_service import init_stt_service
 from routers import health, speech, chat, query, history, auth
