@@ -60999,3 +60999,203 @@ Date,Week,Plant,Department,Model,Forecast_Units,Forecast_Revenue
 2027-12-31,W52,Sanand,Quality Check,Expedition,461,230500
 2027-12-31,W52,Sanand,Body Shop,Fusion,468,234000
 2027-12-31,W52,Sanand,Logistics,Mach-E,488,244000
+2026-05-01,W18,Dearborn,Assembly,F-150,141,70500
+2026-05-01,W18,Dearborn,Assembly,Mustang,156,78000
+2026-05-01,W18,Dearborn,Quality Check,Explorer,158,79000
+2026-05-01,W18,Dearborn,Quality Check,Escape,157,78500
+2026-05-01,W18,Dearborn,Quality Check,Edge,167,83500
+2026-05-01,W18,Dearborn,Quality Check,Ranger,168,84000
+2026-05-01,W18,Dearborn,Body Shop,Bronco,180,90000
+2026-05-01,W18,Dearborn,Logistics,Expedition,186,93000
+2026-05-01,W18,Dearborn,Logistics,Fusion,182,91000
+2026-05-01,W18,Dearborn,Logistics,Mach-E,192,96000
+2026-05-01,W18,Chicago,Paint Shop,F-150,152,76000
+2026-05-01,W18,Chicago,Paint Shop,Mustang,157,78500
+2026-05-01,W18,Chicago,Assembly,Explorer,160,80000
+2026-05-01,W18,Chicago,Paint Shop,Escape,167,83500
+2026-05-01,W18,Chicago,Assembly,Edge,167,83500
+2026-05-01,W18,Chicago,Quality Check,Ranger,177,88500
+2026-05-01,W18,Chicago,Logistics,Bronco,175,87500
+2026-05-01,W18,Chicago,Logistics,Expedition,188,94000
+2026-05-01,W18,Chicago,Paint Shop,Fusion,188,94000
+2026-05-01,W18,Chicago,Body Shop,Mach-E,198,99000
+2026-05-01,W18,Detroit,Quality Check,F-150,152,76000
+2026-05-01,W18,Detroit,Assembly,Mustang,163,81500
+2026-05-01,W18,Detroit,Quality Check,Explorer,163,81500
+2026-05-01,W18,Detroit,Logistics,Escape,166,83000
+2026-05-01,W18,Detroit,Assembly,Edge,175,87500
+2026-05-01,W18,Detroit,Paint Shop,Ranger,181,90500
+2026-05-01,W18,Detroit,Assembly,Bronco,185,92500
+2026-05-01,W18,Detroit,Paint Shop,Expedition,188,94000
+2026-05-01,W18,Detroit,Logistics,Fusion,190,95000
+2026-05-01,W18,Detroit,Quality Check,Mach-E,194,97000
+2026-05-01,W18,Kansas City,Logistics,F-150,154,77000
+2026-05-01,W18,Kansas City,Assembly,Mustang,161,80500
+2026-05-01,W18,Kansas City,Quality Check,Explorer,163,81500
+2026-05-01,W18,Kansas City,Paint Shop,Escape,169,84500
+2026-05-01,W18,Kansas City,Quality Check,Edge,179,89500
+2026-05-01,W18,Kansas City,Paint Shop,Ranger,182,91000
+2026-05-01,W18,Kansas City,Paint Shop,Bronco,187,93500
+2026-05-01,W18,Kansas City,Logistics,Expedition,195,97500
+2026-05-01,W18,Kansas City,Logistics,Fusion,199,99500
+2026-05-01,W18,Kansas City,Quality Check,Mach-E,203,101500
+2026-05-01,W18,Louisville,Body Shop,F-150,157,78500
+2026-05-01,W18,Louisville,Paint Shop,Mustang,161,80500
+2026-05-01,W18,Louisville,Paint Shop,Explorer,165,82500
+2026-05-01,W18,Louisville,Assembly,Escape,171,85500
+2026-05-01,W18,Louisville,Paint Shop,Edge,182,91000
+2026-05-01,W18,Louisville,Body Shop,Ranger,187,93500
+2026-05-01,W18,Louisville,Body Shop,Bronco,187,93500
+2026-05-01,W18,Louisville,Logistics,Expedition,196,98000
+2026-05-01,W18,Louisville,Paint Shop,Fusion,210,105000
+2026-05-01,W18,Louisville,Assembly,Mach-E,205,102500
+2026-05-01,W18,Valencia,Body Shop,F-150,163,81500
+2026-05-01,W18,Valencia,Paint Shop,Mustang,162,81000
+2026-05-01,W18,Valencia,Logistics,Explorer,174,87000
+2026-05-01,W18,Valencia,Quality Check,Escape,174,87000
+2026-05-01,W18,Valencia,Assembly,Edge,184,92000
+2026-05-01,W18,Valencia,Body Shop,Ranger,187,93500
+2026-05-01,W18,Valencia,Paint Shop,Bronco,193,96500
+2026-05-01,W18,Valencia,Assembly,Expedition,202,101000
+2026-05-01,W18,Valencia,Quality Check,Fusion,208,104000
+2026-05-01,W18,Valencia,Assembly,Mach-E,212,106000
+2026-05-01,W18,Cologne,Assembly,F-150,166,83000
+2026-05-01,W18,Cologne,Assembly,Mustang,171,85500
+2026-05-01,W18,Cologne,Assembly,Explorer,169,84500
+2026-05-01,W18,Cologne,Logistics,Escape,181,90500
+2026-05-01,W18,Cologne,Quality Check,Edge,189,94500
+2026-05-01,W18,Cologne,Assembly,Ranger,192,96000
+2026-05-01,W18,Cologne,Assembly,Bronco,202,101000
+2026-05-01,W18,Cologne,Assembly,Expedition,206,103000
+2026-05-01,W18,Cologne,Logistics,Fusion,212,106000
+2026-05-01,W18,Cologne,Paint Shop,Mach-E,215,107500
+2026-05-01,W18,Chennai,Quality Check,F-150,169,84500
+2026-05-01,W18,Chennai,Logistics,Mustang,175,87500
+2026-05-01,W18,Chennai,Paint Shop,Explorer,174,87000
+2026-05-01,W18,Chennai,Logistics,Escape,184,92000
+2026-05-01,W18,Chennai,Logistics,Edge,187,93500
+2026-05-01,W18,Chennai,Body Shop,Ranger,195,97500
+2026-05-01,W18,Chennai,Logistics,Bronco,204,102000
+2026-05-01,W18,Chennai,Quality Check,Expedition,211,105500
+2026-05-01,W18,Chennai,Body Shop,Fusion,217,108500
+2026-05-01,W18,Chennai,Paint Shop,Mach-E,221,110500
+2026-05-01,W18,Pune,Assembly,F-150,166,83000
+2026-05-01,W18,Pune,Logistics,Mustang,179,89500
+2026-05-01,W18,Pune,Paint Shop,Explorer,182,91000
+2026-05-01,W18,Pune,Body Shop,Escape,196,98000
+2026-05-01,W18,Pune,Assembly,Edge,199,99500
+2026-05-01,W18,Pune,Body Shop,Ranger,198,99000
+2026-05-01,W18,Pune,Assembly,Bronco,207,103500
+2026-05-01,W18,Pune,Assembly,Expedition,214,107000
+2026-05-01,W18,Pune,Quality Check,Fusion,216,108000
+2026-05-01,W18,Pune,Body Shop,Mach-E,219,109500
+2026-05-01,W18,Sanand,Assembly,F-150,171,85500
+2026-05-01,W18,Sanand,Body Shop,Mustang,184,92000
+2026-05-01,W18,Sanand,Logistics,Explorer,184,92000
+2026-05-01,W18,Sanand,Quality Check,Escape,192,96000
+2026-05-01,W18,Sanand,Assembly,Edge,196,98000
+2026-05-01,W18,Sanand,Assembly,Ranger,200,100000
+2026-05-01,W18,Sanand,Assembly,Bronco,212,106000
+2026-05-01,W18,Sanand,Assembly,Expedition,218,109000
+2026-05-01,W18,Sanand,Quality Check,Fusion,220,110000
+2026-05-01,W18,Sanand,Paint Shop,Mach-E,231,115500
+2026-05-04,W19,Dearborn,Paint Shop,F-150,143,71500
+2026-05-04,W19,Dearborn,Body Shop,Mustang,150,75000
+2026-05-04,W19,Dearborn,Assembly,Explorer,154,77000
+2026-05-04,W19,Dearborn,Assembly,Escape,162,81000
+2026-05-04,W19,Dearborn,Paint Shop,Edge,167,83500
+2026-05-04,W19,Dearborn,Logistics,Ranger,171,85500
+2026-05-04,W19,Dearborn,Paint Shop,Bronco,180,90000
+2026-05-04,W19,Dearborn,Quality Check,Expedition,183,91500
+2026-05-04,W19,Dearborn,Paint Shop,Fusion,184,92000
+2026-05-04,W19,Dearborn,Assembly,Mach-E,191,95500
+2026-05-04,W19,Chicago,Quality Check,F-150,147,73500
+2026-05-04,W19,Chicago,Logistics,Mustang,153,76500
+2026-05-04,W19,Chicago,Paint Shop,Explorer,163,81500
+2026-05-04,W19,Chicago,Paint Shop,Escape,163,81500
+2026-05-04,W19,Chicago,Logistics,Edge,168,84000
+2026-05-04,W19,Chicago,Assembly,Ranger,174,87000
+2026-05-04,W19,Chicago,Quality Check,Bronco,175,87500
+2026-05-04,W19,Chicago,Logistics,Expedition,188,94000
+2026-05-04,W19,Chicago,Paint Shop,Fusion,188,94000
+2026-05-04,W19,Chicago,Logistics,Mach-E,199,99500
+2026-05-04,W19,Detroit,Paint Shop,F-150,153,76500
+2026-05-04,W19,Detroit,Body Shop,Mustang,162,81000
+2026-05-04,W19,Detroit,Body Shop,Explorer,162,81000
+2026-05-04,W19,Detroit,Paint Shop,Escape,168,84000
+2026-05-04,W19,Detroit,Quality Check,Edge,169,84500
+2026-05-04,W19,Detroit,Body Shop,Ranger,180,90000
+2026-05-04,W19,Detroit,Paint Shop,Bronco,186,93000
+2026-05-04,W19,Detroit,Quality Check,Expedition,187,93500
+2026-05-04,W19,Detroit,Quality Check,Fusion,187,93500
+2026-05-04,W19,Detroit,Body Shop,Mach-E,196,98000
+2026-05-04,W19,Kansas City,Body Shop,F-150,154,77000
+2026-05-04,W19,Kansas City,Assembly,Mustang,160,80000
+2026-05-04,W19,Kansas City,Assembly,Explorer,163,81500
+2026-05-04,W19,Kansas City,Quality Check,Escape,169,84500
+2026-05-04,W19,Kansas City,Assembly,Edge,181,90500
+2026-05-04,W19,Kansas City,Quality Check,Ranger,180,90000
+2026-05-04,W19,Kansas City,Logistics,Bronco,182,91000
+2026-05-04,W19,Kansas City,Assembly,Expedition,192,96000
+2026-05-04,W19,Kansas City,Logistics,Fusion,198,99000
+2026-05-04,W19,Kansas City,Assembly,Mach-E,203,101500
+2026-05-04,W19,Louisville,Paint Shop,F-150,159,79500
+2026-05-04,W19,Louisville,Body Shop,Mustang,165,82500
+2026-05-04,W19,Louisville,Body Shop,Explorer,168,84000
+2026-05-04,W19,Louisville,Paint Shop,Escape,171,85500
+2026-05-04,W19,Louisville,Logistics,Edge,185,92500
+2026-05-04,W19,Louisville,Assembly,Ranger,182,91000
+2026-05-04,W19,Louisville,Logistics,Bronco,188,94000
+2026-05-04,W19,Louisville,Paint Shop,Expedition,198,99000
+2026-05-04,W19,Louisville,Quality Check,Fusion,203,101500
+2026-05-04,W19,Louisville,Quality Check,Mach-E,201,100500
+2026-05-04,W19,Valencia,Quality Check,F-150,162,81000
+2026-05-04,W19,Valencia,Body Shop,Mustang,165,82500
+2026-05-04,W19,Valencia,Body Shop,Explorer,173,86500
+2026-05-04,W19,Valencia,Quality Check,Escape,171,85500
+2026-05-04,W19,Valencia,Quality Check,Edge,182,91000
+2026-05-04,W19,Valencia,Logistics,Ranger,188,94000
+2026-05-04,W19,Valencia,Logistics,Bronco,191,95500
+2026-05-04,W19,Valencia,Body Shop,Expedition,196,98000
+2026-05-04,W19,Valencia,Assembly,Fusion,205,102500
+2026-05-04,W19,Valencia,Assembly,Mach-E,211,105500
+2026-05-04,W19,Cologne,Assembly,F-150,163,81500
+2026-05-04,W19,Cologne,Body Shop,Mustang,166,83000
+2026-05-04,W19,Cologne,Assembly,Explorer,172,86000
+2026-05-04,W19,Cologne,Paint Shop,Escape,176,88000
+2026-05-04,W19,Cologne,Body Shop,Edge,186,93000
+2026-05-04,W19,Cologne,Body Shop,Ranger,192,96000
+2026-05-04,W19,Cologne,Logistics,Bronco,198,99000
+2026-05-04,W19,Cologne,Body Shop,Expedition,209,104500
+2026-05-04,W19,Cologne,Paint Shop,Fusion,209,104500
+2026-05-04,W19,Cologne,Logistics,Mach-E,219,109500
+2026-05-04,W19,Chennai,Assembly,F-150,166,83000
+2026-05-04,W19,Chennai,Logistics,Mustang,170,85000
+2026-05-04,W19,Chennai,Logistics,Explorer,175,87500
+2026-05-04,W19,Chennai,Body Shop,Escape,189,94500
+2026-05-04,W19,Chennai,Body Shop,Edge,188,94000
+2026-05-04,W19,Chennai,Body Shop,Ranger,190,95000
+2026-05-04,W19,Chennai,Body Shop,Bronco,201,100500
+2026-05-04,W19,Chennai,Quality Check,Expedition,212,106000
+2026-05-04,W19,Chennai,Paint Shop,Fusion,214,107000
+2026-05-04,W19,Chennai,Assembly,Mach-E,224,112000
+2026-05-04,W19,Pune,Logistics,F-150,168,84000
+2026-05-04,W19,Pune,Logistics,Mustang,177,88500
+2026-05-04,W19,Pune,Assembly,Explorer,180,90000
+2026-05-04,W19,Pune,Body Shop,Escape,195,97500
+2026-05-04,W19,Pune,Quality Check,Edge,195,97500
+2026-05-04,W19,Pune,Logistics,Ranger,200,100000
+2026-05-04,W19,Pune,Body Shop,Bronco,202,101000
+2026-05-04,W19,Pune,Body Shop,Expedition,210,105000
+2026-05-04,W19,Pune,Paint Shop,Fusion,218,109000
+2026-05-04,W19,Pune,Body Shop,Mach-E,218,109000
+2026-05-04,W19,Sanand,Quality Check,F-150,173,86500
+2026-05-04,W19,Sanand,Paint Shop,Mustang,181,90500
+2026-05-04,W19,Sanand,Assembly,Explorer,183,91500
+2026-05-04,W19,Sanand,Body Shop,Escape,191,95500
+2026-05-04,W19,Sanand,Assembly,Edge,198,99000
+2026-05-04,W19,Sanand,Paint Shop,Ranger,203,101500
+2026-05-04,W19,Sanand,Body Shop,Bronco,215,107500
+2026-05-04,W19,Sanand,Body Shop,Expedition,211,105500
+2026-05-04,W19,Sanand,Assembly,Fusion,222,111000
+2026-05-04,W19,Sanand,Body Shop,Mach-E,225,112500

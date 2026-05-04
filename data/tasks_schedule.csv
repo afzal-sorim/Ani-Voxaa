@@ -4603,3 +4603,16 @@ T4601,2026-04-30,W18,Pune,Logistics,Equipment Failure Fix,maintenance,medium,sch
 T4602,2026-04-30,W18,Sanand,Body Shop,Quality Issue Fix,maintenance,high,scheduled,Team 2,quality
 T4603,2026-04-30,W18,Sanand,Quality Check,Equipment Failure Fix,maintenance,high,completed,Team 1,machine
 T4604,2026-04-30,W18,Sanand,Paint Shop,Inspection Failure Fix,maintenance,high,scheduled,Team 4,quality
+T4605,2026-05-01,W18,Dearborn,Body Shop,Calibration,maintenance,medium,delayed,Team 3,safety
+T4606,2026-05-01,W18,Chicago,Quality Check,Optimization,maintenance,medium,in progress,Team 1,machine
+T4607,2026-05-01,W18,Detroit,Quality Check,Audit,maintenance,high,completed,Team 3,safety
+T4608,2026-05-01,W18,Kansas City,Logistics,Repair,maintenance,low,scheduled,Team 3,safety
+T4609,2026-05-01,W18,Louisville,Quality Check,Inspection,maintenance,high,in progress,Team 2,safety
+T4610,2026-05-01,W18,Valencia,Logistics,Repair,maintenance,low,in progress,Team 1,quality
+T4611,2026-05-01,W18,Cologne,Quality Check,Audit,maintenance,medium,scheduled,Team 1,machine
+T4612,2026-05-04,W19,Dearborn,Paint Shop,Inspection,maintenance,low,completed,Team 3,machine
+T4613,2026-05-04,W19,Detroit,Logistics,Calibration,maintenance,high,completed,Team 3,machine
+T4614,2026-05-04,W19,Kansas City,Quality Check,Calibration,maintenance,low,scheduled,Team 2,safety
+T4615,2026-05-04,W19,Louisville,Assembly,Upgrade,maintenance,medium,completed,Team 3,safety
+T4616,2026-05-04,W19,Cologne,Paint Shop,Inspection,maintenance,medium,scheduled,Team 2,safety
+T4617,2026-05-04,W19,Sanand,Body Shop,Upgrade,maintenance,high,in progress,Team 4,safety
