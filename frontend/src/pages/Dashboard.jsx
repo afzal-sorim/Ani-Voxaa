@@ -29,8 +29,12 @@ export default function Dashboard() {
       <Sidebar isOpen={sidebarOpen} onClose={closeSidebar} />
 
       <div
-        className="flex flex-col h-screen min-w-0 relative pt-16 transition-all duration-300"
-        style={{ flex: 1 }}
+        className="flex flex-col h-screen min-w-0 relative pt-16 transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]"
+        style={{
+          flex: 1,
+          marginLeft: sidebarOpen ? '240px' : '0px',
+          width: sidebarOpen ? 'calc(100% - 240px)' : '100%'
+        }}
         id="main-content"
       >
         <Header onToggleSidebar={toggleSidebar} onCloseSidebar={closeSidebar} />
