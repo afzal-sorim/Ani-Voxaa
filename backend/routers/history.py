@@ -2,8 +2,12 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from typing import Dict, Any
 import logging
-from backend.services.chat_service import get_chat_service
-from backend.dependencies import get_current_user
+try:
+    from backend.services.chat_service import get_chat_service
+    from backend.dependencies import get_current_user
+except ImportError:
+    from services.chat_service import get_chat_service
+    from dependencies import get_current_user
 
 router = APIRouter()
 logger = logging.getLogger("voxa.router.history")

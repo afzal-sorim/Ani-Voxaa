@@ -1,7 +1,11 @@
 from fastapi import HTTPException, Header, Depends
 import jwt
-from backend.config import JWT_SECRET, JWT_ALGORITHM
-from backend.services.user_service import get_user_service
+try:
+    from backend.config import JWT_SECRET, JWT_ALGORITHM
+    from backend.services.user_service import get_user_service
+except ImportError:
+    from config import JWT_SECRET, JWT_ALGORITHM
+    from services.user_service import get_user_service
 
 async def get_current_user(authorization: str = Header(None), token: str = None):
     auth_token = None

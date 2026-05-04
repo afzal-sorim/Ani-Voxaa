@@ -3,7 +3,10 @@ VOXA Backend — Health Router
 """
 
 from fastapi import APIRouter
-from backend.services.llm_service import check_llm_health
+try:
+    from backend.services.llm_service import check_llm_health
+except ImportError:
+    from services.llm_service import check_llm_health
 
 router = APIRouter()
 

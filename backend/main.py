@@ -7,12 +7,29 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import logging
+import sys
+import os
 from pathlib import Path
 
-from backend.config import HOST, PORT, CORS_ORIGINS, DATA_DIR, WHISPER_MODEL
-from backend.services.data_service import init_data_service
-from backend.services.stt_service import init_stt_service
-from backend.routers import health, speech, chat, query, history, auth
+# ── Dynamic Path Shim for Local/Render Compatibility ──
+# This allows 'from backend...' imports to work whether run from the root or the backend folder.
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+PARENT_DIR = os.path.dirname(CURRENT_DIR)
+if PARENT_DIR not in sys.path:
+    sys.path.append(PARENT_DIR)
+if CURRENT_DIR not in sys.path:
+    sys.path.append(CURRENT_DIR)
+
+try:
+    from backend.config import HOST, PORT, CORS_ORIGINS, DATA_DIR, WHISPER_MODEL
+    from backend.services.data_service import init_data_service
+    from backend.services.stt_service import init_stt_service
+    from backend.routers import health, speech, chat, query, history, auth
+except ImportError:
+    from config import HOST, PORT, CORS_ORIGINS, DATA_DIR, WHISPER_MODEL
+    from services.data_service import init_data_service
+    from services.stt_service import init_stt_service
+    from routers import health, speech, chat, query, history, auth
 
 # Configure logging
 logging.basicConfig(

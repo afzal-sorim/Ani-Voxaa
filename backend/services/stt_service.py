@@ -7,7 +7,10 @@ import os
 import logging
 import tempfile
 from pathlib import Path
-from backend.config import WHISPER_MODEL
+try:
+    from backend.config import WHISPER_MODEL
+except ImportError:
+    from config import WHISPER_MODEL
 
 logger = logging.getLogger("voxa.stt")
 

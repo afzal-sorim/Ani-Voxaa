@@ -4,7 +4,10 @@ Handles audio transcription requests.
 """
 
 from fastapi import APIRouter, UploadFile, File, HTTPException
-from backend.services.stt_service import transcribe_audio
+try:
+    from backend.services.stt_service import transcribe_audio
+except ImportError:
+    from services.stt_service import transcribe_audio
 import logging
 
 router = APIRouter()
