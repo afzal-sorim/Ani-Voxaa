@@ -317,19 +317,15 @@ def _is_template_report_query(query: str) -> bool:
 def _is_forecast_report_query(query: str) -> bool:
     """
     Returns True when the user explicitly asks for a forecast report or projection report.
+    We are now more inclusive: if 'forecast' or 'projection' is present, we trigger the report.
     """
     q = query.lower()
     forecast_keywords = [
         "forecast report", "projection report", "projected report",
-        "future report", "plan report", "planning report"
+        "future report", "plan report", "planning report",
+        "forecast", "projection", "projections", "forecasts"
     ]
     if any(k in q for k in forecast_keywords):
-        return True
-    
-    # Also if they say "forecast" and "report" in the same query
-    if "forecast" in q and "report" in q:
-        return True
-    if "projection" in q and "report" in q:
         return True
     
     return False
