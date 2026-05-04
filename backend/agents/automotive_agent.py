@@ -1378,7 +1378,7 @@ def _choose_time_clause(table_name: str, time_range: dict | None) -> tuple[str |
              pass 
     
     # Use a more robust date casting that handles YYYY-MM-DD explicitly
-    date_expr = f"strptime({date_col}, '%Y-%m-%d')" if table_name == "alerts_quality" else f"TRY_CAST({date_col} AS DATE)"
+    date_expr = f"TRY_CAST({date_col} AS DATE)"
     expr = None
     requested = time_range.get("requested")
 
