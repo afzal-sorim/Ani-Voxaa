@@ -92,6 +92,15 @@
       margin-bottom: 14px;
     }
 
+    @media (max-width: 900px) {
+      .kpi-row { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    @media (max-width: 480px) {
+      .kpi-row { grid-template-columns: 1fr; }
+    }
+
+
     .kpi-card {
       background: var(--surf);
       border: 0.5px solid var(--brd);
@@ -435,16 +444,32 @@
 
     /* Gold accent footer line removed for cleaner look */
 
-    /* Hide scrollbars for a cleaner look */
-    body {
-      scrollbar-width: none;
-      -ms-overflow-style: none;
+    @media (max-width: 1000px) {
+      .row-1 { grid-template-columns: repeat(2, 1fr); }
+      .row-2 { grid-template-columns: 1fr; }
+      .charts-row { grid-template-columns: 1fr; }
     }
 
-    body::-webkit-scrollbar {
-      display: none;
+    @media (max-width: 640px) {
+      body { padding: 8px; }
+      .page { padding: 0; }
+      .dash-header { 
+        grid-template-columns: 1fr; 
+        text-align: center;
+        padding: 20px;
+      }
+      .header-right { justify-content: center; }
+      .row-1 { grid-template-columns: 1fr; }
+      .kpi-card { padding: 16px; }
+      .donut-body { flex-direction: column; gap: 20px; text-align: center; }
+      .legend { align-items: center; }
+      .table-card { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+      table { min-width: 600px; table-layout: auto; }
     }
   </style>
+
+
+
 </head>
 
 <body>

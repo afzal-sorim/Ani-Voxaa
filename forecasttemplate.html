@@ -120,6 +120,15 @@
       margin-bottom: 24px;
     }
 
+    @media (max-width: 1000px) {
+      .kpi-row { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    @media (max-width: 550px) {
+      .kpi-row { grid-template-columns: 1fr; }
+    }
+
+
     .kpi-card {
       background: var(--surf);
       border: 1px solid var(--brd);
@@ -321,11 +330,12 @@
     }
 
     .insight-text {
-      font-size: 12px;
+      font-size: 15px;
       font-weight: 500;
       color: var(--txt2);
-      line-height: 1.5;
+      line-height: 1.6;
     }
+
 
     .footer {
       text-align: center;
@@ -337,15 +347,29 @@
       letter-spacing: 0.2em;
     }
 
-    @media (max-width: 1100px) {
-      .kpi-row {
-        grid-template-columns: repeat(2, 1fr);
-      }
-
-      .row-2 {
-        grid-template-columns: 1fr;
-      }
+    @media (max-width: 1000px) {
+      .kpi-row { grid-template-columns: repeat(2, 1fr); }
+      .row-2 { grid-template-columns: 1fr; }
     }
+
+    @media (max-width: 640px) {
+      body { padding: 12px; }
+      .page { padding: 0; }
+      .header {
+        grid-template-columns: 1fr;
+        padding: 20px;
+        text-align: center;
+      }
+      .header-right { justify-content: center; }
+      .period-badge { justify-self: center; }
+      .kpi-row { grid-template-columns: 1fr; }
+      .card { padding: 16px; }
+      .donut-wrap { flex-direction: column; gap: 20px; }
+      .table-shell { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+      table { min-width: 600px; }
+    }
+
+
   </style>
 </head>
 
@@ -443,7 +467,7 @@
           </div>
         </section>
 
-        <section class="grid" style="grid-template-columns: repeat(3, 1fr)">
+        <section class="grid insight-grid" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr))">
           ${(data.insights || []).map(ins => `
             <div class="insight-card">
               <div class="insight-icon">${ins.icon || '💡'}</div>
@@ -451,6 +475,7 @@
             </div>
           `).join('')}
         </section>
+
 
         <footer class="footer">
           VOXA Strategic Intelligence Reporting
