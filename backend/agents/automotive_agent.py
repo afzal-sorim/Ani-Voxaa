@@ -2780,13 +2780,35 @@ def execute_forecast_report(query: str) -> str:
     period = _format_period_label(time_meta.get("used") or "Upcoming Period")
     scope = ", ".join(scope_parts) if scope_parts else "Global Operations"
     
+    # Intelligent Data-Driven Insights
+    intelligent_insights = []
+    try:
+        if trend_df is not None and not trend_df.empty and len(trend_df) > 1:
+            first_val = trend_df.iloc[0]["units"]
+            last_val = trend_df.iloc[-1]["units"]
+            growth = ((last_val - first_val) / first_val * 100) if first_val > 0 else 0
+            growth_text = f"Projection shows a {abs(growth):.1f}% {'increase' if growth >= 0 else 'decrease'} from start to end of period."
+            intelligent_insights.append({"icon": "📈", "text": growth_text})
+            
+            max_row = trend_df.loc[trend_df["units"].idxmax()]
+            intelligent_insights.append({"icon": "⚡", "text": f"Production peak expected in {max_row['week']} with {fmt(max_row['units'])} units."})
+            
+        if distribution and distribution.get("values"):
+            max_idx = distribution["values"].index(max(distribution["values"]))
+            top_plant = distribution["labels"][max_idx]
+            intelligent_insights.append({"icon": "🏭", "text": f"{top_plant} leading production with {fmt(max(distribution['values']))} units."})
+    except: pass
+
+    if not intelligent_insights:
+        intelligent_insights = insights # Fallback to existing if any
+
     data = {
         "title": f"Forecast Analysis — {period}",
         "period": period,
         "scope": scope,
         "summary": f"Strategic forecast overview for {scope}. Projecting a total of {total_units:,} units with an estimated revenue of ${total_rev:,.0f}.",
         "kpis": kpis,
-        "insights": insights,
+        "insights": intelligent_insights,
         "trend": trend_chart,
         "distribution": distribution,
         "barChart": bar_chart,
