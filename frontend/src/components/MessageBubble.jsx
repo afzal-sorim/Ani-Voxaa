@@ -13,24 +13,37 @@ import DashboardResponse from './DashboardResponse';
 /**
  * Helper component to render an iframe that auto-resizes based on its content
  */
-function IframeResizer({ srcDoc }) {
-  const [height, setHeight] = useState('600px'); // Initial fallback
+function IframeResizer({ srcDoc, messageId }) {
+  const [height, setHeight] = useState('400px'); // Initial fallback
 
   useEffect(() => {
     const handleMessage = (event) => {
-      if (event.data && event.data.type === 'setHeight') {
+      // Only update if the message contains our specific ID
+      if (event.data && event.data.type === 'setHeight' && event.data.id === messageId) {
         setHeight(`${event.data.height}px`);
       }
     };
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, []);
+  }, [messageId]);
+
+  // Inject the ID into the script that runs inside the iframe
+  const docWithId = useMemo(() => {
+    if (!srcDoc) return srcDoc;
+    // The script is already injected in the main component, but we need to pass the ID to it.
+    // We'll replace the generic sendHeight call with one that includes the ID.
+    return srcDoc.replace(
+      "window.parent.postMessage({ type: 'setHeight', height: height }, '*')",
+      `window.parent.postMessage({ type: 'setHeight', height: height, id: '${messageId}' }, '*')`
+    );
+  }, [srcDoc, messageId]);
 
   return (
     <iframe
-      srcDoc={srcDoc}
-      style={{ width: '100%', height, border: 'none', display: 'block' }}
-      title="Dashboard Response"
+      srcDoc={docWithId}
+      style={{ width: '100%', height, border: 'none', display: 'block', overflow: 'hidden' }}
+      title={`Dashboard Response ${messageId}`}
+      scrolling="no"
     />
   );
 }
@@ -231,7 +244,7 @@ export default function MessageBubble({ message, onRetry, onRegenerate, onEdit, 
                       )}
 
                       <div className="w-full bg-white rounded-xl overflow-hidden my-4 border border-gold/[0.3] shadow-lg animate-fade-in-scale" style={{ maxWidth: '100%', display: 'block' }}>
-                        <IframeResizer srcDoc={extractedHtml} />
+                        <IframeResizer srcDoc={extractedHtml} messageId={message.id} />
                       </div>
 
                       {afterHtml && (

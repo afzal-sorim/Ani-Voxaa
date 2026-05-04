@@ -4,6 +4,11 @@ import AudioWaveform, { AudioGlow } from './AudioVisualizer';
 import TextInput from './TextInput';
 
 const EXAMPLES = [
+  { text: 'Give me dashboard report', icon: '📊' },
+  { text: 'Forecast report for next month', icon: '🔮' },
+  { text: 'Weekly production summary', icon: '🏭' },
+  { text: 'Quality alerts dashboard', icon: '⚠️' },
+  { text: 'Revenue projection report', icon: '💰' },
   { text: 'Top models by revenue this month', icon: '🚗' },
   { text: 'Production breakdown by plant', icon: '🏭' },
   { text: 'Active quality alerts by department', icon: '⚠️' },

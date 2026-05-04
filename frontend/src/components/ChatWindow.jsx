@@ -77,11 +77,20 @@ export default function ChatWindow() {
     }
   }, []);
 
+  // Auto-scroll logic
   useEffect(() => {
     if (shouldAutoScrollRef.current && messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages.length, streamingText]);
+
+  // Force scroll to bottom when a new message from the assistant starts
+  useEffect(() => {
+    if (messages.length > 0 && messages[messages.length - 1].role === 'assistant') {
+      shouldAutoScrollRef.current = true;
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages.length]);
 
   /* ── Keyboard shortcuts ── */
   useEffect(() => {

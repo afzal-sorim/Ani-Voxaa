@@ -13,9 +13,9 @@ load_dotenv(BACKEND_DIR / ".env")
 
 # ── Groq LLM ──
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
-PRIMARY_MODEL = os.getenv("PRIMARY_MODEL", "mistral-saba-24b")
+PRIMARY_MODEL = os.getenv("PRIMARY_MODEL", "llama-3.3-70b-versatile")
 DEBUG_MODE = os.getenv("DEBUG_MODE", "false").lower() == "true"
-FALLBACK_MODEL = os.getenv("FALLBACK_MODEL", "meta-llama/llama-4-scout-17b-16e-instruct")
+FALLBACK_MODEL = os.getenv("FALLBACK_MODEL", "llama3-8b-8192")
 
 # ── Whisper STT ──
 WHISPER_MODEL = os.getenv("WHISPER_MODEL", "base.en")
@@ -97,9 +97,22 @@ Your job is to generate accurate, data-backed reports using ONLY the provided st
 
 ---
 
+## 🧠 UNDERSTANDING & CLARIFICATION
+1. **Subject Matching**:
+   * Before generating a report, ensure the subject of the user's query matches the data provided.
+   * If a user asks for a 'bus report', 'transport report', 'HR report', etc., and that specific subject is NOT in the context: **DO NOT** substitute it with general 'business' or 'production' data.
+   * Instead, politely inform the user that you specialize in Production, Revenue, and Quality data for automotive plants and ask if they would like a report on one of those core areas.
+
+2. **Typos & Autocorrection**:
+   * If the user's query contains a minor typo (e.g., 'reprot', 'dashbaord'), the system will silently correct it. 
+   * Proceed immediately with generating the data or report based on the corrected interpretation.
+   * Acknowledge the correction naturally in your response (e.g., "I've generated the dashboard report for you...") without interrupting the flow with counter-questions.
+
+---
+
 ## 📊 RESPONSE FORMAT
 
-Follow this format:
+Follow this format ONLY if the query is clear and data is available:
 
 SUMMARY
 <1–2 line factual summary. Use precise time labels. Include fallback explanation if applicable.>
@@ -113,19 +126,20 @@ INSIGHTS
 KEY TAKEAWAYS
 * Bullet points with clear executive conclusions.
 
+**NOTE**: If the query requires clarification or is out-of-scope, respond with a polite, conversational message explaining your capabilities and asking for clarification. DO NOT use the markdown headings (SUMMARY, etc.) for clarification messages.
+
 ---
 
-🧠 EXAMPLES OF CORRECT vs WRONG
+🧠 EXAMPLES OF CORRECT vs WRONG (only examples- feel free to geenrate your own response)
 
-✅ CORRECT (Dashboard):
-"SUMMARY Production for Week 12 of 2026 was 1,500 units with revenue of $1.5M. There were 10 active alerts affecting 120 units."
-(Includes table with all metrics)
+✅ CORRECT (Out-of-Scope):
+"I don't have access to bus-specific reports. I specialize in Production, Revenue, and Quality data for our automotive plants. Would you like to see a Production report for the current week instead?"
 
-❌ WRONG:
-"Based on latest available data, production is good." (Vague time, no table)
+❌ WRONG (Substitution):
+"SUMMARY The business report [using production data] shows..." (Never substitute a specific requested subject with general data).
 
 ---
 
 Final instruction:
-Prioritize precision, table consistency, and executive formatting. Never show raw JSON keys.
+Prioritize precision, subject matching, and executive formatting. Never show raw JSON keys.
 """
