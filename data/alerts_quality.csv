@@ -5995,117 +5995,251 @@ date,week,plant,department,model,issue_type,severity,affected_units,status
 2026-04-30,W18,Sanand,Paint Shop,Edge,inspection failure,high,26,active
 2026-04-30,W18,Sanand,Paint Shop,Ranger,inspection failure,low,14,active
 2026-04-30,W18,Sanand,Body Shop,Fusion,equipment failure,high,31,active
-2026-05-01,W18,Dearborn,Logistics,F-150,safety,low,7,active
-2026-05-01,W18,Dearborn,Paint Shop,Ranger,equipment failure,low,20,resolved
-2026-05-01,W18,Chicago,Body Shop,Escape,inspection failure,medium,25,resolved
-2026-05-01,W18,Chicago,Logistics,Fusion,machine,low,11,active
-2026-05-01,W18,Detroit,Logistics,Escape,quality,low,14,active
-2026-05-01,W18,Detroit,Assembly,Ranger,inspection failure,medium,19,active
-2026-05-01,W18,Detroit,Assembly,Bronco,equipment failure,high,11,resolved
-2026-05-01,W18,Detroit,Logistics,Fusion,quality,medium,18,active
-2026-05-01,W18,Kansas City,Body Shop,Mustang,quality,low,9,active
-2026-05-01,W18,Kansas City,Body Shop,Ranger,equipment failure,medium,24,resolved
-2026-05-01,W18,Kansas City,Body Shop,Expedition,safety,medium,14,active
-2026-05-01,W18,Louisville,Body Shop,F-150,equipment failure,low,19,active
-2026-05-01,W18,Louisville,Assembly,Explorer,quality,low,10,resolved
-2026-05-01,W18,Louisville,Logistics,Escape,machine,medium,9,active
-2026-05-01,W18,Louisville,Body Shop,Ranger,machine,low,18,resolved
-2026-05-01,W18,Louisville,Quality Check,Fusion,inspection failure,medium,31,resolved
-2026-05-01,W18,Valencia,Logistics,F-150,inspection failure,high,12,active
-2026-05-01,W18,Valencia,Quality Check,Mustang,quality,high,11,active
-2026-05-01,W18,Valencia,Body Shop,Explorer,equipment failure,medium,25,active
-2026-05-01,W18,Valencia,Quality Check,Edge,safety,medium,21,resolved
-2026-05-01,W18,Valencia,Paint Shop,Expedition,quality,medium,26,active
-2026-05-01,W18,Valencia,Logistics,Fusion,quality,low,23,resolved
-2026-05-01,W18,Cologne,Assembly,Escape,safety,high,21,resolved
-2026-05-01,W18,Cologne,Body Shop,Edge,quality,medium,20,resolved
-2026-05-01,W18,Cologne,Paint Shop,Bronco,quality,low,29,resolved
-2026-05-01,W18,Cologne,Paint Shop,Expedition,quality,low,19,resolved
-2026-05-01,W18,Cologne,Body Shop,Mach-E,inspection failure,medium,18,active
-2026-05-01,W18,Chennai,Body Shop,F-150,machine,high,16,active
-2026-05-01,W18,Chennai,Quality Check,Mustang,inspection failure,medium,15,resolved
-2026-05-01,W18,Chennai,Quality Check,Explorer,quality,medium,19,resolved
-2026-05-01,W18,Chennai,Logistics,Escape,machine,medium,17,active
-2026-05-01,W18,Chennai,Paint Shop,Edge,quality,medium,25,active
-2026-05-01,W18,Chennai,Logistics,Ranger,quality,low,12,resolved
-2026-05-01,W18,Chennai,Body Shop,Bronco,safety,high,25,active
-2026-05-01,W18,Chennai,Quality Check,Fusion,equipment failure,high,24,active
-2026-05-01,W18,Pune,Paint Shop,F-150,safety,medium,19,active
-2026-05-01,W18,Pune,Quality Check,Mustang,quality,medium,11,active
-2026-05-01,W18,Pune,Quality Check,Escape,machine,high,27,active
-2026-05-01,W18,Pune,Quality Check,Edge,quality,medium,28,active
-2026-05-01,W18,Pune,Assembly,Ranger,equipment failure,high,21,active
-2026-05-01,W18,Pune,Body Shop,Bronco,machine,medium,22,active
-2026-05-01,W18,Pune,Quality Check,Expedition,machine,high,30,resolved
-2026-05-01,W18,Pune,Body Shop,Fusion,quality,medium,32,active
-2026-05-01,W18,Pune,Logistics,Mach-E,inspection failure,medium,22,resolved
-2026-05-01,W18,Sanand,Assembly,F-150,safety,high,13,active
-2026-05-01,W18,Sanand,Assembly,Escape,quality,high,27,active
-2026-05-01,W18,Sanand,Assembly,Ranger,quality,medium,11,active
-2026-05-01,W18,Sanand,Paint Shop,Expedition,inspection failure,low,24,active
-2026-05-01,W18,Sanand,Assembly,Mach-E,inspection failure,medium,32,active
-2026-05-04,W19,Dearborn,Paint Shop,F-150,inspection failure,medium,21,active
-2026-05-04,W19,Dearborn,Assembly,Mustang,quality,medium,20,active
-2026-05-04,W19,Dearborn,Paint Shop,Explorer,machine,medium,11,resolved
-2026-05-04,W19,Dearborn,Quality Check,Escape,equipment failure,low,9,active
-2026-05-04,W19,Dearborn,Body Shop,Ranger,safety,medium,24,active
-2026-05-04,W19,Dearborn,Assembly,Bronco,inspection failure,high,21,resolved
-2026-05-04,W19,Dearborn,Quality Check,Expedition,machine,high,23,active
-2026-05-04,W19,Chicago,Paint Shop,F-150,equipment failure,low,20,active
-2026-05-04,W19,Chicago,Paint Shop,Escape,machine,medium,19,resolved
-2026-05-04,W19,Chicago,Body Shop,Edge,equipment failure,medium,17,active
-2026-05-04,W19,Chicago,Assembly,Ranger,safety,high,11,active
-2026-05-04,W19,Chicago,Paint Shop,Fusion,quality,medium,19,active
-2026-05-04,W19,Chicago,Quality Check,Mach-E,safety,high,16,active
-2026-05-04,W19,Detroit,Body Shop,F-150,safety,medium,17,resolved
-2026-05-04,W19,Detroit,Paint Shop,Mustang,safety,high,16,active
-2026-05-04,W19,Detroit,Paint Shop,Escape,inspection failure,medium,25,active
-2026-05-04,W19,Detroit,Body Shop,Edge,safety,low,11,active
-2026-05-04,W19,Detroit,Body Shop,Ranger,safety,medium,16,active
-2026-05-04,W19,Detroit,Quality Check,Bronco,machine,low,21,resolved
-2026-05-04,W19,Detroit,Logistics,Expedition,equipment failure,medium,25,resolved
-2026-05-04,W19,Detroit,Logistics,Mach-E,safety,medium,29,active
-2026-05-04,W19,Kansas City,Logistics,F-150,equipment failure,high,12,active
-2026-05-04,W19,Kansas City,Quality Check,Explorer,equipment failure,high,14,active
-2026-05-04,W19,Kansas City,Quality Check,Escape,quality,high,25,active
-2026-05-04,W19,Kansas City,Paint Shop,Edge,quality,medium,19,resolved
-2026-05-04,W19,Kansas City,Body Shop,Ranger,safety,high,14,active
-2026-05-04,W19,Kansas City,Assembly,Expedition,inspection failure,medium,30,active
-2026-05-04,W19,Kansas City,Quality Check,Mach-E,machine,medium,24,resolved
-2026-05-04,W19,Louisville,Quality Check,F-150,safety,low,17,active
-2026-05-04,W19,Louisville,Paint Shop,Explorer,machine,low,22,active
-2026-05-04,W19,Louisville,Body Shop,Expedition,quality,low,21,resolved
-2026-05-04,W19,Louisville,Logistics,Fusion,inspection failure,low,14,resolved
-2026-05-04,W19,Louisville,Body Shop,Mach-E,machine,low,14,resolved
-2026-05-04,W19,Valencia,Paint Shop,F-150,quality,medium,22,active
-2026-05-04,W19,Valencia,Assembly,Mustang,safety,high,11,resolved
-2026-05-04,W19,Valencia,Quality Check,Explorer,inspection failure,medium,8,resolved
-2026-05-04,W19,Valencia,Quality Check,Ranger,equipment failure,high,25,active
-2026-05-04,W19,Valencia,Body Shop,Fusion,quality,low,23,active
-2026-05-04,W19,Valencia,Assembly,Mach-E,machine,low,28,active
-2026-05-04,W19,Cologne,Body Shop,F-150,quality,medium,20,active
-2026-05-04,W19,Cologne,Logistics,Explorer,safety,medium,15,resolved
-2026-05-04,W19,Cologne,Paint Shop,Ranger,inspection failure,medium,24,resolved
-2026-05-04,W19,Cologne,Body Shop,Expedition,inspection failure,low,20,active
-2026-05-04,W19,Chennai,Quality Check,F-150,inspection failure,low,19,active
-2026-05-04,W19,Chennai,Quality Check,Mustang,safety,medium,19,active
-2026-05-04,W19,Chennai,Assembly,Explorer,quality,low,21,active
-2026-05-04,W19,Chennai,Paint Shop,Escape,equipment failure,medium,15,active
-2026-05-04,W19,Chennai,Paint Shop,Ranger,quality,high,12,resolved
-2026-05-04,W19,Chennai,Quality Check,Bronco,equipment failure,high,22,active
-2026-05-04,W19,Chennai,Body Shop,Fusion,equipment failure,high,14,resolved
-2026-05-04,W19,Chennai,Assembly,Mach-E,inspection failure,medium,16,resolved
-2026-05-04,W19,Pune,Quality Check,Mustang,equipment failure,high,15,resolved
-2026-05-04,W19,Pune,Body Shop,Explorer,machine,medium,28,resolved
-2026-05-04,W19,Pune,Quality Check,Escape,machine,medium,20,active
-2026-05-04,W19,Pune,Body Shop,Edge,quality,medium,27,active
-2026-05-04,W19,Pune,Quality Check,Ranger,machine,medium,25,active
-2026-05-04,W19,Pune,Quality Check,Bronco,quality,high,21,active
-2026-05-04,W19,Pune,Body Shop,Expedition,machine,medium,29,active
-2026-05-04,W19,Pune,Body Shop,Fusion,quality,high,27,resolved
-2026-05-04,W19,Pune,Logistics,Mach-E,machine,medium,14,resolved
-2026-05-04,W19,Sanand,Assembly,Explorer,equipment failure,low,17,resolved
-2026-05-04,W19,Sanand,Assembly,Escape,safety,medium,15,active
-2026-05-04,W19,Sanand,Logistics,Bronco,equipment failure,medium,12,resolved
-2026-05-04,W19,Sanand,Body Shop,Expedition,quality,low,26,active
-2026-05-04,W19,Sanand,Assembly,Fusion,machine,low,24,active
+2026-05-01 08:27:46,W18,Dearborn,Body Shop,F-150,machine,medium,23,active
+2026-05-01 16:55:57,W18,Dearborn,Logistics,Explorer,equipment failure,medium,20,resolved
+2026-05-01 19:13:52,W18,Dearborn,Paint Shop,Escape,safety,medium,15,active
+2026-05-01 17:57:29,W18,Dearborn,Quality Check,Ranger,inspection failure,medium,12,active
+2026-05-01 19:59:57,W18,Dearborn,Body Shop,Bronco,quality,high,22,active
+2026-05-01 09:07:13,W18,Dearborn,Body Shop,Mach-E,safety,low,29,active
+2026-05-01 16:45:51,W18,Chicago,Quality Check,F-150,equipment failure,medium,9,active
+2026-05-01 20:31:34,W18,Chicago,Body Shop,Explorer,quality,high,9,active
+2026-05-01 18:53:41,W18,Chicago,Assembly,Escape,quality,high,10,active
+2026-05-01 15:10:04,W18,Chicago,Paint Shop,Ranger,quality,medium,20,active
+2026-05-01 06:15:04,W18,Chicago,Quality Check,Bronco,quality,medium,12,active
+2026-05-01 17:21:16,W18,Chicago,Logistics,Mach-E,quality,medium,23,active
+2026-05-01 16:02:39,W18,Detroit,Quality Check,F-150,equipment failure,medium,13,resolved
+2026-05-01 20:16:05,W18,Detroit,Paint Shop,Edge,safety,high,22,resolved
+2026-05-01 11:10:48,W18,Detroit,Logistics,Fusion,inspection failure,high,13,resolved
+2026-05-01 18:46:06,W18,Detroit,Logistics,Mach-E,inspection failure,high,27,active
+2026-05-01 07:33:12,W18,Kansas City,Logistics,F-150,safety,high,22,resolved
+2026-05-01 16:23:52,W18,Kansas City,Body Shop,Mustang,quality,high,14,active
+2026-05-01 19:22:43,W18,Kansas City,Assembly,Escape,safety,high,27,active
+2026-05-01 08:51:03,W18,Kansas City,Assembly,Edge,quality,medium,23,resolved
+2026-05-01 07:06:55,W18,Kansas City,Paint Shop,Mach-E,safety,medium,17,resolved
+2026-05-01 06:43:42,W18,Louisville,Body Shop,Mustang,quality,low,11,resolved
+2026-05-01 12:07:33,W18,Louisville,Assembly,Escape,inspection failure,high,17,active
+2026-05-01 20:46:37,W18,Louisville,Quality Check,Edge,equipment failure,high,28,resolved
+2026-05-01 19:11:41,W18,Louisville,Quality Check,Ranger,machine,high,16,resolved
+2026-05-01 20:11:06,W18,Louisville,Quality Check,Expedition,safety,low,29,active
+2026-05-01 09:37:15,W18,Louisville,Quality Check,Fusion,inspection failure,low,13,active
+2026-05-01 20:29:03,W18,Valencia,Paint Shop,F-150,equipment failure,medium,10,active
+2026-05-01 09:56:26,W18,Valencia,Body Shop,Mustang,quality,medium,10,resolved
+2026-05-01 12:13:30,W18,Valencia,Body Shop,Explorer,safety,low,12,resolved
+2026-05-01 11:29:34,W18,Valencia,Body Shop,Escape,inspection failure,medium,15,active
+2026-05-01 18:09:36,W18,Valencia,Assembly,Edge,equipment failure,medium,13,active
+2026-05-01 07:57:03,W18,Valencia,Paint Shop,Ranger,safety,high,10,resolved
+2026-05-01 15:33:53,W18,Valencia,Quality Check,Mach-E,equipment failure,low,11,active
+2026-05-01 10:00:20,W18,Cologne,Logistics,Mustang,quality,low,22,active
+2026-05-01 16:43:46,W18,Cologne,Quality Check,Explorer,inspection failure,medium,17,active
+2026-05-01 14:20:08,W18,Cologne,Logistics,Escape,quality,medium,12,resolved
+2026-05-01 19:23:45,W18,Cologne,Body Shop,Edge,quality,high,13,resolved
+2026-05-01 18:01:31,W18,Cologne,Body Shop,Ranger,quality,low,20,active
+2026-05-01 06:35:31,W18,Cologne,Body Shop,Expedition,quality,medium,16,active
+2026-05-01 13:28:48,W18,Cologne,Logistics,Mach-E,safety,medium,26,active
+2026-05-01 19:59:30,W18,Chennai,Assembly,Mustang,safety,medium,10,resolved
+2026-05-01 13:12:26,W18,Chennai,Paint Shop,Escape,equipment failure,medium,12,active
+2026-05-01 13:11:25,W18,Chennai,Body Shop,Edge,quality,low,18,resolved
+2026-05-01 17:44:56,W18,Chennai,Assembly,Bronco,machine,medium,13,resolved
+2026-05-01 07:27:28,W18,Chennai,Quality Check,Mach-E,equipment failure,medium,15,resolved
+2026-05-01 16:48:23,W18,Pune,Logistics,F-150,machine,high,21,active
+2026-05-01 13:42:18,W18,Pune,Paint Shop,Mustang,quality,high,13,active
+2026-05-01 14:28:06,W18,Pune,Assembly,Explorer,inspection failure,low,22,active
+2026-05-01 11:17:19,W18,Pune,Assembly,Edge,safety,medium,13,active
+2026-05-01 06:02:08,W18,Pune,Paint Shop,Ranger,quality,medium,19,resolved
+2026-05-01 19:30:42,W18,Pune,Logistics,Expedition,machine,low,31,resolved
+2026-05-01 08:44:12,W18,Pune,Assembly,Fusion,machine,medium,25,resolved
+2026-05-01 16:42:44,W18,Pune,Quality Check,Mach-E,safety,medium,22,active
+2026-05-01 15:09:58,W18,Sanand,Logistics,F-150,safety,low,20,resolved
+2026-05-01 09:08:17,W18,Sanand,Quality Check,Mustang,equipment failure,high,19,active
+2026-05-01 14:54:03,W18,Sanand,Body Shop,Escape,machine,low,15,active
+2026-05-01 12:39:46,W18,Sanand,Paint Shop,Edge,quality,low,29,resolved
+2026-05-01 21:25:08,W18,Sanand,Body Shop,Expedition,inspection failure,high,27,active
+2026-05-02 19:19:34,W18,Dearborn,Logistics,Explorer,equipment failure,medium,19,resolved
+2026-05-02 12:32:18,W18,Dearborn,Paint Shop,Escape,machine,low,18,active
+2026-05-02 19:48:38,W18,Dearborn,Paint Shop,Edge,inspection failure,medium,21,active
+2026-05-02 12:32:32,W18,Dearborn,Paint Shop,Ranger,quality,high,13,active
+2026-05-02 08:09:26,W18,Dearborn,Quality Check,Bronco,inspection failure,high,27,active
+2026-05-02 19:07:12,W18,Dearborn,Assembly,Mach-E,equipment failure,high,28,active
+2026-05-02 21:48:03,W18,Chicago,Assembly,Explorer,machine,low,10,active
+2026-05-02 08:54:44,W18,Chicago,Body Shop,Edge,quality,high,12,active
+2026-05-02 11:58:34,W18,Chicago,Quality Check,Ranger,safety,high,13,resolved
+2026-05-02 12:53:51,W18,Chicago,Logistics,Bronco,machine,low,23,resolved
+2026-05-02 17:38:04,W18,Chicago,Body Shop,Expedition,machine,high,18,resolved
+2026-05-02 12:09:10,W18,Chicago,Quality Check,Fusion,equipment failure,medium,20,active
+2026-05-02 08:12:40,W18,Chicago,Logistics,Mach-E,inspection failure,medium,15,active
+2026-05-02 18:12:23,W18,Detroit,Body Shop,F-150,inspection failure,medium,21,active
+2026-05-02 21:34:15,W18,Detroit,Quality Check,Mustang,inspection failure,medium,21,active
+2026-05-02 15:51:09,W18,Detroit,Quality Check,Escape,machine,high,24,resolved
+2026-05-02 13:56:31,W18,Detroit,Assembly,Ranger,machine,low,15,active
+2026-05-02 14:48:10,W18,Detroit,Assembly,Fusion,equipment failure,low,31,active
+2026-05-02 07:01:18,W18,Kansas City,Quality Check,F-150,inspection failure,medium,25,resolved
+2026-05-02 12:52:16,W18,Kansas City,Logistics,Mustang,equipment failure,medium,18,resolved
+2026-05-02 08:49:44,W18,Kansas City,Logistics,Explorer,inspection failure,low,25,active
+2026-05-02 18:22:59,W18,Kansas City,Assembly,Edge,machine,low,20,active
+2026-05-02 19:16:18,W18,Kansas City,Assembly,Bronco,equipment failure,high,21,active
+2026-05-02 18:20:07,W18,Kansas City,Quality Check,Fusion,quality,medium,25,active
+2026-05-02 15:20:56,W18,Kansas City,Quality Check,Mach-E,equipment failure,low,15,active
+2026-05-02 19:31:12,W18,Louisville,Logistics,Explorer,machine,medium,24,resolved
+2026-05-02 07:00:27,W18,Louisville,Body Shop,Edge,equipment failure,low,17,resolved
+2026-05-02 18:44:29,W18,Louisville,Body Shop,Ranger,machine,high,22,active
+2026-05-02 08:13:27,W18,Louisville,Quality Check,Bronco,inspection failure,medium,15,active
+2026-05-02 21:23:02,W18,Louisville,Paint Shop,Fusion,machine,medium,11,active
+2026-05-02 07:16:35,W18,Louisville,Paint Shop,Mach-E,quality,low,27,active
+2026-05-02 08:46:02,W18,Valencia,Assembly,Explorer,equipment failure,low,16,resolved
+2026-05-02 15:45:17,W18,Valencia,Assembly,Escape,equipment failure,high,11,active
+2026-05-02 10:52:36,W18,Valencia,Quality Check,Edge,equipment failure,medium,11,resolved
+2026-05-02 20:16:45,W18,Valencia,Quality Check,Bronco,machine,medium,25,active
+2026-05-02 15:18:36,W18,Valencia,Paint Shop,Expedition,inspection failure,medium,14,active
+2026-05-02 13:01:49,W18,Valencia,Body Shop,Mach-E,equipment failure,medium,22,resolved
+2026-05-02 15:46:20,W18,Cologne,Quality Check,Mustang,safety,high,14,active
+2026-05-02 15:25:36,W18,Cologne,Paint Shop,Edge,quality,medium,21,resolved
+2026-05-02 07:08:24,W18,Cologne,Logistics,Bronco,safety,low,17,active
+2026-05-02 19:11:39,W18,Cologne,Paint Shop,Expedition,safety,medium,11,active
+2026-05-02 18:01:25,W18,Cologne,Body Shop,Fusion,safety,low,28,active
+2026-05-02 10:40:51,W18,Chennai,Quality Check,F-150,machine,low,10,resolved
+2026-05-02 12:30:04,W18,Chennai,Logistics,Mustang,quality,medium,12,active
+2026-05-02 16:45:02,W18,Chennai,Paint Shop,Escape,quality,low,17,active
+2026-05-02 11:07:22,W18,Chennai,Quality Check,Edge,inspection failure,high,14,resolved
+2026-05-02 15:37:59,W18,Chennai,Assembly,Bronco,inspection failure,high,13,active
+2026-05-02 09:36:25,W18,Chennai,Logistics,Expedition,inspection failure,medium,21,resolved
+2026-05-02 14:00:52,W18,Chennai,Body Shop,Fusion,inspection failure,low,31,active
+2026-05-02 07:38:01,W18,Chennai,Logistics,Mach-E,inspection failure,low,19,resolved
+2026-05-02 19:02:49,W18,Pune,Assembly,Mustang,quality,medium,20,resolved
+2026-05-02 20:26:53,W18,Pune,Assembly,Explorer,inspection failure,high,20,active
+2026-05-02 21:01:01,W18,Pune,Body Shop,Bronco,quality,medium,16,active
+2026-05-02 19:37:08,W18,Pune,Logistics,Fusion,equipment failure,low,29,active
+2026-05-02 08:25:09,W18,Pune,Logistics,Mach-E,inspection failure,medium,16,active
+2026-05-02 21:35:46,W18,Sanand,Logistics,F-150,equipment failure,high,15,active
+2026-05-02 15:00:46,W18,Sanand,Paint Shop,Mustang,equipment failure,high,25,resolved
+2026-05-02 12:11:05,W18,Sanand,Quality Check,Explorer,quality,medium,28,active
+2026-05-02 15:25:35,W18,Sanand,Quality Check,Escape,safety,medium,23,active
+2026-05-02 11:25:06,W18,Sanand,Quality Check,Edge,inspection failure,low,18,active
+2026-05-02 06:49:31,W18,Sanand,Body Shop,Bronco,safety,low,23,active
+2026-05-02 09:47:07,W18,Sanand,Assembly,Expedition,quality,high,23,active
+2026-05-02 18:56:36,W18,Sanand,Logistics,Fusion,machine,medium,33,resolved
+2026-05-02 17:25:15,W18,Sanand,Logistics,Mach-E,equipment failure,high,17,active
+2026-05-03 21:59:07,W18,Dearborn,Body Shop,Explorer,quality,high,20,active
+2026-05-03 14:56:48,W18,Dearborn,Paint Shop,Escape,machine,low,17,resolved
+2026-05-03 16:09:21,W18,Dearborn,Quality Check,Edge,inspection failure,high,16,active
+2026-05-03 18:50:36,W18,Dearborn,Assembly,Expedition,equipment failure,medium,25,resolved
+2026-05-03 19:39:26,W18,Dearborn,Logistics,Fusion,inspection failure,medium,12,resolved
+2026-05-03 16:14:00,W18,Dearborn,Paint Shop,Mach-E,machine,low,19,active
+2026-05-03 08:43:13,W18,Chicago,Paint Shop,F-150,equipment failure,medium,20,active
+2026-05-03 15:45:19,W18,Chicago,Assembly,Explorer,machine,high,19,active
+2026-05-03 08:22:59,W18,Chicago,Logistics,Escape,quality,medium,12,resolved
+2026-05-03 15:16:08,W18,Chicago,Logistics,Edge,inspection failure,medium,19,active
+2026-05-03 19:35:49,W18,Chicago,Logistics,Ranger,machine,medium,18,resolved
+2026-05-03 16:15:00,W18,Chicago,Logistics,Bronco,equipment failure,medium,11,active
+2026-05-03 21:11:59,W18,Chicago,Quality Check,Expedition,safety,high,29,active
+2026-05-03 20:00:03,W18,Detroit,Logistics,F-150,safety,high,17,active
+2026-05-03 19:14:47,W18,Detroit,Logistics,Explorer,quality,low,21,active
+2026-05-03 13:00:01,W18,Detroit,Body Shop,Escape,machine,low,12,active
+2026-05-03 08:24:05,W18,Detroit,Logistics,Ranger,quality,high,11,resolved
+2026-05-03 11:05:13,W18,Detroit,Paint Shop,Bronco,inspection failure,medium,23,active
+2026-05-03 15:55:18,W18,Detroit,Assembly,Expedition,safety,medium,27,active
+2026-05-03 18:44:24,W18,Detroit,Assembly,Fusion,quality,high,18,active
+2026-05-03 12:58:44,W18,Detroit,Logistics,Mach-E,machine,high,19,resolved
+2026-05-03 17:08:55,W18,Kansas City,Assembly,F-150,inspection failure,medium,11,resolved
+2026-05-03 21:08:46,W18,Kansas City,Paint Shop,Mustang,safety,high,25,active
+2026-05-03 09:54:54,W18,Kansas City,Quality Check,Ranger,quality,medium,12,resolved
+2026-05-03 11:04:18,W18,Kansas City,Paint Shop,Bronco,machine,medium,17,resolved
+2026-05-03 15:22:28,W18,Kansas City,Assembly,Mach-E,safety,low,19,active
+2026-05-03 07:13:04,W18,Louisville,Body Shop,F-150,quality,medium,21,active
+2026-05-03 12:18:52,W18,Louisville,Quality Check,Mustang,equipment failure,high,9,active
+2026-05-03 12:46:07,W18,Louisville,Paint Shop,Explorer,safety,medium,19,resolved
+2026-05-03 21:45:54,W18,Louisville,Quality Check,Escape,inspection failure,low,22,resolved
+2026-05-03 06:24:15,W18,Louisville,Logistics,Edge,quality,low,22,active
+2026-05-03 21:38:27,W18,Louisville,Paint Shop,Ranger,machine,low,21,resolved
+2026-05-03 20:27:02,W18,Valencia,Logistics,F-150,quality,low,19,active
+2026-05-03 10:30:12,W18,Valencia,Logistics,Mustang,safety,high,9,resolved
+2026-05-03 16:31:47,W18,Valencia,Assembly,Explorer,quality,medium,16,active
+2026-05-03 09:22:26,W18,Valencia,Paint Shop,Escape,equipment failure,low,20,resolved
+2026-05-03 08:58:32,W18,Valencia,Logistics,Edge,inspection failure,low,12,active
+2026-05-03 10:13:36,W18,Valencia,Logistics,Bronco,quality,low,13,active
+2026-05-03 13:22:23,W18,Valencia,Quality Check,Fusion,quality,medium,13,active
+2026-05-03 06:43:49,W18,Valencia,Logistics,Mach-E,quality,high,16,active
+2026-05-03 15:37:19,W18,Cologne,Paint Shop,F-150,inspection failure,high,20,active
+2026-05-03 21:12:13,W18,Cologne,Logistics,Mustang,quality,medium,10,active
+2026-05-03 21:46:48,W18,Cologne,Paint Shop,Escape,safety,low,23,active
+2026-05-03 17:08:56,W18,Cologne,Quality Check,Bronco,inspection failure,medium,21,active
+2026-05-03 08:27:47,W18,Cologne,Logistics,Expedition,machine,high,18,active
+2026-05-03 12:14:30,W18,Cologne,Quality Check,Fusion,machine,medium,20,active
+2026-05-03 10:51:57,W18,Chennai,Body Shop,F-150,inspection failure,medium,16,active
+2026-05-03 14:09:37,W18,Chennai,Assembly,Edge,machine,low,27,active
+2026-05-03 11:23:53,W18,Chennai,Assembly,Ranger,equipment failure,high,26,active
+2026-05-03 13:44:40,W18,Chennai,Logistics,Fusion,machine,medium,20,active
+2026-05-03 14:27:38,W18,Chennai,Assembly,Mach-E,machine,high,25,resolved
+2026-05-03 11:38:21,W18,Pune,Body Shop,F-150,safety,high,21,active
+2026-05-03 13:49:02,W18,Pune,Logistics,Mustang,machine,medium,16,resolved
+2026-05-03 20:33:47,W18,Pune,Body Shop,Mach-E,quality,medium,34,active
+2026-05-03 11:01:24,W18,Sanand,Quality Check,Explorer,safety,medium,11,active
+2026-05-03 07:14:51,W18,Sanand,Body Shop,Escape,equipment failure,high,16,resolved
+2026-05-03 06:18:44,W18,Sanand,Logistics,Edge,quality,medium,19,resolved
+2026-05-03 16:58:17,W18,Sanand,Logistics,Ranger,inspection failure,medium,22,active
+2026-05-03 07:30:10,W18,Sanand,Paint Shop,Bronco,machine,medium,11,active
+2026-05-03 12:58:01,W18,Sanand,Paint Shop,Expedition,equipment failure,medium,28,resolved
+2026-05-03 08:59:44,W18,Sanand,Logistics,Fusion,machine,medium,18,resolved
+2026-05-04 18:46:13,W19,Dearborn,Logistics,Mustang,quality,medium,19,active
+2026-05-04 09:36:11,W19,Dearborn,Body Shop,Escape,safety,low,12,active
+2026-05-04 20:07:27,W19,Dearborn,Logistics,Edge,safety,medium,12,resolved
+2026-05-04 07:54:28,W19,Dearborn,Logistics,Expedition,inspection failure,medium,22,resolved
+2026-05-04 07:30:30,W19,Chicago,Assembly,F-150,machine,medium,10,active
+2026-05-04 17:31:13,W19,Chicago,Quality Check,Mustang,machine,high,23,resolved
+2026-05-04 16:06:51,W19,Chicago,Body Shop,Explorer,inspection failure,medium,9,active
+2026-05-04 18:51:41,W19,Chicago,Body Shop,Escape,quality,low,13,active
+2026-05-04 13:22:19,W19,Chicago,Quality Check,Edge,safety,medium,10,active
+2026-05-04 07:11:20,W19,Chicago,Quality Check,Ranger,quality,low,28,active
+2026-05-04 08:18:13,W19,Chicago,Assembly,Expedition,machine,medium,24,active
+2026-05-04 13:25:41,W19,Chicago,Paint Shop,Mach-E,machine,high,25,active
+2026-05-04 21:01:15,W19,Detroit,Assembly,Mustang,safety,high,14,resolved
+2026-05-04 13:19:57,W19,Detroit,Body Shop,Explorer,quality,low,23,active
+2026-05-04 20:09:35,W19,Detroit,Quality Check,Escape,equipment failure,high,22,active
+2026-05-04 19:23:13,W19,Detroit,Paint Shop,Ranger,safety,low,11,active
+2026-05-04 09:24:09,W19,Detroit,Paint Shop,Expedition,equipment failure,low,27,active
+2026-05-04 21:59:33,W19,Detroit,Body Shop,Mach-E,safety,high,30,active
+2026-05-04 20:36:34,W19,Kansas City,Body Shop,Mustang,inspection failure,high,10,active
+2026-05-04 21:20:25,W19,Kansas City,Paint Shop,Edge,safety,medium,23,active
+2026-05-04 09:20:27,W19,Kansas City,Paint Shop,Ranger,machine,medium,10,resolved
+2026-05-04 18:12:06,W19,Kansas City,Logistics,Bronco,quality,medium,29,resolved
+2026-05-04 12:06:15,W19,Kansas City,Quality Check,Expedition,equipment failure,medium,25,active
+2026-05-04 10:42:55,W19,Kansas City,Assembly,Mach-E,equipment failure,medium,15,active
+2026-05-04 16:20:24,W19,Louisville,Paint Shop,F-150,machine,high,10,resolved
+2026-05-04 21:07:13,W19,Louisville,Quality Check,Explorer,equipment failure,low,23,active
+2026-05-04 10:48:10,W19,Louisville,Assembly,Escape,inspection failure,medium,13,active
+2026-05-04 11:17:14,W19,Louisville,Body Shop,Ranger,quality,high,22,resolved
+2026-05-04 12:27:11,W19,Louisville,Quality Check,Bronco,safety,medium,27,resolved
+2026-05-04 18:01:39,W19,Louisville,Paint Shop,Expedition,inspection failure,low,16,active
+2026-05-04 18:44:48,W19,Louisville,Logistics,Mach-E,machine,medium,18,resolved
+2026-05-04 08:32:05,W19,Valencia,Paint Shop,Escape,inspection failure,medium,10,active
+2026-05-04 08:18:38,W19,Valencia,Paint Shop,Ranger,inspection failure,high,19,active
+2026-05-04 06:19:21,W19,Valencia,Body Shop,Fusion,equipment failure,low,16,active
+2026-05-04 21:23:01,W19,Valencia,Paint Shop,Mach-E,safety,low,29,resolved
+2026-05-04 13:12:52,W19,Cologne,Body Shop,F-150,inspection failure,low,16,active
+2026-05-04 08:00:52,W19,Cologne,Quality Check,Explorer,quality,low,28,resolved
+2026-05-04 12:34:25,W19,Cologne,Paint Shop,Escape,safety,high,26,active
+2026-05-04 09:22:55,W19,Cologne,Quality Check,Edge,equipment failure,medium,22,resolved
+2026-05-04 13:04:31,W19,Cologne,Quality Check,Ranger,safety,high,26,resolved
+2026-05-04 19:01:13,W19,Cologne,Body Shop,Expedition,inspection failure,medium,32,active
+2026-05-04 17:05:43,W19,Chennai,Assembly,F-150,quality,medium,26,resolved
+2026-05-04 18:12:12,W19,Chennai,Logistics,Mustang,safety,high,14,active
+2026-05-04 12:02:09,W19,Chennai,Quality Check,Explorer,quality,high,26,active
+2026-05-04 09:14:06,W19,Chennai,Body Shop,Escape,machine,low,26,active
+2026-05-04 15:29:43,W19,Chennai,Paint Shop,Edge,safety,low,12,resolved
+2026-05-04 10:27:11,W19,Chennai,Logistics,Bronco,machine,medium,14,active
+2026-05-04 06:41:08,W19,Chennai,Paint Shop,Expedition,machine,high,19,active
+2026-05-04 17:02:36,W19,Chennai,Quality Check,Fusion,inspection failure,medium,12,active
+2026-05-04 16:53:39,W19,Chennai,Body Shop,Mach-E,equipment failure,medium,25,active
+2026-05-04 14:08:12,W19,Pune,Quality Check,F-150,equipment failure,medium,27,active
+2026-05-04 06:32:09,W19,Pune,Logistics,Explorer,inspection failure,medium,19,resolved
+2026-05-04 07:18:41,W19,Pune,Logistics,Escape,equipment failure,low,19,resolved
+2026-05-04 15:28:37,W19,Pune,Assembly,Expedition,safety,low,18,resolved
+2026-05-04 06:03:05,W19,Pune,Logistics,Fusion,quality,high,17,resolved
+2026-05-04 19:33:20,W19,Pune,Paint Shop,Mach-E,inspection failure,high,23,active
+2026-05-04 10:26:51,W19,Sanand,Paint Shop,F-150,equipment failure,low,11,active
+2026-05-04 11:10:55,W19,Sanand,Logistics,Mustang,machine,medium,11,resolved
+2026-05-04 17:47:29,W19,Sanand,Quality Check,Explorer,quality,medium,19,resolved
+2026-05-04 18:07:04,W19,Sanand,Body Shop,Escape,safety,low,19,resolved
+2026-05-04 14:33:55,W19,Sanand,Quality Check,Edge,machine,medium,24,resolved
+2026-05-04 17:46:49,W19,Sanand,Assembly,Bronco,inspection failure,medium,14,resolved
+2026-05-04 18:39:27,W19,Sanand,Assembly,Expedition,inspection failure,high,23,active
+2026-05-04 16:51:13,W19,Sanand,Quality Check,Mach-E,inspection failure,low,22,active

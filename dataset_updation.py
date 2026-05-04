@@ -50,19 +50,26 @@ prod["date"] = pd.to_datetime(prod["date"], format="mixed")
 last_date = prod["date"].max()
 today = datetime.now().date()
  
-# Generate list of weekdays from last_date + 1 to today
+# Generate list of days from last_date + 1 to today
 current_date = (last_date + timedelta(days=1)).date() if isinstance(last_date, pd.Timestamp) else last_date + timedelta(days=1)
-weekdays_to_update = []
+days_to_update = []
 
 while current_date <= today:
-    # Skip weekends (5 = Saturday, 6 = Sunday)
-    if current_date.weekday() < 5:
-        weekdays_to_update.append(current_date)
+    # Include all days (including weekends)
+    days_to_update.append(current_date)
     current_date += timedelta(days=1)
 
-# If no weekdays to update, exit
-if not weekdays_to_update:
-    print("❌ No weekdays to update (all remaining days are weekends)")
+# Generate list of next 7 weekdays for future forecast
+forecast_dates = []
+chk_date = today + timedelta(days=1)
+while len(forecast_dates) < 7:
+    # Include all days
+    forecast_dates.append(chk_date)
+    chk_date += timedelta(days=1)
+
+# If no days to update, exit
+if not days_to_update:
+    print("❌ No days to update")
     exit(0)
 
 # -----------------------------
@@ -70,7 +77,7 @@ if not weekdays_to_update:
 # -----------------------------
 new_prod = []
  
-for update_date in weekdays_to_update:
+for update_date in days_to_update:
     for plant in plants:
         for model in models:
            
@@ -106,7 +113,7 @@ new_prod_df = pd.DataFrame(new_prod, columns=prod.columns)
 prod = pd.concat([prod, new_prod_df], ignore_index=True)
 prod.to_csv(PROD_FILE, index=False)
  
-print(f"✅ Production updated for {len(weekdays_to_update)} weekday(s)")
+print(f"✅ Production updated for {len(days_to_update)} day(s)")
  
 # -----------------------------
 # 2. ALERTS (TIED TO PRODUCTION)
@@ -164,7 +171,7 @@ recent = prod.tail(7 * len(plants) * len(models))
  
 forecast_rows = []
  
-for update_date in weekdays_to_update:
+for update_date in forecast_dates:
     for plant in plants:
         for model in models:
            
@@ -200,6 +207,15 @@ for update_date in weekdays_to_update:
  
 new_forecast_df = pd.DataFrame(forecast_rows, columns=forecast.columns)
 forecast = pd.concat([forecast, new_forecast_df], ignore_index=True)
+
+# -----------------------------
+# AUTOMATIC CLEANUP: Remove past and current day from forecast
+# -----------------------------
+forecast["Date"] = pd.to_datetime(forecast["Date"], format="mixed")
+forecast = forecast[forecast["Date"].dt.date > today]
+
+# Drop duplicates and save
+forecast = forecast.drop_duplicates(subset=["Date", "Plant", "Model"])
 forecast.to_csv(FORECAST_FILE, index=False)
  
 print(f"✅ Forecast updated ({len(new_forecast_df)} forecast records)")
@@ -209,7 +225,7 @@ print(f"✅ Forecast updated ({len(new_forecast_df)} forecast records)")
 # -----------------------------
 new_tasks = []
  
-for update_date in weekdays_to_update:
+for update_date in days_to_update:
     for plant in plants:
        
         if np.random.rand() < 0.5:
@@ -260,4 +276,4 @@ tasks.to_csv(TASK_FILE, index=False)
  
 print(f"✅ Tasks updated ({len(new_tasks_df)} task records)")
  
-print(f"🎯 ALL DATASETS UPDATED FOR {len(weekdays_to_update)} WEEKDAY(S) ({weekdays_to_update[0].strftime('%Y-%m-%d')} TO {weekdays_to_update[-1].strftime('%Y-%m-%d')})")
+print(f"🎯 ALL DATASETS UPDATED FOR {len(days_to_update)} DAY(S) ({days_to_update[0].strftime('%Y-%m-%d')} TO {days_to_update[-1].strftime('%Y-%m-%d')})")
