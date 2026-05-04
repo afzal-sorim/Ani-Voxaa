@@ -100,6 +100,41 @@ METRIC_SYNONYMS = {
     "task": "tasks",
 }
 
+# ── Typo Correction ──
+COMMON_TYPO_MAP = {
+    "reprot": "report",
+    "reprt": "report",
+    "repot": "report",
+    "dashbord": "dashboard",
+    "dashboad": "dashboard",
+    "dashbaord": "dashboard",
+    "revnue": "revenue",
+    "reveneu": "revenue",
+    "produciton": "production",
+    "prodcution": "production",
+    "trasnport": "transport",
+    "trasport": "transport",
+    "unites": "units",
+    "alrets": "alerts",
+    "alets": "alerts",
+}
+
+
+def _fix_common_typos(query: str) -> str:
+    """Detects and fixes common typos in the query to improve intent detection."""
+    q = query.lower()
+    words = q.split()
+    fixed_words = []
+    for word in words:
+        # Strip trailing punctuation for check
+        clean_word = re.sub(r'[^\w]', '', word)
+        if clean_word in COMMON_TYPO_MAP:
+            fixed_word = word.replace(clean_word, COMMON_TYPO_MAP[clean_word])
+            fixed_words.append(fixed_word)
+        else:
+            fixed_words.append(word)
+    return " ".join(fixed_words)
+
 AGGREGATION_SYNONYMS = {
     "average": "avg",
     "avg": "avg",
@@ -249,7 +284,7 @@ def _is_template_report_query(query: str) -> bool:
         "previous week report", "current week report",
         "this week report", "monthly report", "report for",
         "days report", "day report", "report format", "report style",
-        "dashboard style", "dashboard", "report"
+        "dashboard style", "dashboard", "report", "overview report"
     ]
     # Must mention "report" or "dashboard" explicitly
     if "report" not in q and "dashboard" not in q and "html thingy" not in q:
@@ -2239,6 +2274,16 @@ def execute_dashboard_query(query: str) -> str:
     """
     data_svc = get_data_service()
     time_range = _parse_time_range(query)
+    
+    # Default to current week if no time period specified
+    if time_range is None:
+        now = datetime.now()
+        time_range = {
+            "type": "week",
+            "week": now.isocalendar()[1],
+            "year": now.year,
+            "requested": "this week",
+        }
 
     # Parse any entity filters (plant, model, etc.) so a "dashboard for Dearborn" is scoped correctly
     prod_filters = _parse_filters(query, "production_data")
@@ -2441,7 +2486,7 @@ def execute_dashboard_query(query: str) -> str:
                    SUM(f.forecast_units) as f_units
             FROM production_data p
             LEFT JOIN forecast_data f ON p.week = f.week AND p.plant = f.plant
-            {prod_where}
+            {prod_where.replace("week", "p.week").replace("year", "p.year").replace("month", "p.month").replace("plant", "p.plant").replace("model", "p.model").replace("department", "p.department")}
             GROUP BY p.week
             ORDER BY p.week
         """
@@ -2596,7 +2641,7 @@ def execute_actual_vs_forecast_query(query: str) -> str:
         SELECT {', '.join(select_parts)}
         FROM production_data p
         LEFT JOIN forecast_data f ON p.week = f.week AND p.plant = f.plant
-        {p_where}
+        {p_where.replace("week", "p.week").replace("year", "p.year").replace("month", "p.month").replace("plant", "p.plant").replace("model", "p.model").replace("department", "p.department")}
         GROUP BY p.week
         ORDER BY p.week
     """.strip()
@@ -3263,10 +3308,69 @@ def _is_conversational_query(query: str) -> bool:
     data_domain_words = {
         "production", "revenue", "alert", "forecast", "units", "plant",
         "model", "week", "quarter", "month", "sales", "output", "department",
+        "dashboard", "report", "summary", "overview", "analytics", "stats"
     }
     if len(words) <= 4 and not any(w in data_domain_words for w in words):
         return True
 
+    return False
+
+
+def _is_unclear_data_query(query: str) -> bool:
+    """
+    Returns True if the query appears to be a data/reporting request
+    but contains unknown subjects or lacks enough context to be certain.
+    """
+    q = query.lower()
+    
+    # Check if it's a report/dashboard style query
+    is_report_style = any(k in q for k in ["report", "dashboard", "overview", "summary", "stats", "analytics"])
+    
+    if is_report_style and detect_domain(q) == "general":
+        # If no specific plant/model/etc is mentioned, it's a candidate for clarification
+        # if they used a specific subject word.
+        filters = _parse_filters(q, "production_data")
+        if not filters:
+            # Look for a specific subject word before the report keyword
+            match = re.search(r'\b(\w+)\s+(report|dashboard|overview|summary)\b', q)
+            if match:
+                subj = match.group(1)
+                # Fillers/Time words that are okay for generic reports
+                fillers = {
+                    "me", "the", "an", "full", "weekly", "monthly", "daily", 
+                    "quarterly", "this", "last", "previous", "current", "show", 
+                    "give", "display", "get", "my", "our", "plant", "business", "data", "status",
+                    "dashboard", "report", "overview", "summary"
+                }
+                if subj not in fillers:
+                    # Double check if subj is actually a known model or plant (which would be fine)
+                    # We use a simple list of common models from production_data.csv
+                    known_entities = {
+                        "f-150", "mustang", "explorer", "escape", "edge", "ranger", 
+                        "bronco", "expedition", "fusion", "mach-e",
+                        "dearborn", "chicago", "detroit", "kansas city", "louisville", 
+                        "valencia", "cologne", "chennai", "pune", "sanand"
+                    }
+                    if subj not in known_entities:
+                        return True
+            
+    # "How many X" queries where X is unknown
+    if "how many" in q or "total" in q:
+        # Avoid catching "total revenue" or "how many units"
+        if detect_domain(q) == "general":
+            # Check for objects
+            match = re.search(r'(?:how many|total)\s+(\w+)', q)
+            if match:
+                obj = match.group(1)
+                known_objs = {
+                    "units", "alerts", "issues", "vehicles", "cars", "revenue", 
+                    "sales", "problems", "defects", "plants", "models", "data", 
+                    "records", "tasks", "items"
+                }
+                if obj not in known_objs:
+                    # If they said "total transport", obj is "transport"
+                    return True
+                
     return False
 
 
@@ -3277,12 +3381,20 @@ async def process_query(
     """
     Full pipeline: Intent → Data → LLM → Response (non-streaming).
     """
-    # ── Conversational short-circuit: bypass all data logic for greetings/small-talk ──
+    # ── Typo Correction Layer ──
+    original_query = query
+    query = _fix_common_typos(original_query)
+    typo_correction_note = ""
+    if query.lower() != original_query.lower():
+        logger.info(f"Fixed typo: '{original_query}' → '{query}'")
+        typo_correction_note = f"\n\n[SYSTEM NOTE: The user's query had a typo. Original: '{original_query}'. I have interpreted this as: '{query}'. Please proceed with this interpretation and acknowledge the correction naturally in your response.]"
+
+    # ── Conversational short-circuit ──
     if _is_conversational_query(query):
         logger.info(f"Conversational query, bypassing data pipeline: '{query[:40]}'")
         return llm_service.generate_response(
             user_query=query,
-            data_context="",
+            data_context="" + typo_correction_note,
             conversation_history=conversation_history,
         )
 
@@ -3303,6 +3415,24 @@ async def process_query(
     if _is_dashboard_query(query) or _is_filtered_dashboard_query(query):
         logger.info("Routing to dashboard handler")
         return execute_dashboard_query(query)
+
+    # ── Ambiguity / Out-of-Domain Detection ──
+    if _is_unclear_data_query(query):
+        logger.info(f"Unclear data query detected: '{query}'. Asking for clarification.")
+        clarification_prompt = (
+            "The user asked for a report or data on a subject you don't recognize or that is out-of-scope (e.g., 'bus').\n\n"
+            "STRICT RULES:\n"
+            "1. DO NOT use the SUMMARY / DATA TABLE format.\n"
+            "2. DO NOT provide any numbers or data from your context.\n"
+            "3. DO NOT guess or substitute with 'business' data.\n"
+            "4. Politely explain that you are the VOXA Automotive Assistant and you specialize in Production, Revenue, and Quality data for our manufacturing plants.\n"
+            "5. Ask if they would like to see a report on one of those core areas instead, or for a specific model (like F-150, Mustang) or plant."
+        )
+        return llm_service.generate_response(
+            user_query=query,
+            data_context=clarification_prompt + typo_correction_note,
+            conversation_history=conversation_history,
+        )
 
     # 2. Check for Structured Data Queries (Single-metric)
     structured_intent = _parse_structured_intent(query)
@@ -3339,13 +3469,14 @@ async def process_query(
     data_keywords = ["how many", "total", "what is the revenue", "production of", "units", "alerts in"]
     if any(k in query.lower() for k in data_keywords) and "why" not in query.lower():
          return (
-             "I couldn't find a direct way to calculate that value from the current dataset. "
-             "Could you rephrase your question? For example: 'Show me production by plant for Q1'."
+             "I understand you are looking for data, but I couldn't find a direct way to calculate that specific value from my automotive records. "
+             "I specialize in Production Units, Revenue, and Quality Alerts. "
+             "Could you rephrase your question? For example: 'Show me production units for last week'."
          )
 
     response = llm_service.generate_response(
         user_query=query,
-        data_context=data_context,
+        data_context=data_context + typo_correction_note,
         conversation_history=conversation_history,
     )
 
@@ -3360,12 +3491,20 @@ async def stream_query(
     Full pipeline: Intent → Data → LLM → Streaming Response.
     Yields tokens as they arrive from the LLM.
     """
+    # ── Typo Correction Layer (stream) ──
+    original_query = query
+    query = _fix_common_typos(original_query)
+    typo_correction_note = ""
+    if query.lower() != original_query.lower():
+        logger.info(f"Fixed typo (stream): '{original_query}' → '{query}'")
+        typo_correction_note = f"\n\n[SYSTEM NOTE: The user's query had a typo. Original: '{original_query}'. I have interpreted this as: '{query}'. Please proceed with this interpretation and acknowledge the correction naturally in your response.]"
+
     # ── Conversational short-circuit ──
     if _is_conversational_query(query):
         logger.info(f"Conversational stream query, bypassing data pipeline: '{query[:40]}'")
         async for token in llm_service.stream_response(
             user_query=query,
-            data_context="",
+            data_context="" + typo_correction_note,
             conversation_history=conversation_history,
         ):
             yield token
@@ -3390,6 +3529,26 @@ async def stream_query(
     if _is_dashboard_query(query) or _is_filtered_dashboard_query(query):
         logger.info("Routing to dashboard handler (stream)")
         yield execute_dashboard_query(query)
+        return
+
+    # ── Ambiguity / Out-of-Domain Detection (stream) ──
+    if _is_unclear_data_query(query):
+        logger.info(f"Unclear data stream query detected: '{query}'. Asking for clarification.")
+        clarification_prompt = (
+            "The user asked for a report or data on a subject you don't recognize or that is out-of-scope (e.g., 'bus').\n\n"
+            "STRICT RULES:\n"
+            "1. DO NOT use the SUMMARY / DATA TABLE format.\n"
+            "2. DO NOT provide any numbers or data from your context.\n"
+            "3. DO NOT guess or substitute with 'business' data.\n"
+            "4. Politely explain that you are the VOXA Automotive Assistant and you specialize in Production, Revenue, and Quality data for our manufacturing plants.\n"
+            "5. Ask if they would like to see a report on one of those core areas instead, or for a specific model (like F-150, Mustang) or plant."
+        )
+        async for token in llm_service.stream_response(
+            user_query=query,
+            data_context=clarification_prompt + typo_correction_note,
+            conversation_history=conversation_history,
+        ):
+            yield token
         return
 
     # 2. Check for Structured Data Queries (Single-metric)
@@ -3425,7 +3584,7 @@ async def stream_query(
 
     async for token in llm_service.stream_response(
         user_query=query,
-        data_context=data_context,
+        data_context=data_context + typo_correction_note,
         conversation_history=conversation_history,
     ):
         yield token
