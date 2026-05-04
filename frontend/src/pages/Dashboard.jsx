@@ -1,24 +1,24 @@
-import React, { useState, useEffect } from 'react';
-import { toast } from 'react-hot-toast';
+import React, { useEffect } from 'react';
 import useThemeStore from '../store/useThemeStore';
 import useChatStore from '../store/useChatStore';
+import useUIStore from '../store/useUIStore';
 import Header from '../components/Header';
 import Sidebar from '../components/Sidebar';
 import ChatWindow from '../components/ChatWindow';
 
 export default function Dashboard() {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const sidebarOpen = useUIStore((s) => s.sidebarOpen);
+  const toggleSidebar = useUIStore((s) => s.toggleSidebar);
+  const setSidebarOpen = useUIStore((s) => s.setSidebarOpen);
 
   const loadTheme     = useThemeStore((s) => s.loadTheme);
   const loadFromCache = useChatStore((s) => s.loadFromCache);
-  const newChat       = useChatStore((s) => s.newChat);
 
   useEffect(() => {
     loadTheme();
     loadFromCache();
   }, [loadTheme, loadFromCache]);
 
-  const toggleSidebar = () => setSidebarOpen((prev) => !prev);
   const closeSidebar  = () => setSidebarOpen(false);
 
   return (
@@ -43,3 +43,4 @@ export default function Dashboard() {
     </div>
   );
 }
+

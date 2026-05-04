@@ -10,36 +10,66 @@ import { toast } from 'react-hot-toast';
 import UserAvatar from './UserAvatar';
 import DashboardResponse from './DashboardResponse';
 
+import useUIStore from '../store/useUIStore';
+import { useRef } from 'react';
+
 /**
  * Helper component to render an iframe that auto-resizes based on its content
  */
 function IframeResizer({ srcDoc, messageId }) {
   const [height, setHeight] = useState('400px'); // Initial fallback
+  const sidebarOpen = useUIStore((s) => s.sidebarOpen);
+  const iframeRef = useRef(null);
 
   useEffect(() => {
     const handleMessage = (event) => {
       // Only update if the message contains our specific ID
       if (event.data && event.data.type === 'setHeight' && event.data.id === messageId) {
-        setHeight(`${event.data.height}px`);
+        setHeight(`${Math.ceil(event.data.height) + 2}px`);
       }
     };
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
   }, [messageId]);
 
+  // When sidebar toggles, the width changes (300ms transition).
+  useEffect(() => {
+    const triggerUpdate = () => {
+      if (iframeRef.current && iframeRef.current.contentWindow) {
+        iframeRef.current.contentWindow.postMessage({ type: 'triggerHeightUpdate' }, '*');
+      }
+    };
+
+    triggerUpdate();
+    const timer = setTimeout(triggerUpdate, 350); 
+    
+    return () => clearTimeout(timer);
+  }, [sidebarOpen]);
+
   // Inject the ID into the script that runs inside the iframe
   const docWithId = useMemo(() => {
     if (!srcDoc) return srcDoc;
-    // The script is already injected in the main component, but we need to pass the ID to it.
-    // We'll replace the generic sendHeight call with one that includes the ID.
-    return srcDoc.replace(
-      "window.parent.postMessage({ type: 'setHeight', height: height }, '*')",
+    
+    let modified = srcDoc.replace(
+      /window\.parent\.postMessage\(\{ type: 'setHeight', height: height \}, '\*'\)/g,
       `window.parent.postMessage({ type: 'setHeight', height: height, id: '${messageId}' }, '*')`
     );
+
+    const listenerScript = `
+      <script>
+        window.addEventListener('message', (e) => {
+          if (e.data.type === 'triggerHeightUpdate') {
+            if (typeof sendHeight === 'function') sendHeight();
+          }
+        });
+      </script>
+    `;
+    return modified.replace('</body>', `${listenerScript}</body>`);
   }, [srcDoc, messageId]);
 
   return (
     <iframe
+      ref={iframeRef}
       srcDoc={docWithId}
       style={{ width: '100%', height, border: 'none', display: 'block', overflow: 'hidden' }}
       title={`Dashboard Response ${messageId}`}
@@ -47,6 +77,7 @@ function IframeResizer({ srcDoc, messageId }) {
     />
   );
 }
+
 
 /**
  * Strict message schema expected:
@@ -211,16 +242,22 @@ export default function MessageBubble({ message, onRetry, onRegenerate, onEdit, 
                     const script = `
                       <script>
                         function sendHeight() {
-                          const height = document.documentElement.scrollHeight || document.body.scrollHeight;
+                          const wrapper = document.getElementById('app') || document.body;
+                          const height = wrapper.getBoundingClientRect().height;
                           window.parent.postMessage({ type: 'setHeight', height: height }, '*');
                         }
                         window.addEventListener('load', sendHeight);
-                        const observer = new ResizeObserver(sendHeight);
-                        observer.observe(document.body);
+                        window.addEventListener('resize', sendHeight);
+                        if (window.ResizeObserver) {
+                          const observer = new ResizeObserver(sendHeight);
+                          observer.observe(document.body);
+                        }
+                        setInterval(sendHeight, 1000);
                       </script>
                     `;
                     extractedHtml = extractedHtml.replace('</body>', `${script}</body>`);
                   }
+
                   
                   // Extract content before and after the HTML block
                   const beforeHtml = c.substring(0, htmlStartIndex).replace(/```[a-z]*\s*$/i, '').trim();
