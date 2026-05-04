@@ -66,7 +66,7 @@ def get_chat_service(db_path: Optional[Path] = None) -> ChatService:
     global _chat_service
     if _chat_service is None:
         if db_path is None:
-            from config import DATA_DIR
+            from backend.config import DATA_DIR
             db_path = DATA_DIR / "voxa_system.duckdb" # Use a shared system DB
         _chat_service = ChatService(db_path)
     return _chat_service

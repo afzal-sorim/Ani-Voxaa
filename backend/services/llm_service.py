@@ -11,7 +11,7 @@ import logging
 from typing import AsyncGenerator
 
 from groq import Groq, AsyncGroq
-from config import GROQ_API_KEY, PRIMARY_MODEL, FALLBACK_MODEL, SYSTEM_PROMPT, LLM_GUARDRAILS
+from backend.config import GROQ_API_KEY, PRIMARY_MODEL, FALLBACK_MODEL, SYSTEM_PROMPT, LLM_GUARDRAILS
 
 logger = logging.getLogger("voxa.llm")
 

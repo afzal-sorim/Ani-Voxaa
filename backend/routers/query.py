@@ -5,7 +5,7 @@ Handles direct data query requests.
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from agents.automotive_agent import process_query
+from backend.agents.automotive_agent import process_query
 import logging
 
 router = APIRouter()

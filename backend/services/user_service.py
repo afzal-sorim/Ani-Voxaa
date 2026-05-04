@@ -105,7 +105,7 @@ def get_user_service(db_path: Optional[Path] = None) -> UserService:
     global _user_service
     if _user_service is None:
         if db_path is None:
-            from config import DATA_DIR
+            from backend.config import DATA_DIR
             db_path = DATA_DIR / "voxa_system.duckdb"
         _user_service = UserService(db_path)
     return _user_service

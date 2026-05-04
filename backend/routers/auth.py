@@ -7,10 +7,10 @@ from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, EmailStr
 from datetime import datetime, timedelta
 import jwt
-from config import JWT_SECRET, JWT_ALGORITHM, JWT_EXPIRY_HOURS
+from backend.config import JWT_SECRET, JWT_ALGORITHM, JWT_EXPIRY_HOURS
 import logging
 
-from services.user_service import get_user_service
+from backend.services.user_service import get_user_service
 
 router = APIRouter()
 logger = logging.getLogger("voxa.router.auth")
@@ -80,7 +80,7 @@ async def signup(request: SignupRequest):
         "access_token": token
     }
 
-from dependencies import get_current_user
+from backend.dependencies import get_current_user
 
 @router.get("/me", response_model=UserResponse)
 async def get_me(current_user: dict = Depends(get_current_user)):
@@ -92,7 +92,7 @@ async def get_me(current_user: dict = Depends(get_current_user)):
 from fastapi import UploadFile, File
 import shutil
 from pathlib import Path
-from config import DATA_DIR
+from backend.config import DATA_DIR
 
 @router.post("/profile-pic")
 async def upload_profile_pic(

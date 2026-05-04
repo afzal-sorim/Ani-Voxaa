@@ -8,7 +8,7 @@ from pydantic import BaseModel
 from typing import Optional, List
 import json
 import logging
-from agents.automotive_agent import process_query, stream_query
+from backend.agents.automotive_agent import process_query, stream_query
 
 router = APIRouter()
 logger = logging.getLogger("voxa.router.chat")
@@ -22,7 +22,7 @@ class ChatResponse(BaseModel):
     response: str
     conversation_id: str
 
-from dependencies import get_current_user
+from backend.dependencies import get_current_user
 from fastapi import Depends
 
 @router.post("/chat", response_model=ChatResponse)

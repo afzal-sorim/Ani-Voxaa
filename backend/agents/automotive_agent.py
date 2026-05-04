@@ -18,8 +18,8 @@ from datetime import datetime, date, timedelta
 
 import pandas as pd
 
-from services.data_service import get_data_service
-from services import llm_service
+from backend.services.data_service import get_data_service
+from backend.services import llm_service
 
 logger = logging.getLogger("voxa.agent")
 
@@ -3211,7 +3211,7 @@ def execute_structured_query(query: str) -> str | None:
         )
 
     # --- EXPLAINABILITY LAYER ---
-    from config import DEBUG_MODE
+    from backend.config import DEBUG_MODE
     explain_block = ""
     if DEBUG_MODE:
         explain_block = (
