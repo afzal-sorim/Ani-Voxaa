@@ -241,10 +241,11 @@ def _is_template_report_query(query: str) -> bool:
         "give me a report", "generate report", "last week report",
         "previous week report", "current week report",
         "this week report", "monthly report", "report for",
-        "days report", "day report",
+        "days report", "day report", "report format", "report style",
+        "dashboard style", "dashboard", "report"
     ]
-    # Must mention "report" explicitly
-    if "report" not in q:
+    # Must mention "report" or "dashboard" explicitly
+    if "report" not in q and "dashboard" not in q and "html thingy" not in q:
         return False
     # Match any of the strong patterns
     if any(k in q for k in report_keywords):
@@ -259,7 +260,7 @@ def _is_template_report_query(query: str) -> bool:
     if any(t in q for t in time_qualifiers):
         return True
     # Bare "report" defaults to current week
-    return "report" in q
+    return "report" in q or "dashboard" in q
 
 
 def _compute_efficiency(completed: int, total: int) -> float:
@@ -292,7 +293,25 @@ def execute_template_report(query: str) -> str:
 
     time_expr, time_meta = _choose_time_clause("production_data", time_range)
     period_label = _format_period_label(time_meta.get("used") or time_range.get("requested", "This Week"))
-    prod_where = f"WHERE {time_expr}" if time_expr else ""
+    
+    # ── Parse Entity Filters (Plant, Model, etc.) ──
+    filters = _parse_filters(query, "production_data")
+    filter_label_parts = []
+    where_parts = [time_expr] if time_expr else []
+    
+    for col, val in filters.items():
+        val_str = str(val).title() if isinstance(val, str) else ", ".join(str(v).title() for v in val)
+        filter_label_parts.append(val_str)
+        if isinstance(val, list):
+            quoted = [f"LOWER('{str(v).replace(chr(39), chr(39)+chr(39))}')" for v in val]
+            where_parts.append(f"LOWER({col}) IN ({', '.join(quoted)})")
+        else:
+            safe_val = str(val).replace("'", "''")
+            where_parts.append(f"LOWER({col}) = LOWER('{safe_val}')")
+            
+    prod_where = f"WHERE {' AND '.join(where_parts)}" if where_parts else ""
+    scope_label = " — " + ", ".join(filter_label_parts) if filter_label_parts else ""
+    full_period_label = f"{period_label}{scope_label}"
 
     # ── 1. Department breakdown ──
     dept_sql = f"""
@@ -328,10 +347,21 @@ def execute_template_report(query: str) -> str:
             total = 0
 
         # Get alert-based quality hold and rework from alerts_quality
+        alert_filters = _parse_filters(query, "alerts_quality")
         alert_time_expr, _ = _choose_time_clause("alerts_quality", time_range)
         alert_where_parts = []
         if alert_time_expr:
             alert_where_parts.append(alert_time_expr)
+        
+        # Add entity filters for alerts
+        for col, val in alert_filters.items():
+            if isinstance(val, list):
+                quoted = [f"LOWER('{str(v).replace(chr(39), chr(39)+chr(39))}')" for v in val]
+                alert_where_parts.append(f"LOWER({col}) IN ({', '.join(quoted)})")
+            else:
+                safe_val = str(val).replace("'", "''")
+                alert_where_parts.append(f"LOWER({col}) = LOWER('{safe_val}')")
+                
         alert_where_parts.append(f"LOWER(department) = LOWER('{safe_dept}')")
         alert_where = "WHERE " + " AND ".join(alert_where_parts)
 
@@ -440,8 +470,14 @@ def execute_template_report(query: str) -> str:
 
     # ── 6. Efficiency by department ──
     efficiency = {}
-    bar_colors = {"Body Shop": "#4a90e2", "Paint Shop": "#3fc87a", "Assembly": "#a78bfa",
-                  "Quality Check": "#f0a030", "Logistics": "#4ec8c8"}
+    # Colors must exactly match template.html for the .replace() to work
+    bar_colors = {
+        "Body Shop": "#2E6DB8", 
+        "Paint Shop": "#1E8A52", 
+        "Assembly": "#6B4ED4",
+        "Quality Check": "#C07820", 
+        "Logistics": "#1A8A8A"
+    }
     for dept in departments:
         d = dept_data[dept]
         eff = _compute_efficiency(d["completed"] + d["dispatched"], d["total"])
@@ -457,26 +493,27 @@ def execute_template_report(query: str) -> str:
         return f"{n:,}"
 
     # ── HEADER ──
-    html = html.replace("Overview : This Week", f"Overview : {period_label}")
-    html = html.replace("Vehicle Dashboard – This Week", f"Vehicle Dashboard – {period_label}")
+    html = html.replace("Overview : This Week", f"Overview : {full_period_label}")
+    html = html.replace("Vehicle Dashboard – This Week", f"Vehicle Dashboard – {full_period_label}")
     html = html.replace("May 12 – May 18, 2024", date_range_label)
 
     # ── KPI CARDS ──
     html = html.replace("Total Vehicles This Week", f"Total Vehicles {period_label}")
-    html = html.replace('>1,078</div>\n      <div class="kpi-trend trend-green">',
-                         f'>{fmt(totals["total"])}</div>\n      <div class="kpi-trend trend-green">')
+    # Regex to find the value 1,078 followed by the trend div
+    html = re.sub(r'>1,078</div>(\s*<div class="kpi-trend trend-green">)', f'>{fmt(totals["total"])}</div>\\1', html)
     html = html.replace("6.4% vs last week", f"{total_trend}% vs prev period")
 
-    html = html.replace('>365</div>\n      <div class="kpi-trend trend-green">\n        <svg',
-                         f'>{fmt(totals["completed"])}</div>\n      <div class="kpi-trend trend-green">\n        <svg')
+    # Completed
+    html = re.sub(r'>365</div>(\s*<div class="kpi-trend trend-green">)', f'>{fmt(totals["completed"])}</div>\\1', html)
     html = html.replace("7.8% vs last week", f"— period total")
 
-    html = html.replace('>28</div>\n      <div class="kpi-trend trend-amber">\n        <svg width="10" height="10" viewBox="0 0 10 10">\n          <path d="M2 7l3-4 3 4" stroke="#f0a030"',
-                         f'>{fmt(totals["quality_hold"])}</div>\n      <div class="kpi-trend trend-amber">\n        <svg width="10" height="10" viewBox="0 0 10 10">\n          <path d="M2 7l3-4 3 4" stroke="#f0a030"')
+    # Quality Hold
+    html = re.sub(r'>28</div>(\s*<div class="kpi-trend trend-amber">)', f'>{fmt(totals["quality_hold"])}</div>\\1', html)
     html = html.replace("12.0% vs last week", "— period total")
 
-    html = html.replace('>17</div>\n      <div class="kpi-trend trend-amber">\n        <svg width="10" height="10" viewBox="0 0 10 10">\n          <path d="M2 7l3-4 3 4" stroke="#f0a030" stroke-width="1.5" fill="none" stroke-linecap="round" />\n        </svg>\n        13.3% vs last week',
-                         f'>{fmt(totals["rework"])}</div>\n      <div class="kpi-trend trend-amber">\n        <svg width="10" height="10" viewBox="0 0 10 10">\n          <path d="M2 7l3-4 3 4" stroke="#f0a030" stroke-width="1.5" fill="none" stroke-linecap="round" />\n        </svg>\n        — period total')
+    # Rework
+    html = re.sub(r'>17</div>(\s*<div class="kpi-trend trend-amber">)', f'>{fmt(totals["rework"])}</div>\\1', html)
+    html = html.replace("13.3% vs last week", "— period total")
 
     # ── TABLE ROWS ──
     def make_td(val, css_class="", zero_muted=True):
@@ -524,42 +561,42 @@ def execute_template_report(query: str) -> str:
     new_tbody = "\n".join(tbody_rows)
 
     # Replace the entire <tbody>...</tbody> block
-    import re as _re
-    html = _re.sub(r'<tbody>.*?</tbody>', f'<tbody>\n{new_tbody}\n      </tbody>', html, flags=_re.DOTALL)
+    html = re.sub(r'<tbody>.*?</tbody>', f'<tbody>\n{new_tbody}\n      </tbody>', html, flags=re.DOTALL)
 
     # ── DONUT CHART ──
     donut_data = [totals["in_production"], totals["completed"], totals["quality_hold"],
                   totals["rework"], totals["dispatched"]]
     html = html.replace("data: [413, 365, 28, 17, 255]", f"data: {donut_data}")
-    html = html.replace(
-        "413 in production, 365 completed, 28 quality hold, 17 rework, 255 dispatched.",
-        f"{totals['in_production']} in production, {totals['completed']} completed, "
-        f"{totals['quality_hold']} quality hold, {totals['rework']} rework, {totals['dispatched']} dispatched."
-    )
+    
+    # Accessible description
+    html = re.sub(r'\d+ in production, \d+ completed, \d+ quality hold, \d+ rework, \d+ dispatched\.',
+                   f"{totals['in_production']} in production, {totals['completed']} completed, "
+                   f"{totals['quality_hold']} quality hold, {totals['rework']} rework, {totals['dispatched']} dispatched.", html)
+    
     html = html.replace("1078 total vehicles", f"{totals['total']} total vehicles")
-    html = html.replace("((ctx.parsed / 1078) * 100)", f"((ctx.parsed / {grand_total}) * 100)")
+    html = re.sub(r'\(\(ctx\.parsed / \d+\) \* 100\)', f"((ctx.parsed / {grand_total}) * 100)", html)
 
     # Donut center
-    html = html.replace('<span class="donut-total">1,078</span>', f'<span class="donut-total">{fmt(totals["total"])}</span>')
+    html = re.sub(r'<span class="donut-total">1,078</span>', f'<span class="donut-total">{fmt(totals["total"])}</span>', html)
 
     # Legend
     def pct(val):
         return f"{round(val / grand_total * 100, 1)}"
 
-    html = html.replace(f'In Production<span class="lval">413 (38.3%)</span>',
-                         f'In Production<span class="lval">{fmt(totals["in_production"])} ({pct(totals["in_production"])}%)</span>')
-    html = html.replace(f'Completed<span class="lval">365 (33.9%)</span>',
-                         f'Completed<span class="lval">{fmt(totals["completed"])} ({pct(totals["completed"])}%)</span>')
-    html = html.replace(f'Quality Hold<span class="lval">28 (2.6%)</span>',
-                         f'Quality Hold<span class="lval">{fmt(totals["quality_hold"])} ({pct(totals["quality_hold"])}%)</span>')
-    html = html.replace(f'Rework<span class="lval">17 (1.6%)</span>',
-                         f'Rework<span class="lval">{fmt(totals["rework"])} ({pct(totals["rework"])}%)</span>')
-    html = html.replace(f'Dispatched<span class="lval">255 (23.6%)</span>',
-                         f'Dispatched<span class="lval">{fmt(totals["dispatched"])} ({pct(totals["dispatched"])}%)</span>')
+    html = re.sub(r'In Production<span class="lval">.*?</span>',
+                   f'In Production<span class="lval">{fmt(totals["in_production"])} ({pct(totals["in_production"])}%)</span>', html)
+    html = re.sub(r'Completed<span class="lval">.*?</span>',
+                   f'Completed<span class="lval">{fmt(totals["completed"])} ({pct(totals["completed"])}%)</span>', html)
+    html = re.sub(r'Quality Hold<span class="lval">.*?</span>',
+                   f'Quality Hold<span class="lval">{fmt(totals["quality_hold"])} ({pct(totals["quality_hold"])}%)</span>', html)
+    html = re.sub(r'Rework<span class="lval">.*?</span>',
+                   f'Rework<span class="lval">{fmt(totals["rework"])} ({pct(totals["rework"])}%)</span>', html)
+    html = re.sub(r'Dispatched<span class="lval">.*?</span>',
+                   f'Dispatched<span class="lval">{fmt(totals["dispatched"])} ({pct(totals["dispatched"])}%)</span>', html)
 
     # ── EFFICIENCY BAR CHART ──
     html = html.replace('<span class="week-badge">This Week</span>',
-                         f'<span class="week-badge">{period_label}</span>')
+                         f'<span class="week-badge">{full_period_label}</span>')
 
     for dept in departments:
         eff = efficiency[dept]
@@ -586,30 +623,28 @@ def execute_template_report(query: str) -> str:
 def should_render_dashboard(query: str, structured_intent: dict | None, df: pd.DataFrame | None) -> bool:
     """
     Decides if a dashboard should be rendered instead of plain markdown.
-    Default to dashboard for almost all analytical data queries.
+    Default to dashboard for almost all data queries to provide the requested 
+    'Golden Executive' HTML dashboard experience.
     """
     if df is None or df.empty:
         return False
         
     q = query.lower()
     
-    # 1. Explicit dashboard keywords
+    # 1. Explicit dashboard keywords (highly inclusive)
     dashboard_keywords = [
         "dashboard", "report", "overview", "analytics", "breakdown", 
         "trend", "chart", "graph", "summary", "compare", "performance",
-        "kpi", "distribution", "analysis", "data", "stats", "metrics"
+        "kpi", "distribution", "analysis", "data", "stats", "metrics",
+        "html", "format", "style", "viz", "visual"
     ]
     if any(k in q for k in dashboard_keywords):
         return True
         
-    # 2. Structured intent with any data result
-    if structured_intent:
-        # If it's analytical, comparative, or listing, use dashboard
-        if structured_intent.get("query_type") in ["analytical", "comparative", "listing"]:
-            return True
-        # If it has more than 1 row or a group_by, definitely dashboard
-        if structured_intent.get("group_by") or len(df) > 0:
-            return True
+    # 2. If we have a structured result with any meaningful data, use the dashboard
+    if df.shape[0] >= 1:
+        # For data queries, we always prefer the premium dashboard experience
+        return True
 
     return False
 
