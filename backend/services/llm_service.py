@@ -269,6 +269,92 @@ def _build_explanation_messages(
     return messages
 
 
+def extract_entities(query: str) -> dict:
+    """
+    Use the LLM as a high-fidelity NLU engine to extract structured entities.
+    This is used as a fallback when rule-based parsing is ambiguous.
+    """
+    client = _get_sync_client()
+    
+    prompt = f"""
+    Extract structured information from the following automotive plant management query.
+    Query: "{query}"
+
+    Return ONLY a valid JSON object with these keys:
+    - metric: (one of: "units", "revenue", "alerts", "forecast_units", "forecast_revenue", "affected_units")
+    - aggregation: (one of: "sum", "avg", "count", "max", "min")
+    - plant: (e.g. "Dearborn", "Claycomo", or null)
+    - model: (e.g. "F-150", "Transit", or null)
+    - department: (e.g. "Body Shop", "Paint Shop", or null)
+    - time_range: (a description like "last 10 days", "Q1 2024", "this week", or null)
+    
+    If you cannot find a value, use null.
+    JSON:
+    """
+
+    try:
+        response = client.chat.completions.create(
+            model=PRIMARY_MODEL,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.0,  # Deterministic
+            max_tokens=256,
+            response_format={"type": "json_object"}
+        )
+        import json
+        return json.loads(response.choices[0].message.content)
+    except Exception as e:
+        logger.error(f"LLM Entity Extraction failed: {e}")
+        return {}
+
+
+def extract_time_range(query: str) -> dict:
+    """
+    Use the LLM to extract a structured time range from a natural language query.
+    Returns a dict that _parse_time_range can understand.
+    """
+    from datetime import datetime
+    now = datetime.now()
+    current_date = now.strftime("%Y-%m-%d")
+    current_week = now.isocalendar()[1]
+    current_year = now.year
+
+    client = _get_sync_client()
+    
+    prompt = f"""
+    The current date is {current_date} (Week {current_week}, Year {current_year}).
+    Parse the user's time-related request into a structured format.
+    
+    Query: "{query}"
+    
+    Return ONLY a valid JSON object with ONE of these formats:
+    1. {{"type": "date_range", "start_date": "YYYY-MM-DD", "end_date": "YYYY-MM-DD", "requested": "..."}}
+    2. {{"type": "week", "week": N, "year": YYYY, "requested": "..."}}
+    3. {{"type": "month", "month": N, "year": YYYY, "requested": "..."}}
+    4. {{"type": "quarter", "quarter": N, "year": YYYY, "requested": "..."}}
+    5. {{"type": "year", "year": YYYY, "requested": "..."}}
+    
+    If no time is mentioned, return {{"type": null}}.
+    JSON:
+    """
+
+    try:
+        response = client.chat.completions.create(
+            model=PRIMARY_MODEL,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.0,
+            max_tokens=256,
+            response_format={"type": "json_object"}
+        )
+        import json
+        result = json.loads(response.choices[0].message.content)
+        if result.get("type") is None:
+            return None
+        return result
+    except Exception as e:
+        logger.error(f"LLM Time Extraction failed: {e}")
+        return None
+
+
 def check_llm_health() -> dict:
     """Quick health check — verify Groq API is reachable."""
     try:
@@ -291,3 +377,4 @@ def check_llm_health() -> dict:
             "primary_model": PRIMARY_MODEL,
             "fallback_model": FALLBACK_MODEL,
         }
+

@@ -1144,8 +1144,27 @@ def detect_intent(query: str) -> str:
     return max(scores, key=scores.get)
 
 
-def _normalize_text(query: str) -> str:
-    return re.sub(r"[^a-z0-9\s-]", " ", query.lower())
+def _normalize_text(text: str) -> str:
+    """
+    Normalizes input text for better pattern matching.
+    Specifically handles STT artifacts like 'one hundred and ten' -> '110'
+    and automotive terms that might be misheard.
+    """
+    t = text.lower().strip()
+    
+    # ── 1. Common STT Normalization (Regex-based) ──
+    # 'a hundred' -> '100', 'one thousand' -> '1000'
+    t = re.sub(r'\ba\s+hundred\b', '100', t)
+    t = re.sub(r'\bone\s+thousand\b', '1000', t)
+    
+    # ── 2. Automotive Term Normalization ──
+    # 'f one fifty' -> 'f-150', 'f150' -> 'f-150'
+    t = re.sub(r'\bf\s*150\b', 'f-150', t)
+    t = re.sub(r'\bf\s*one\s*fifty\b', 'f-150', t)
+    
+    # ── 3. Clean up punctuation but keep meaningful ones ──
+    t = re.sub(r'[^\w\s\-\.]', ' ', t)
+    return ' '.join(t.split())
 
 
 def _parse_group_by(query: str) -> str | list[str] | None:
@@ -1779,7 +1798,36 @@ def _parse_structured_intent(query: str) -> dict | None:
     rely_on_agg_fallback = not any(phrase in query_lower for phrase, _ in AGGREGATION_SYNONYMS.items())
     if rely_on_agg_fallback:
         confidence_score -= 0.2 # Guessed aggregation
-        
+
+    # ── Hybrid NLU Enhancement: LLM Entity Extraction ──
+    # If the rule-based confidence is low, or we have a complex query, use the LLM to verify/extract.
+    if confidence_score < 1.0 or any(k in query_lower for k in ["between", "and", "split", "breakdown"]):
+        try:
+            llm_entities = llm_service.extract_entities(query)
+            if llm_entities:
+                # Merge LLM results if they seem more specific
+                if llm_entities.get("metric") and rely_on_metric_fallback:
+                    metric = llm_entities["metric"]
+                    confidence_score += 0.2
+                if llm_entities.get("aggregation") and rely_on_agg_fallback:
+                    aggregation = llm_entities["aggregation"]
+                    confidence_score += 0.1
+                if llm_entities.get("plant") and not filters.get("plant"):
+                    filters["plant"] = llm_entities["plant"]
+                if llm_entities.get("model") and not filters.get("model"):
+                    filters["model"] = llm_entities["model"]
+                if llm_entities.get("time_range") and not time_range:
+                    # Re-parse the LLM's suggested time range string
+                    llm_time = _parse_time_range(llm_entities["time_range"])
+                    if llm_time:
+                        time_range = llm_time
+                        time_ranges = [time_range]
+        except Exception as e:
+            logger.warning(f"Hybrid NLU fallback failed (non-critical): {e}")
+
+    if metric is None:
+        return None
+
     return {
         "metric": metric,
         "aggregation": aggregation,
@@ -1787,11 +1835,11 @@ def _parse_structured_intent(query: str) -> dict | None:
         "filters": filters,
         "time_range": time_range,
         "all_time_ranges": time_ranges, # Store for multi-time logic
-        "table_name": table_name,
+        "table_name": _choose_table(metric),
         "raw_query": query,
         "query_type": classify_query_type(query),
         "analytical_intent": analytical_intent,
-        "intent_confidence": confidence_score
+        "intent_confidence": min(confidence_score, 1.0)
     }
 
 
@@ -3308,7 +3356,8 @@ def _is_conversational_query(query: str) -> bool:
     data_domain_words = {
         "production", "revenue", "alert", "forecast", "units", "plant",
         "model", "week", "quarter", "month", "sales", "output", "department",
-        "dashboard", "report", "summary", "overview", "analytics", "stats"
+        "dashboard", "report", "summary", "overview", "analytics", "stats",
+        "inventory", "status", "schedule",
     }
     if len(words) <= 4 and not any(w in data_domain_words for w in words):
         return True
@@ -3427,7 +3476,13 @@ async def process_query(
     # 1. Check for Template Report Queries (renders template.html with real data)
     if _is_template_report_query(query):
         logger.info("Routing to template report handler")
-        return execute_template_report(query)
+        try:
+            result = execute_template_report(query)
+            if result:
+                return result
+        except Exception as e:
+            logger.error(f"Template report failed: {e}", exc_info=True)
+            return f"⚠️ Template report error: {e}\n\nPlease share this error so it can be fixed."
 
     # 1. Check for Dashboard/Summary Queries (Multi-metric)
     if _is_dashboard_query(query) or _is_filtered_dashboard_query(query):
@@ -3588,3 +3643,4 @@ async def stream_query(
         conversation_history=conversation_history,
     ):
         yield token
+
