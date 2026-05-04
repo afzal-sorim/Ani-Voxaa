@@ -166,13 +166,21 @@ METRIC_DEFINITIONS = {
 
 TIME_KEYWORDS = {
     "this month": "this_month",
+    "current month": "this_month",
     "last month": "last_month",
+    "previous month": "last_month",
     "this quarter": "this_quarter",
+    "current quarter": "this_quarter",
     "last quarter": "last_quarter",
+    "previous quarter": "last_quarter",
     "this week": "this_week",
+    "current week": "this_week",
     "last week": "last_week",
+    "previous week": "last_week",
     "this year": "this_year",
+    "current year": "this_year",
     "last year": "last_year",
+    "previous year": "last_year",
 }
 
 def detect_domain(query: str, structured_intent: dict | None = None) -> str:
@@ -211,6 +219,12 @@ MONTHS = {
     "december": 12,
 }
 
+def _format_period_label(raw: str | None) -> str:
+    """Title-case a period label so 'last week' → 'Last Week', 'last 10 days' → 'Last 10 Days'."""
+    if not raw:
+        return "This Week"
+    return raw.title()
+
 # ── Template Report Helpers ──
 
 def _is_template_report_query(query: str) -> bool:
@@ -225,7 +239,9 @@ def _is_template_report_query(query: str) -> bool:
         "weekly report", "week report", "week's report",
         "dashboard report", "show me a report", "show report",
         "give me a report", "generate report", "last week report",
+        "previous week report", "current week report",
         "this week report", "monthly report", "report for",
+        "days report", "day report",
     ]
     # Must mention "report" explicitly
     if "report" not in q:
@@ -236,7 +252,9 @@ def _is_template_report_query(query: str) -> bool:
     # Generic "report" with a time qualifier
     time_qualifiers = [
         "this week", "last week", "current week", "previous week",
-        "this month", "last month", "weekly", "last 7 days",
+        "this month", "last month", "previous month",
+        "weekly", "last 7 days", "last 10 days", "last 14 days",
+        "last 20 days", "last 30 days", "past",
     ]
     if any(t in q for t in time_qualifiers):
         return True
@@ -273,7 +291,7 @@ def execute_template_report(query: str) -> str:
         }
 
     time_expr, time_meta = _choose_time_clause("production_data", time_range)
-    period_label = time_meta.get("used") or time_range.get("requested", "This Week")
+    period_label = _format_period_label(time_meta.get("used") or time_range.get("requested", "This Week"))
     prod_where = f"WHERE {time_expr}" if time_expr else ""
 
     # ── 1. Department breakdown ──
@@ -354,7 +372,20 @@ def execute_template_report(query: str) -> str:
 
     # ── 4. Compute trends (vs previous period) ──
     prev_range = None
-    if time_range["type"] == "week":
+    if time_range["type"] == "date_range":
+        from datetime import date as _date
+        sd = _date.fromisoformat(time_range["start_date"])
+        ed = _date.fromisoformat(time_range["end_date"])
+        delta = ed - sd
+        prev_end = sd - timedelta(days=1)
+        prev_start = prev_end - delta
+        prev_range = {
+            "type": "date_range",
+            "start_date": prev_start.isoformat(),
+            "end_date": prev_end.isoformat(),
+            "requested": "prev",
+        }
+    elif time_range["type"] == "week":
         prev_date = datetime.now() - timedelta(days=14) if time_range.get("requested") == "this week" else datetime.now() - timedelta(days=21)
         prev_range = {"type": "week", "week": prev_date.isocalendar()[1], "year": prev_date.year, "requested": "prev"}
     elif time_range["type"] == "month":
@@ -380,7 +411,15 @@ def execute_template_report(query: str) -> str:
 
     # ── 5. Date range label ──
     now = datetime.now()
-    if time_range["type"] == "week":
+    if time_range["type"] == "date_range":
+        from datetime import date as _date
+        try:
+            sd = _date.fromisoformat(time_range["start_date"])
+            ed = _date.fromisoformat(time_range["end_date"])
+            date_range_label = f"{sd.strftime('%b %d')} – {ed.strftime('%b %d, %Y')}"
+        except Exception:
+            date_range_label = str(period_label)
+    elif time_range["type"] == "week":
         week_num = time_range["week"]
         year = time_range["year"]
         from datetime import date as _date
@@ -418,7 +457,7 @@ def execute_template_report(query: str) -> str:
         return f"{n:,}"
 
     # ── HEADER ──
-    html = html.replace("Overview — This Week", f"Overview — {period_label}")
+    html = html.replace("Overview : This Week", f"Overview : {period_label}")
     html = html.replace("Vehicle Dashboard – This Week", f"Vehicle Dashboard – {period_label}")
     html = html.replace("May 12 – May 18, 2024", date_range_label)
 
@@ -605,7 +644,7 @@ def build_dashboard_report_from_structured_data(query: str, structured_data: dic
     """
     metric_raw = structured_data.get("metric", "data")
     metric_label = metric_raw.replace("_", " ").title()
-    used_time = structured_data.get("time_range") or "Selected Period"
+    used_time = _format_period_label(structured_data.get("time_range"))
     
     # Build a highly specific title based on filters
     filters = structured_data.get("filters", {}) or {}
@@ -617,9 +656,9 @@ def build_dashboard_report_from_structured_data(query: str, structured_data: dic
                 scope_parts.append(val_str)
     
     scope_label = " - ".join(scope_parts)
-    report_title = f"{metric_label} Report"
+    report_title = f"Overview — {used_time}"
     if scope_label:
-        report_title = f"{metric_label}: {scope_label}"
+        report_title = f"{metric_label}: {scope_label} — {used_time}"
 
     # 1. KPIs
     kpis = []
@@ -1157,6 +1196,37 @@ def _parse_time_range(query: str) -> dict | None:
     query_lower = query.lower()
     now = datetime.now()
 
+    # ── "last N days / past N days" (must be checked BEFORE TIME_KEYWORDS) ──
+    days_match = re.search(
+        r"\b(?:last|past|previous|recent)\s+(\d{1,3})\s*days?\b", query_lower
+    )
+    if days_match:
+        n_days = int(days_match.group(1))
+        end_date = now.date()
+        start_date = end_date - timedelta(days=n_days - 1)  # inclusive
+        return {
+            "type": "date_range",
+            "start_date": start_date.isoformat(),
+            "end_date": end_date.isoformat(),
+            "requested": f"Last {n_days} Days",
+        }
+
+    # ── "last N weeks / past N weeks" ──
+    weeks_match = re.search(
+        r"\b(?:last|past|previous|recent)\s+(\d{1,2})\s*weeks?\b", query_lower
+    )
+    if weeks_match:
+        n_weeks = int(weeks_match.group(1))
+        end_date = now.date()
+        start_date = end_date - timedelta(weeks=n_weeks)
+        return {
+            "type": "date_range",
+            "start_date": start_date.isoformat(),
+            "end_date": end_date.isoformat(),
+            "requested": f"Last {n_weeks} Weeks",
+        }
+
+    # ── Fixed keyword time ranges ──
     for phrase, token in TIME_KEYWORDS.items():
         if phrase in query_lower:
             if token == "this_month":
@@ -1276,6 +1346,47 @@ def _choose_time_clause(table_name: str, time_range: dict | None) -> tuple[str |
     date_expr = f"strptime({date_col}, '%Y-%m-%d')" if table_name == "alerts_quality" else f"TRY_CAST({date_col} AS DATE)"
     expr = None
     requested = time_range.get("requested")
+
+    # ── Arbitrary date_range ("last N days", "last N weeks") ──
+    if time_range["type"] == "date_range":
+        start_d = time_range["start_date"]
+        end_d = time_range["end_date"]
+        expr = f"CAST({date_col} AS DATE) BETWEEN '{start_d}' AND '{end_d}'"
+        # Direct return — no fallback logic needed for explicit ranges
+        data_svc = get_data_service()
+        count_sql = f"SELECT COUNT(*) AS cnt FROM {table_name} WHERE {expr}"
+        try:
+            row_count = int(data_svc.execute_query(count_sql).iloc[0, 0])
+        except Exception:
+            row_count = 0
+
+        if row_count > 0:
+            return expr, {"used": requested, "requested": requested, "available_rows": row_count}
+
+        # Fallback: find the latest available date and build a range of the same length
+        try:
+            latest_sql = f"SELECT MAX(CAST({date_col} AS DATE)) AS latest_date FROM {table_name}"
+            latest_row = data_svc.execute_query(latest_sql)
+            if not latest_row.empty and latest_row.iloc[0, 0] is not None:
+                latest_date = latest_row.iloc[0, 0]
+                from datetime import date as _date
+                delta = _date.fromisoformat(end_d) - _date.fromisoformat(start_d)
+                fb_end = latest_date
+                fb_start = fb_end - delta
+                fb_expr = f"CAST({date_col} AS DATE) BETWEEN '{fb_start}' AND '{fb_end}'"
+                fb_count = int(data_svc.execute_query(f"SELECT COUNT(*) AS cnt FROM {table_name} WHERE {fb_expr}").iloc[0, 0])
+                used = f"{fb_start.strftime('%b %d')} – {fb_end.strftime('%b %d, %Y')}"
+                return fb_expr, {
+                    "requested": requested,
+                    "used": used,
+                    "fallback_occurred": True,
+                    "available_rows": fb_count,
+                }
+        except Exception:
+            pass
+
+        return expr, {"used": requested, "requested": requested, "available_rows": 0}
+
     if time_range["type"] == "month":
         expr = (
             f"EXTRACT(month FROM {date_expr}) = {time_range['month']} AND "
@@ -2224,7 +2335,7 @@ def execute_dashboard_query(query: str) -> str:
             ["Active Alerts", str(active_alerts), "—", "—"]
         ]
 
-    period = time_meta.get("used") or "All Available Data"
+    period = _format_period_label(time_meta.get("used") or "All Available Data")
     scope_label = ", ".join(scope_parts) if scope_parts else "Global Operations"
     
     # Summary prose
@@ -2235,7 +2346,7 @@ def execute_dashboard_query(query: str) -> str:
     )
 
     dashboard_data = {
-        "title": f"{domain.replace('_', ' ').title()} Performance Dashboard",
+        "title": f"Overview — {period}",
         "period": period,
         "scope": ", ".join(scope_parts) if scope_parts else "Global Operations",
         "summary": summary_prose,
@@ -2326,7 +2437,7 @@ def execute_actual_vs_forecast_query(query: str) -> str:
             "Try adjusting the time range."
         )
 
-    period = time_meta.get("used") or "All Available Data"
+    period = _format_period_label(time_meta.get("used") or "All Available Data")
     fallback_note = ""
     if time_meta.get("fallback_occurred"):
         fallback_note = f"\n> ⚠️ No data for **{time_meta['requested']}**. Showing latest available: **{period}**."
@@ -2379,7 +2490,7 @@ def execute_actual_vs_forecast_query(query: str) -> str:
     if want_revenue: headers += ["Actual Revenue", "Forecast Revenue", "Variance"]
 
     dashboard_data = {
-        "title": "Actual vs Forecast Performance",
+        "title": f"Actual vs Forecast — {period}",
         "period": period,
         "scope": "Global Comparison",
         "summary": f"Performance analysis for {period}. System compares recorded actuals against production targets and revenue forecasts.",
