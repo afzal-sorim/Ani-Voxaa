@@ -3340,7 +3340,7 @@ def _is_unclear_data_query(query: str) -> bool:
                     "me", "the", "an", "full", "weekly", "monthly", "daily", 
                     "quarterly", "this", "last", "previous", "current", "show", 
                     "give", "display", "get", "my", "our", "plant", "business", "data", "status",
-                    "dashboard", "report", "overview", "summary"
+                    "dashboard", "report", "overview", "summary", "forecast", "projection", "plan"
                 }
                 if subj not in fillers:
                     # Double check if subj is actually a known model or plant (which would be fine)
