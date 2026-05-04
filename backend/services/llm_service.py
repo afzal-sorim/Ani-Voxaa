@@ -280,18 +280,20 @@ def extract_entities(query: str) -> dict:
     client = _get_sync_client()
     
     prompt = f"""
-    Extract structured information from the following automotive plant management query.
+    You are an NLU engine for an Automotive Manufacturing Assistant.
+    Extract structured information from the following query.
     Query: "{query}"
 
     Return ONLY a valid JSON object with these keys:
-    - metric: (one of: "units", "revenue", "alerts", "forecast_units", "forecast_revenue", "affected_units")
-    - aggregation: (one of: "sum", "avg", "count", "max", "min")
+    - is_automotive_related: (boolean: true if the query is about OUR automotive manufacturing plants, production, revenue, or quality. Generic requests for "reports", "dashboards", or "summaries" should also be considered TRUE. Set to FALSE ONLY if the query is explicitly about unrelated companies like Meta, Google, Apple, Amazon, or other industries/trivia, EVEN IF it mentions 'revenue' or 'sales'.)
+    - metric: (one of: "units", "revenue", "alerts", "forecast_units", "forecast_revenue", "affected_units", or null)
+    - aggregation: (one of: "sum", "avg", "count", "max", "min", or null)
     - plant: (e.g. "Dearborn", "Claycomo", or null)
     - model: (e.g. "F-150", "Transit", or null)
     - department: (e.g. "Body Shop", "Paint Shop", or null)
     - time_range: (a description like "last 10 days", "Q1 2024", "this week", or null)
     
-    If you cannot find a value, use null.
+    CRITICAL: If is_automotive_related is false, all other fields MUST be null.
     JSON:
     """
 

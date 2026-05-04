@@ -25,15 +25,20 @@
       --gold-soft: #D4AF37;
       --gold-pale: #F5E6B3;
       --gold-grad: linear-gradient(135deg, #D4AF37, #B8962E);
-      
-      --shadow-sm: 0 2px 8px rgba(0,0,0,0.02);
+
+      --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.02);
       --shadow-md: 0 10px 30px rgba(184, 150, 46, 0.08);
       --radius: 16px;
     }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
-    html, body {
+    html,
+    body {
       height: auto !important;
       min-height: 0 !important;
     }
@@ -47,7 +52,11 @@
       font-size: 13px;
     }
 
-    .page { width: 100%; max-width: 1400px; margin: 0 auto; }
+    .page {
+      width: 100%;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
 
     /* ── Header ── */
     .header {
@@ -67,8 +76,10 @@
     .header::after {
       content: '';
       position: absolute;
-      top: 0; right: 0;
-      width: 300px; height: 100%;
+      top: 0;
+      right: 0;
+      width: 300px;
+      height: 100%;
       background: radial-gradient(circle at 100% 0%, var(--gold-pale) 0%, transparent 70%);
       opacity: 0.3;
     }
@@ -86,7 +97,7 @@
     }
 
     .title {
-      font-size: 32px;
+      font-size: 15px;
       font-weight: 800;
       color: var(--txt);
       letter-spacing: -0.03em;
@@ -109,18 +120,33 @@
       margin-bottom: 24px;
     }
 
+    @media (max-width: 1000px) {
+      .kpi-row { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    @media (max-width: 550px) {
+      .kpi-row { grid-template-columns: 1fr; }
+    }
+
+
     .kpi-card {
       background: var(--surf);
       border: 1px solid var(--brd);
-      border-radius: var(--radius);
-      padding: 24px;
+      border-top: 3px solid transparent;
+      border-radius: 12px;
+      padding: 20px;
       display: flex;
       flex-direction: column;
       gap: 8px;
-      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      transition: all 0.3s ease;
       box-shadow: var(--shadow-sm);
       position: relative;
     }
+
+    .kpi-card.k-blue { border-top-color: #2E6DB8; }
+    .kpi-card.k-green { border-top-color: #1E8A52; }
+    .kpi-card.k-amber { border-top-color: #C07820; }
+    .kpi-card.k-red { border-top-color: #C03030; }
 
     .kpi-card:hover {
       transform: translateY(-5px);
@@ -137,7 +163,7 @@
     }
 
     .kpi-value {
-      font-size: 32px;
+      font-size: 28px;
       font-weight: 800;
       color: var(--txt);
       letter-spacing: -0.02em;
@@ -154,8 +180,10 @@
 
     .kpi-icon {
       position: absolute;
-      top: 20px; right: 20px;
-      width: 40px; height: 40px;
+      top: 20px;
+      right: 20px;
+      width: 40px;
+      height: 40px;
       background: var(--bg2);
       border-radius: 12px;
       display: grid;
@@ -165,9 +193,19 @@
     }
 
     /* ── Visualisations ── */
-    .grid { display: grid; gap: 24px; margin-bottom: 24px; }
-    .row-2 { grid-template-columns: 2fr 1fr; }
-    .row-table { grid-template-columns: 1fr; }
+    .grid {
+      display: grid;
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+
+    .row-2 {
+      grid-template-columns: 2fr 1fr;
+    }
+
+    .row-table {
+      grid-template-columns: 1fr;
+    }
 
     .panel {
       background: var(--surf);
@@ -185,7 +223,7 @@
     }
 
     .panel-title {
-      font-size: 16px;
+      font-size: 13px;
       font-weight: 800;
       color: var(--txt);
       display: flex;
@@ -195,7 +233,8 @@
 
     .panel-title::before {
       content: '';
-      width: 4px; height: 18px;
+      width: 4px;
+      height: 18px;
       background: var(--gold-grad);
       border-radius: 2px;
     }
@@ -206,9 +245,20 @@
     }
 
     /* ── Table ── */
-    .table-panel { padding: 0; overflow: hidden; }
-    .table-container { overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; }
+    .table-panel {
+      padding: 0;
+      overflow: hidden;
+    }
+
+    .table-container {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
     th {
       background: var(--bg2);
       padding: 16px 24px;
@@ -220,15 +270,28 @@
       color: var(--txt2);
       border-bottom: 1px solid var(--brd2);
     }
+
     td {
       padding: 18px 24px;
       border-bottom: 1px solid var(--bg2);
       font-size: 13px;
       color: var(--txt2);
     }
-    tr:last-child td { border-bottom: none; }
-    tr:hover td { background: var(--surf-hover); color: var(--txt); }
-    .model-name { font-weight: 700; color: var(--txt); }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tr:hover td {
+      background: var(--surf-hover);
+      color: var(--txt);
+    }
+
+    .model-name {
+      font-weight: 700;
+      color: var(--txt);
+    }
+
     .badge {
       padding: 4px 12px;
       border-radius: 99px;
@@ -240,7 +303,11 @@
     }
 
     /* ── Insights ── */
-    .insight-list { display: grid; gap: 12px; }
+    .insight-list {
+      display: grid;
+      gap: 12px;
+    }
+
     .insight-card {
       background: var(--surf-hover);
       border: 1px solid var(--brd);
@@ -251,17 +318,30 @@
       align-items: flex-start;
       transition: all 0.3s ease;
     }
-    .insight-card:hover { border-color: var(--gold-acc); background: #fff; }
+
+    .insight-card:hover {
+      border-color: var(--gold-acc);
+      background: #fff;
+    }
+
     .insight-icon {
-      width: 32px; height: 32px;
+      width: 32px;
+      height: 32px;
       background: #fff;
       border-radius: 8px;
       display: grid;
       place-items: center;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
       flex-shrink: 0;
     }
-    .insight-text { font-size: 12px; font-weight: 500; color: var(--txt2); line-height: 1.5; }
+
+    .insight-text {
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--txt2);
+      line-height: 1.6;
+    }
+
 
     .footer {
       text-align: center;
@@ -273,10 +353,29 @@
       letter-spacing: 0.2em;
     }
 
-    @media (max-width: 1100px) {
+    @media (max-width: 1000px) {
       .kpi-row { grid-template-columns: repeat(2, 1fr); }
       .row-2 { grid-template-columns: 1fr; }
     }
+
+    @media (max-width: 640px) {
+      body { padding: 12px; }
+      .page { padding: 0; }
+      .header {
+        grid-template-columns: 1fr;
+        padding: 20px;
+        text-align: center;
+      }
+      .header-right { justify-content: center; }
+      .period-badge { justify-self: center; }
+      .kpi-row { grid-template-columns: 1fr; }
+      .card { padding: 16px; }
+      .donut-wrap { flex-direction: column; gap: 20px; }
+      .table-shell { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+      table { min-width: 600px; }
+    }
+
+
   </style>
 </head>
 
@@ -314,14 +413,18 @@
         </header>
 
         <section class="kpi-row">
-          ${(data.kpis || []).map(kpi => `
-            <div class="kpi-card">
-              <div class="kpi-icon">${kpi.icon || '📊'}</div>
-              <div class="kpi-label">${kpi.label}</div>
-              <div class="kpi-value">${kpi.value}</div>
-              <div class="kpi-sub">${kpi.sub || ''}</div>
-            </div>
-          `).join('')}
+          ${(data.kpis || []).map((kpi, idx) => {
+            const colors = ['k-blue', 'k-green', 'k-amber', 'k-red'];
+            const colorClass = colors[idx % colors.length];
+            return `
+              <div class="kpi-card ${colorClass}">
+                <div class="kpi-icon">${kpi.icon || '📊'}</div>
+                <div class="kpi-label">${kpi.label}</div>
+                <div class="kpi-value">${kpi.value}</div>
+                <div class="kpi-sub">${kpi.sub || ''}</div>
+              </div>
+            `;
+          }).join('')}
         </section>
 
         <section class="grid row-2">
@@ -374,7 +477,7 @@
           </div>
         </section>
 
-        <section class="grid" style="grid-template-columns: repeat(3, 1fr)">
+        <section class="grid insight-grid" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr))">
           ${(data.insights || []).map(ins => `
             <div class="insight-card">
               <div class="insight-icon">${ins.icon || '💡'}</div>
@@ -383,8 +486,9 @@
           `).join('')}
         </section>
 
+
         <footer class="footer">
-          VOXA Strategic Intelligence — Gold Standard Executive Reporting
+          VOXA Strategic Intelligence Reporting
         </footer>
       `;
 
@@ -421,19 +525,19 @@
             tooltip: {
               backgroundColor: '#1A1A1F',
               padding: 16,
-              titleFont: { size: 14, weight: 'bold', family: 'DM Sans' },
-              bodyFont: { size: 13, family: 'DM Sans' },
+              titleFont: { size: 14, weight: 'bold', family: 'Inter' },
+              bodyFont: { size: 13, family: 'Inter' },
               cornerRadius: 12,
               displayColors: false
             }
           },
           scales: {
-            y: { 
-              beginAtZero: true, 
+            y: {
+              beginAtZero: true,
               grid: { color: 'rgba(0,0,0,0.04)', drawBorder: false },
               ticks: { font: { family: 'DM Sans', weight: '600' }, color: '#9CA3AF', padding: 10 }
             },
-            x: { 
+            x: {
               grid: { display: false },
               ticks: { font: { family: 'DM Sans', weight: '700' }, color: '#6B6B7B', padding: 10 }
             }
@@ -456,14 +560,14 @@
           maintainAspectRatio: false,
           cutout: '75%',
           plugins: {
-            legend: { 
-              position: 'bottom', 
-              labels: { 
-                usePointStyle: true, 
-                padding: 20, 
+            legend: {
+              position: 'bottom',
+              labels: {
+                usePointStyle: true,
+                padding: 20,
                 font: { family: 'DM Sans', size: 11, weight: '700' },
                 color: '#6B6B7B'
-              } 
+              }
             },
             tooltip: {
               backgroundColor: '#1A1A1F',
@@ -482,14 +586,21 @@
     if (forecastData) renderDashboard(forecastData);
 
     function sendHeight() {
-      const height = document.documentElement.scrollHeight || document.body.scrollHeight;
+      const wrapper = document.getElementById('app') || document.body;
+      const height = wrapper.getBoundingClientRect().height;
       window.parent.postMessage({ type: 'setHeight', height: height }, '*');
     }
     window.addEventListener('load', sendHeight);
+    window.addEventListener('resize', sendHeight);
     if (window.ResizeObserver) {
       const observer = new ResizeObserver(sendHeight);
       observer.observe(document.body);
     }
+    window.addEventListener('message', (e) => {
+      if (e.data.type === 'triggerHeightUpdate') sendHeight();
+    });
+    setInterval(sendHeight, 1000);
+
   </script>
 </body>
 

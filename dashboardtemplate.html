@@ -475,10 +475,11 @@
     }
 
     .insight-text {
-      font-size: 14px;
+      font-size: 15px;
       line-height: 1.7;
       color: var(--text);
     }
+
 
 
     .table-shell {
@@ -1130,6 +1131,23 @@
     } else {
       document.getElementById('app').innerHTML = '<div class="empty-state">Waiting for database results...</div>';
     }
+
+    function sendHeight() {
+      const wrapper = document.getElementById('app') || document.body;
+      const height = wrapper.getBoundingClientRect().height;
+      window.parent.postMessage({ type: 'setHeight', height: height }, '*');
+    }
+    window.addEventListener('load', sendHeight);
+    window.addEventListener('resize', sendHeight);
+    if (window.ResizeObserver) {
+      const observer = new ResizeObserver(sendHeight);
+      observer.observe(document.body);
+    }
+    window.addEventListener('message', (e) => {
+      if (e.data.type === 'triggerHeightUpdate') sendHeight();
+    });
+    setInterval(sendHeight, 1000);
+
   </script>
 </body>
 

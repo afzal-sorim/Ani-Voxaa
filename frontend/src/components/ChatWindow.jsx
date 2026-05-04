@@ -303,7 +303,9 @@ export default function ChatWindow() {
         onScroll={handleScroll}
       >
         {/* Responsive padding: tight on mobile, comfortable on desktop */}
-        <div className="flex-1 flex flex-col py-4 px-3 sm:py-6 sm:px-5 md:px-6 gap-1.5 sm:gap-2 max-w-[1600px] w-full mx-auto">
+        <div className="flex-1 flex flex-col py-4 px-1 sm:py-6 sm:px-5 md:px-6 gap-1.5 sm:gap-2 max-w-[1600px] w-full mx-auto">
+
+
           {messages.map((msg) => (
             <MessageBubble
               key={msg.id}

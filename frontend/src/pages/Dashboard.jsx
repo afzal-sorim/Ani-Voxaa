@@ -1,24 +1,24 @@
-import React, { useState, useEffect } from 'react';
-import { toast } from 'react-hot-toast';
+import React, { useEffect } from 'react';
 import useThemeStore from '../store/useThemeStore';
 import useChatStore from '../store/useChatStore';
+import useUIStore from '../store/useUIStore';
 import Header from '../components/Header';
 import Sidebar from '../components/Sidebar';
 import ChatWindow from '../components/ChatWindow';
 
 export default function Dashboard() {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const sidebarOpen = useUIStore((s) => s.sidebarOpen);
+  const toggleSidebar = useUIStore((s) => s.toggleSidebar);
+  const setSidebarOpen = useUIStore((s) => s.setSidebarOpen);
 
   const loadTheme     = useThemeStore((s) => s.loadTheme);
   const loadFromCache = useChatStore((s) => s.loadFromCache);
-  const newChat       = useChatStore((s) => s.newChat);
 
   useEffect(() => {
     loadTheme();
     loadFromCache();
   }, [loadTheme, loadFromCache]);
 
-  const toggleSidebar = () => setSidebarOpen((prev) => !prev);
   const closeSidebar  = () => setSidebarOpen(false);
 
   return (
@@ -29,12 +29,11 @@ export default function Dashboard() {
       <Sidebar isOpen={sidebarOpen} onClose={closeSidebar} />
 
       <div
-        className="flex flex-col h-screen min-w-0 relative pt-16 transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]"
-        style={{
-          flex: 1,
-          marginLeft: sidebarOpen ? '240px' : '0px',
-          width: sidebarOpen ? 'calc(100% - 240px)' : '100%'
-        }}
+        className={`
+          flex flex-col h-screen min-w-0 relative pt-16 
+          transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]
+          ${sidebarOpen ? 'sm:ml-[240px] sm:w-[calc(100%-240px)]' : 'ml-0 w-full'}
+        `}
         id="main-content"
       >
         <Header onToggleSidebar={toggleSidebar} onCloseSidebar={closeSidebar} />
@@ -43,3 +42,6 @@ export default function Dashboard() {
     </div>
   );
 }
+
+
+
