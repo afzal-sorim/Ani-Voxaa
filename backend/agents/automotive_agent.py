@@ -3401,21 +3401,6 @@ async def process_query(
     intent = detect_intent(query)
     logger.info(f"Query: '{query[:60]}...' → Intent: {intent}")
 
-    # 0. Check for Forecast Report Queries
-    if _is_forecast_report_query(query):
-        logger.info("Routing to forecast report handler")
-        return execute_forecast_report(query)
-
-    # 1. Check for Template Report Queries (renders template.html with real data)
-    if _is_template_report_query(query):
-        logger.info("Routing to template report handler")
-        return execute_template_report(query)
-
-    # 1. Check for Dashboard/Summary Queries (Multi-metric)
-    if _is_dashboard_query(query) or _is_filtered_dashboard_query(query):
-        logger.info("Routing to dashboard handler")
-        return execute_dashboard_query(query)
-
     # ── Ambiguity / Out-of-Domain Detection ──
     if _is_unclear_data_query(query):
         logger.info(f"Unclear data query detected: '{query}'. Asking for clarification.")
@@ -3433,6 +3418,21 @@ async def process_query(
             data_context=clarification_prompt + typo_correction_note,
             conversation_history=conversation_history,
         )
+
+    # 0. Check for Forecast Report Queries
+    if _is_forecast_report_query(query):
+        logger.info("Routing to forecast report handler")
+        return execute_forecast_report(query)
+
+    # 1. Check for Template Report Queries (renders template.html with real data)
+    if _is_template_report_query(query):
+        logger.info("Routing to template report handler")
+        return execute_template_report(query)
+
+    # 1. Check for Dashboard/Summary Queries (Multi-metric)
+    if _is_dashboard_query(query) or _is_filtered_dashboard_query(query):
+        logger.info("Routing to dashboard handler")
+        return execute_dashboard_query(query)
 
     # 2. Check for Structured Data Queries (Single-metric)
     structured_intent = _parse_structured_intent(query)
@@ -3513,24 +3513,6 @@ async def stream_query(
     intent = detect_intent(query)
     logger.info(f"Streaming query: '{query[:60]}...' → Intent: {intent}")
 
-    # 0. Check for Forecast Report Queries
-    if _is_forecast_report_query(query):
-        logger.info("Routing to forecast report handler (stream)")
-        yield execute_forecast_report(query)
-        return
-
-    # 1. Check for Template Report Queries (renders template.html with real data)
-    if _is_template_report_query(query):
-        logger.info("Routing to template report handler (stream)")
-        yield execute_template_report(query)
-        return
-
-    # 1. Check for Dashboard/Summary Queries (Multi-metric)
-    if _is_dashboard_query(query) or _is_filtered_dashboard_query(query):
-        logger.info("Routing to dashboard handler (stream)")
-        yield execute_dashboard_query(query)
-        return
-
     # ── Ambiguity / Out-of-Domain Detection (stream) ──
     if _is_unclear_data_query(query):
         logger.info(f"Unclear data stream query detected: '{query}'. Asking for clarification.")
@@ -3549,6 +3531,24 @@ async def stream_query(
             conversation_history=conversation_history,
         ):
             yield token
+        return
+
+    # 0. Check for Forecast Report Queries
+    if _is_forecast_report_query(query):
+        logger.info("Routing to forecast report handler (stream)")
+        yield execute_forecast_report(query)
+        return
+
+    # 1. Check for Template Report Queries (renders template.html with real data)
+    if _is_template_report_query(query):
+        logger.info("Routing to template report handler (stream)")
+        yield execute_template_report(query)
+        return
+
+    # 1. Check for Dashboard/Summary Queries (Multi-metric)
+    if _is_dashboard_query(query) or _is_filtered_dashboard_query(query):
+        logger.info("Routing to dashboard handler (stream)")
+        yield execute_dashboard_query(query)
         return
 
     # 2. Check for Structured Data Queries (Single-metric)
