@@ -282,7 +282,7 @@ def extract_entities(query: str) -> dict:
     Query: "{query}"
 
     Return ONLY a valid JSON object with these keys:
-    - is_automotive_related: (boolean: true if the query is about OUR automotive manufacturing plants, production, revenue, or quality. Set to FALSE if the query is about unrelated companies like Meta, Google, Apple, Amazon, or other industries/trivia, EVEN IF it mentions 'revenue' or 'sales'.)
+    - is_automotive_related: (boolean: true if the query is about OUR automotive manufacturing plants, production, revenue, or quality. Generic requests for "reports", "dashboards", or "summaries" should also be considered TRUE. Set to FALSE ONLY if the query is explicitly about unrelated companies like Meta, Google, Apple, Amazon, or other industries/trivia, EVEN IF it mentions 'revenue' or 'sales'.)
     - metric: (one of: "units", "revenue", "alerts", "forecast_units", "forecast_revenue", "affected_units", or null)
     - aggregation: (one of: "sum", "avg", "count", "max", "min", or null)
     - plant: (e.g. "Dearborn", "Claycomo", or null)

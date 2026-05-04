@@ -3463,33 +3463,21 @@ async def process_query(
     # Before proceeding to any data logic, we use the LLM to ensure the query is automotive-related.
     # This prevents responding to "Meta's revenue" or "Google sales" with internal data.
     llm_entities = llm_service.extract_entities(query)
-    if llm_entities.get("is_automotive_related") is not True:
-        logger.info(f"AI Domain Check: Query detected as out-of-domain or ambiguous: '{query}'.")
+    
+    # ── Report/Dashboard Routing (PRIORITY) ──
+    # We check for specific report templates early. If it's a generic report request,
+    # we allow it even if the AI is uncertain about the domain (as long as it's not explicitly blocked).
+    is_report_request = _is_template_report_query(query) or _is_dashboard_query(query) or _is_forecast_report_query(query)
+
+    if llm_entities.get("is_automotive_related") is False and not is_report_request:
+        logger.info(f"AI Domain Check: Query detected as explicitly out-of-domain: '{query}'.")
         clarification_prompt = (
             "The user asked about a subject outside the VOXA Automotive domain (e.g., Meta, Google, Apple, weather, etc.).\n\n"
             "STRICT RULES:\n"
             "1. Politely explain that you are the VOXA Automotive Assistant for Manufacturing Operations.\n"
-            "2. Clarify that you only have access to Production, Revenue, and Quality data for OUR specific automotive plants and vehicle models (like F-150, Mustang, Explorer).\n"
-            "3. DO NOT provide any numbers or data dashboards for external companies or unrelated topics.\n"
+            "2. Clarify that you only have access to Production, Revenue, and Quality data for OUR specific automotive plants and vehicle models.\n"
+            "3. DO NOT provide any numbers or data dashboards for external companies.\n"
             "4. Ask if they would like to see an internal production or revenue report instead."
-        )
-        return llm_service.generate_response(
-            user_query=query,
-            data_context=clarification_prompt + typo_correction_note,
-            conversation_history=conversation_history,
-        )
-
-    intent = detect_intent(query)
-    logger.info(f"Query: '{query[:60]}...' → Intent: {intent}")
-
-    # ── Ambiguity Detection ──
-    if _is_unclear_data_query(query):
-        logger.info(f"Unclear data query detected: '{query}'. Asking for clarification.")
-        clarification_prompt = (
-            "The user asked for a report or data but it is too vague or lacks context.\n\n"
-            "STRICT RULES:\n"
-            "1. DO NOT use the SUMMARY / DATA TABLE format.\n"
-            "2. Politely ask for clarification (e.g., which plant or which metric they mean)."
         )
         return llm_service.generate_response(
             user_query=query,
@@ -3511,12 +3499,30 @@ async def process_query(
                 return result
         except Exception as e:
             logger.error(f"Template report failed: {e}", exc_info=True)
-            return f"⚠️ Template report error: {e}\n\nPlease share this error so it can be fixed."
+            return f"⚠️ Template report error: {e}"
 
     # 1. Check for Dashboard/Summary Queries (Multi-metric)
     if _is_dashboard_query(query) or _is_filtered_dashboard_query(query):
         logger.info("Routing to dashboard handler")
         return execute_dashboard_query(query)
+
+    intent = detect_intent(query)
+    logger.info(f"Query: '{query[:60]}...' → Intent: {intent}")
+
+    # ── Ambiguity Detection ──
+    if _is_unclear_data_query(query):
+        logger.info(f"Unclear data query detected: '{query}'. Asking for clarification.")
+        clarification_prompt = (
+            "The user asked for a report or data but it is too vague or lacks context.\n\n"
+            "STRICT RULES:\n"
+            "1. DO NOT use the SUMMARY / DATA TABLE format.\n"
+            "2. Politely ask for clarification (e.g., which plant or which metric they mean)."
+        )
+        return llm_service.generate_response(
+            user_query=query,
+            data_context=clarification_prompt + typo_correction_note,
+            conversation_history=conversation_history,
+        )
 
     # 2. Check for Structured Data Queries (Single-metric)
     structured_intent = _parse_structured_intent(query, llm_entities=llm_entities)
@@ -3596,35 +3602,19 @@ async def stream_query(
 
     # ── AI-Powered Domain Relevance Check (stream) ──
     llm_entities = llm_service.extract_entities(query)
-    if llm_entities.get("is_automotive_related") is not True:
-        logger.info(f"AI Domain Check (stream): Query detected as out-of-domain: '{query}'.")
+    
+    # ── Report/Dashboard Routing (PRIORITY stream) ──
+    is_report_request = _is_template_report_query(query) or _is_dashboard_query(query) or _is_forecast_report_query(query)
+
+    if llm_entities.get("is_automotive_related") is False and not is_report_request:
+        logger.info(f"AI Domain Check (stream): Query detected as explicitly out-of-domain: '{query}'.")
         clarification_prompt = (
             "The user asked about a subject outside the VOXA Automotive domain (e.g., Meta, Google, etc.).\n\n"
             "STRICT RULES:\n"
             "1. Politely explain that you are the VOXA Automotive Assistant for Manufacturing Operations.\n"
             "2. Clarify that you only have access to internal production, revenue, and quality data for our plants and models.\n"
-            "3. DO NOT provide numbers or dashboards.\n"
+            "3. DO NOT provide numbers or dashboards for external companies.\n"
             "4. Ask if they would like to see an automotive report instead."
-        )
-        async for token in llm_service.stream_response(
-            user_query=query,
-            data_context=clarification_prompt + typo_correction_note,
-            conversation_history=conversation_history,
-        ):
-            yield token
-        return
-
-    intent = detect_intent(query)
-    logger.info(f"Streaming query: '{query[:60]}...' → Intent: {intent}")
-
-    # ── Ambiguity Detection (stream) ──
-    if _is_unclear_data_query(query):
-        logger.info(f"Unclear data stream query detected: '{query}'. Asking for clarification.")
-        clarification_prompt = (
-            "The user asked for a report or data but it is too vague.\n\n"
-            "STRICT RULES:\n"
-            "1. DO NOT use the SUMMARY / DATA TABLE format.\n"
-            "2. Politely ask for clarification."
         )
         async for token in llm_service.stream_response(
             user_query=query,
@@ -3650,6 +3640,26 @@ async def stream_query(
     if _is_dashboard_query(query) or _is_filtered_dashboard_query(query):
         logger.info("Routing to dashboard handler (stream)")
         yield execute_dashboard_query(query)
+        return
+
+    intent = detect_intent(query)
+    logger.info(f"Streaming query: '{query[:60]}...' → Intent: {intent}")
+
+    # ── Ambiguity Detection (stream) ──
+    if _is_unclear_data_query(query):
+        logger.info(f"Unclear data stream query detected: '{query}'. Asking for clarification.")
+        clarification_prompt = (
+            "The user asked for a report or data but it is too vague.\n\n"
+            "STRICT RULES:\n"
+            "1. DO NOT use the SUMMARY / DATA TABLE format.\n"
+            "2. Politely ask for clarification."
+        )
+        async for token in llm_service.stream_response(
+            user_query=query,
+            data_context=clarification_prompt + typo_correction_note,
+            conversation_history=conversation_history,
+        ):
+            yield token
         return
 
     # 2. Check for Structured Data Queries (Single-metric)
