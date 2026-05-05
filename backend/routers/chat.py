@@ -9,9 +9,9 @@ from typing import Optional, List
 import json
 import logging
 try:
-    from backend.agents.automotive_agent import process_query, stream_query
+    from backend.services.contextual_chat_service import process_contextual_query, stream_contextual_query
 except ImportError:
-    from agents.automotive_agent import process_query, stream_query
+    from services.contextual_chat_service import process_contextual_query, stream_contextual_query
 
 router = APIRouter()
 logger = logging.getLogger("voxa.router.chat")
@@ -24,6 +24,9 @@ class ChatRequest(BaseModel):
 class ChatResponse(BaseModel):
     response: str
     conversation_id: str
+    refined_query: Optional[str] = None
+    context_used: Optional[dict] = None
+    was_rewritten: bool = False
 
 try:
     from backend.dependencies import get_current_user
@@ -37,8 +40,18 @@ async def chat_endpoint(request: ChatRequest, current_user: dict = Depends(get_c
     Standard HTTP POST endpoint for chat (non-streaming).
     """
     try:
-        response_text = await process_query(request.message, request.history)
-        return ChatResponse(response=response_text, conversation_id=request.conversation_id)
+        result = await process_contextual_query(
+            request.message,
+            session_id=request.conversation_id,
+            conversation_history=request.history,
+        )
+        return ChatResponse(
+            response=result["response"],
+            conversation_id=request.conversation_id,
+            refined_query=result.get("refined_query"),
+            context_used=result.get("context_used"),
+            was_rewritten=result.get("was_rewritten", False),
+        )
     except Exception as e:
         logger.error(f"Chat error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -72,8 +85,8 @@ async def websocket_endpoint(websocket: WebSocket, token: str = None):
             await websocket.close()
             return
 
-        # Stream tokens from the agent
-        async for token in stream_query(message, history):
+        # Stream tokens from the context-aware agent wrapper
+        async for token in stream_contextual_query(message, conv_id, history):
             await websocket.send_json({"token": token})
         
         # Signal completion

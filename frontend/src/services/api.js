@@ -96,7 +96,7 @@ export async function transcribeAudio(audioBlob) {
 /**
  * Chat (non-streaming fallback) — POST /chat
  */
-export async function sendMessage(message, conversationId) {
+export async function sendMessage(message, conversationId, history = []) {
   if (IS_MOCK) return mockSendMessage(message, conversationId);
 
   const res = await fetch(`${API_BASE}/chat`, {
@@ -105,7 +105,7 @@ export async function sendMessage(message, conversationId) {
       'Content-Type': 'application/json',
       ...getAuthHeaders()
     },
-    body: JSON.stringify({ message, conversation_id: conversationId }),
+    body: JSON.stringify({ message, conversation_id: conversationId, history }),
   });
 
   if (!res.ok) {
@@ -124,7 +124,7 @@ export async function sendMessage(message, conversationId) {
  * 
  * @returns {{ close: () => void }} handle to manually close the stream
  */
-export function streamMessage(message, conversationId, onToken, onComplete, onError) {
+export function streamMessage(message, conversationId, onToken, onComplete, onError, history = []) {
   closeStream();
   isManuallyClosed = false;
 
@@ -200,6 +200,7 @@ export function streamMessage(message, conversationId, onToken, onComplete, onEr
         ws.send(JSON.stringify({
           message,
           conversation_id: conversationId,
+          history,
         }));
         retries = 0; // reset on successful connection
       };
