@@ -1,6 +1,6 @@
 import unittest
 
-from backend.services.query_rewriter import rewrite_query
+from backend.services.query_rewriter import extract_structured_memory, is_followup, rewrite_query
 
 
 class QueryRewriterTests(unittest.TestCase):
@@ -69,6 +69,39 @@ class QueryRewriterTests(unittest.TestCase):
 
         self.assertFalse(result.was_rewritten)
         self.assertEqual(result.refined_query, "Show production units for Chicago last week")
+        self.assertFalse(is_followup("Show production units for Chicago last week"))
+
+    def test_filter_by_model_rewrites_to_group_by_model(self):
+        context = {
+            "previous_context": [
+                {
+                    "query": "dashboard report last quarter 2026",
+                    "refined_query": "dashboard report last quarter 2026",
+                    "response": "Dashboard response",
+                }
+            ],
+            "current_query": "filter by model",
+        }
+
+        result = rewrite_query("filter by model", context)
+
+        self.assertTrue(is_followup("filter by model"))
+        self.assertEqual(result.refined_query, "dashboard report last quarter 2026 grouped by model")
+        self.assertEqual(result.structured_memory["group_by"], "model")
+
+    def test_independent_vs_query_is_not_followup_when_metric_is_present(self):
+        self.assertFalse(is_followup("Compare revenue forecast vs actual for Q1 2026"))
+
+    def test_short_vs_query_is_followup(self):
+        self.assertTrue(is_followup("vs Claycomo"))
+
+    def test_structured_memory_extracts_core_fields(self):
+        memory = extract_structured_memory("Total revenue in Q1 2026 for Dearborn grouped by model")
+
+        self.assertEqual(memory["metric"], "revenue")
+        self.assertEqual(memory["time_range"], "Q1 2026")
+        self.assertEqual(memory["filters"], {"entity": "Dearborn"})
+        self.assertEqual(memory["group_by"], "model")
 
     def test_ambiguous_short_follow_up_requests_clarification(self):
         context = {

@@ -17,6 +17,10 @@ FOLLOW_UP_PATTERNS = [
     re.compile(r"^\s*(and|also)\s+(for|in|at)\s+(?P<target>.+?)\??\s*$", re.IGNORECASE),
     re.compile(r"^\s*(for|in|at)\s+(?P<target>.+?)\??\s*$", re.IGNORECASE),
     re.compile(r"^\s*(same|repeat)\s+(for|in|at)\s+(?P<target>.+?)\??\s*$", re.IGNORECASE),
+    re.compile(r"^\s*filter\s+by\s+(?P<target>.+?)\??\s*$", re.IGNORECASE),
+    re.compile(r"^\s*(only|just)\s+(?P<target>.+?)\??\s*$", re.IGNORECASE),
+    re.compile(r"^\s*breakdown(?:\s+(?:by|for|of)\s+(?P<target>.+?))?\??\s*$", re.IGNORECASE),
+    re.compile(r"^\s*vs\.?\s+(?P<target>.+?)\??\s*$", re.IGNORECASE),
 ]
 
 METRIC_TERMS = {
@@ -50,6 +54,14 @@ TIME_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
+GROUP_BY_TERMS = {"plant", "model", "department", "week", "month", "quarter", "date", "status", "issue type"}
+FILTER_PREFIX_PATTERN = re.compile(
+    r"\b(for|in|at|only|just)\s+"
+    r"(?P<value>[a-zA-Z0-9][a-zA-Z0-9\s\-.&]+?)"
+    r"(?=\s+(?:grouped\s+by|group\s+by|breakdown\s+by|by|for|in|at)\b|$|\?)",
+    re.IGNORECASE,
+)
+
 
 @dataclass
 class RewriteResult:
@@ -58,6 +70,44 @@ class RewriteResult:
     reason: str
     needs_clarification: bool = False
     context_block: dict[str, Any] | None = None
+    structured_memory: dict[str, Any] | None = None
+
+
+def is_followup(query: str) -> bool:
+    """
+    Return True only when the query appears dependent on previous context.
+
+    Independent queries such as "Show production units for Chicago last week"
+    return False and should be sent through unchanged.
+    """
+    current = _clean_query(query)
+    if not current:
+        return False
+
+    q = current.lower().rstrip("?.,")
+
+    if any(pattern.match(current) for pattern in FOLLOW_UP_PATTERNS):
+        return True
+
+    if q in {"same", "repeat", "again", "there", "that", "it"}:
+        return True
+
+    if q.startswith(("what about ", "how about ", "filter by ", "and for ", "and in ", "and at ")):
+        return True
+
+    if q.startswith(("only ", "just ")):
+        return not _has_domain_anchor(q)
+
+    if "breakdown" in q:
+        return not any(term in q for term in METRIC_TERMS)
+
+    if " vs " in f" {q} " or q.startswith("vs "):
+        return not any(term in q for term in METRIC_TERMS | {"compare", "comparison"})
+
+    if _looks_like_bare_entity(current):
+        return True
+
+    return False
 
 
 def rewrite_query(current_query: str, context_block: dict[str, Any] | list[dict[str, Any]]) -> RewriteResult:
@@ -75,11 +125,24 @@ def rewrite_query(current_query: str, context_block: dict[str, Any] | list[dict[
     if not current:
         return RewriteResult(current_query, False, "empty_query", needs_clarification=True)
 
-    if not previous_query:
-        return RewriteResult(current, False, "no_context", context_block=_as_context_block(context_block, current))
+    if not is_followup(current):
+        return RewriteResult(
+            current,
+            False,
+            "independent_query",
+            context_block=_as_context_block(context_block, current),
+            structured_memory=extract_structured_memory(current),
+        )
 
-    if _is_standalone(current):
-        return RewriteResult(current, False, "standalone_query", context_block=_as_context_block(context_block, current))
+    if not previous_query:
+        return RewriteResult(
+            current,
+            False,
+            "follow_up_without_context",
+            needs_clarification=True,
+            context_block=_as_context_block(context_block, current),
+            structured_memory=extract_structured_memory(current),
+        )
 
     follow_up_target = _extract_follow_up_target(current)
     if follow_up_target:
@@ -89,6 +152,7 @@ def rewrite_query(current_query: str, context_block: dict[str, Any] | list[dict[
             was_rewritten=refined != current,
             reason="follow_up_filter_merge",
             context_block=_as_context_block(context_block, current),
+            structured_memory=extract_structured_memory(refined),
         )
 
     if _looks_like_bare_entity(current):
@@ -98,6 +162,7 @@ def rewrite_query(current_query: str, context_block: dict[str, Any] | list[dict[
             was_rewritten=True,
             reason="bare_entity_follow_up",
             context_block=_as_context_block(context_block, current),
+            structured_memory=extract_structured_memory(refined),
         )
 
     if len(current.split()) <= 4 and not _has_domain_anchor(current):
@@ -107,9 +172,33 @@ def rewrite_query(current_query: str, context_block: dict[str, Any] | list[dict[
             reason="ambiguous_short_follow_up",
             needs_clarification=True,
             context_block=_as_context_block(context_block, current),
+            structured_memory=extract_structured_memory(current),
         )
 
-    return RewriteResult(current, False, "no_rewrite_needed", context_block=_as_context_block(context_block, current))
+    refined = _merge_follow_up(previous_query, current)
+    return RewriteResult(
+        refined,
+        refined != current,
+        "generic_follow_up_merge",
+        context_block=_as_context_block(context_block, current),
+        structured_memory=extract_structured_memory(refined),
+    )
+
+
+def extract_structured_memory(query: str) -> dict[str, Any]:
+    """Best-effort compact state used for follow-up rewriting and debugging."""
+    text = _clean_query(query)
+    q = text.lower()
+    metric = next((term for term in METRIC_TERMS if term in q), None)
+    time_match = TIME_PATTERN.search(text)
+    group_by = _extract_group_by(text)
+    filters = _extract_filters(text, group_by)
+    return {
+        "metric": metric,
+        "time_range": time_match.group(0) if time_match else None,
+        "filters": filters,
+        "group_by": group_by,
+    }
 
 
 def build_prompt_context(context_block: dict[str, Any], refined_query: str) -> list[dict[str, str]]:
@@ -167,7 +256,8 @@ def _extract_follow_up_target(query: str) -> str | None:
     for pattern in FOLLOW_UP_PATTERNS:
         match = pattern.match(query)
         if match:
-            return _clean_target(match.group("target"))
+            target = match.groupdict().get("target")
+            return _clean_target(target or "")
     return None
 
 
@@ -196,6 +286,9 @@ def _merge_follow_up(previous_query: str, target: str) -> str:
     target = _clean_target(target)
     if not target:
         return previous_query
+
+    if _is_group_by_target(target):
+        return _replace_or_append_group_by(previous_query, target)
 
     if _is_time_target(target):
         return _replace_or_append_time(previous_query, target)
@@ -227,3 +320,53 @@ def _replace_or_append_filter(previous_query: str, target: str) -> str:
     if re.search(r"\b(by|per)\s+(plant|model|department|week|month|quarter)\b", previous_query, re.IGNORECASE):
         return f"{previous_query} filtered for {target}"
     return f"{previous_query} for {target}"
+
+
+def _is_group_by_target(target: str) -> bool:
+    q = target.lower().strip()
+    q = re.sub(r"^(by|for|of)\s+", "", q)
+    return q in GROUP_BY_TERMS or q.startswith("group by ")
+
+
+def _replace_or_append_group_by(previous_query: str, target: str) -> str:
+    group = re.sub(r"^(group\s+by|by|for|of)\s+", "", target.strip(), flags=re.IGNORECASE)
+    if re.search(r"\b(grouped|breakdown|split)\s+by\s+\w+", previous_query, re.IGNORECASE):
+        return re.sub(
+            r"\b(grouped|breakdown|split)\s+by\s+\w+",
+            f"grouped by {group}",
+            previous_query,
+            count=1,
+            flags=re.IGNORECASE,
+        )
+    if re.search(r"\bby\s+(plant|model|department|week|month|quarter|date|status)\b", previous_query, re.IGNORECASE):
+        return re.sub(
+            r"\bby\s+(plant|model|department|week|month|quarter|date|status)\b",
+            f"grouped by {group}",
+            previous_query,
+            count=1,
+            flags=re.IGNORECASE,
+        )
+    return f"{previous_query} grouped by {group}"
+
+
+def _extract_group_by(query: str) -> str | None:
+    match = re.search(
+        r"\b(?:grouped\s+by|group\s+by|breakdown\s+by|by)\s+"
+        r"(plant|model|department|week|month|quarter|date|status|issue type)\b",
+        query,
+        flags=re.IGNORECASE,
+    )
+    return match.group(1).lower() if match else None
+
+
+def _extract_filters(query: str, group_by: str | None = None) -> dict[str, str]:
+    filters: dict[str, str] = {}
+    for match in FILTER_PREFIX_PATTERN.finditer(query):
+        value = _clean_target(match.group("value"))
+        value = re.split(r"\b(grouped\s+by|group\s+by|breakdown\s+by|by)\b", value, maxsplit=1, flags=re.IGNORECASE)[0].strip()
+        if not value or _is_time_target(value) or value.lower() == group_by:
+            continue
+        if value.lower() in GROUP_BY_TERMS:
+            continue
+        filters["entity"] = value
+    return filters

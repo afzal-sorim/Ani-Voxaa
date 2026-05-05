@@ -15,11 +15,21 @@ from typing import AsyncGenerator
 try:
     from backend.agents.automotive_agent import process_query, stream_query
     from backend.services.memory_manager import get_memory_manager
-    from backend.services.query_rewriter import build_prompt_context, rewrite_query
+    from backend.services.query_rewriter import (
+        build_prompt_context,
+        extract_structured_memory,
+        is_followup,
+        rewrite_query,
+    )
 except ImportError:
     from agents.automotive_agent import process_query, stream_query
     from services.memory_manager import get_memory_manager
-    from services.query_rewriter import build_prompt_context, rewrite_query
+    from services.query_rewriter import (
+        build_prompt_context,
+        extract_structured_memory,
+        is_followup,
+        rewrite_query,
+    )
 
 
 async def process_contextual_query(
@@ -28,8 +38,9 @@ async def process_contextual_query(
     conversation_history: list[dict] | None = None,
 ) -> dict:
     memory = get_memory_manager()
-    context_block = memory.get_context_block(session_id, query)
-    rewrite = rewrite_query(query, context_block)
+    followup = is_followup(query)
+    context_block = memory.get_context_block(session_id, query) if followup else None
+    rewrite = rewrite_query(query, context_block or {"previous_context": [], "current_query": query})
 
     if rewrite.needs_clarification:
         response = (
@@ -42,6 +53,7 @@ async def process_contextual_query(
             refined_query=query,
             generated_query=None,
             response=response,
+            structured_memory=rewrite.structured_memory or extract_structured_memory(query),
             metadata={"rewrite_reason": rewrite.reason, "needs_clarification": True},
         )
         return {
@@ -52,10 +64,12 @@ async def process_contextual_query(
         }
 
     refined_query = rewrite.refined_query
-    injected_history = _merge_histories(
-        build_prompt_context(context_block, refined_query),
-        conversation_history,
-    )
+    injected_history = None
+    if followup:
+        injected_history = _merge_histories(
+            build_prompt_context(context_block or {}, refined_query),
+            conversation_history,
+        )
     response = await process_query(refined_query, injected_history)
 
     memory.append_interaction(
@@ -64,13 +78,19 @@ async def process_contextual_query(
         refined_query=refined_query,
         generated_query=refined_query,
         response=response,
-        metadata={"rewrite_reason": rewrite.reason, "was_rewritten": rewrite.was_rewritten},
+        structured_memory=rewrite.structured_memory or extract_structured_memory(refined_query),
+        metadata={
+            "is_followup": followup,
+            "rewrite_reason": rewrite.reason,
+            "was_rewritten": rewrite.was_rewritten,
+            "context_used": followup,
+        },
     )
 
     return {
         "response": response,
         "refined_query": refined_query,
-        "context_used": context_block,
+        "context_used": context_block if followup else None,
         "was_rewritten": rewrite.was_rewritten,
     }
 
@@ -81,8 +101,9 @@ async def stream_contextual_query(
     conversation_history: list[dict] | None = None,
 ) -> AsyncGenerator[str, None]:
     memory = get_memory_manager()
-    context_block = memory.get_context_block(session_id, query)
-    rewrite = rewrite_query(query, context_block)
+    followup = is_followup(query)
+    context_block = memory.get_context_block(session_id, query) if followup else None
+    rewrite = rewrite_query(query, context_block or {"previous_context": [], "current_query": query})
 
     if rewrite.needs_clarification:
         response = (
@@ -95,16 +116,19 @@ async def stream_contextual_query(
             refined_query=query,
             generated_query=None,
             response=response,
+            structured_memory=rewrite.structured_memory or extract_structured_memory(query),
             metadata={"rewrite_reason": rewrite.reason, "needs_clarification": True},
         )
         yield response
         return
 
     refined_query = rewrite.refined_query
-    injected_history = _merge_histories(
-        build_prompt_context(context_block, refined_query),
-        conversation_history,
-    )
+    injected_history = None
+    if followup:
+        injected_history = _merge_histories(
+            build_prompt_context(context_block or {}, refined_query),
+            conversation_history,
+        )
 
     chunks: list[str] = []
     async for token in stream_query(refined_query, injected_history):
@@ -118,7 +142,13 @@ async def stream_contextual_query(
         refined_query=refined_query,
         generated_query=refined_query,
         response=response,
-        metadata={"rewrite_reason": rewrite.reason, "was_rewritten": rewrite.was_rewritten},
+        structured_memory=rewrite.structured_memory or extract_structured_memory(refined_query),
+        metadata={
+            "is_followup": followup,
+            "rewrite_reason": rewrite.reason,
+            "was_rewritten": rewrite.was_rewritten,
+            "context_used": followup,
+        },
     )
 
 

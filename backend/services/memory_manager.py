@@ -41,6 +41,7 @@ class MemoryInteraction:
     refined_query: str
     generated_query: str | None
     response: str
+    structured_memory: dict[str, Any] = field(default_factory=dict)
     created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     metadata: dict[str, Any] = field(default_factory=dict)
 
@@ -113,6 +114,7 @@ class ConversationMemoryManager:
         refined_query: str,
         response: str,
         generated_query: str | None = None,
+        structured_memory: dict[str, Any] | None = None,
         metadata: dict[str, Any] | None = None,
     ) -> ConversationMemory:
         memory = self.get_memory(session_id)
@@ -122,6 +124,7 @@ class ConversationMemoryManager:
                 refined_query=refined_query,
                 generated_query=generated_query,
                 response=response,
+                structured_memory=structured_memory or self._extract_key_entities(refined_query or user_query),
                 metadata=metadata or {},
             )
         )
@@ -195,6 +198,7 @@ class ConversationMemoryManager:
             "refined_query": item.refined_query,
             "generated_query": item.generated_query,
             "response": item.response,
+            "structured_memory": item.structured_memory,
         }
 
     def _serialize(self, memory: ConversationMemory) -> str:
