@@ -27,6 +27,7 @@ htmlcov/
 # Environments
 # Local env files should not be pushed to source control
 .env
+.env.example
 .venv/
 venv/
 ENV/
