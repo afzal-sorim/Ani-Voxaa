@@ -25,7 +25,7 @@ VOXA is a voice and text interface for querying automotive manufacturing data. I
 ### Backend
 - **Framework**: FastAPI
 - **Data Engine**: DuckDB
-- **LLM Integration**: Groq API (Primary: Mistral Saba 24B, Fallback: LLaMA 4 Scout)
+- **LLM Integration**: Groq API (Primary: LLaMA 3.3 70B, Fallback: LLaMA 3 8B)
 - **Speech**: Whisper (STT) and Edge-TTS (TTS)
 - **Auth**: JWT-based authentication
 

@@ -4,16 +4,13 @@ import useVoiceStore from '../store/useVoiceStore';
 
 const MAX_RECORDING_SECONDS = 60;
 
-/* In mock mode we skip quality checks — the mock STT doesn't analyse audio */
-const IS_MOCK = (import.meta.env.VITE_MOCK_API ?? '').trim() === 'true';
-
 /**
  * Custom hook for voice recording using MediaRecorder + Web Audio API.
  *
  * Features:
  * - Real-time volume levels for visualizer
  * - Auto-stop after 60 seconds
- * - Minimum volume threshold (rejects silent recordings) — bypassed in mock mode
+ * - Minimum volume threshold (rejects silent recordings)
  * - Permission error handling with user-facing toasts
  * - Proper cleanup on unmount
  */
@@ -151,21 +148,18 @@ export default function useVoiceRecorder() {
           : 0;
         setAverageVolume(avg);
 
-        /* ── Quality checks (skipped in mock mode) ─────────────── */
-        if (!IS_MOCK) {
-          // Silently drop accidental taps (< ~800 ms)
-          if (durationSeconds < 1 && samples.length < 8) {
-            toast('Hold to record, then tap to stop', { icon: '🎤', duration: 2500 });
-            setRecording(false);
-            setVolume(0);
-            doCleanup();
-            return;
-          }
-
-          // Backend VAD now performs final speech detection.
+        /* ── Quality checks ─────────────── */
+        // Silently drop accidental taps (< ~800 ms)
+        if (durationSeconds < 1 && samples.length < 8) {
+          toast('Hold to record, then tap to stop', { icon: '🎤', duration: 2500 });
+          setRecording(false);
+          setVolume(0);
+          doCleanup();
+          return;
         }
 
-        /* ── Always accept in mock mode; accept valid audio in production ── */
+        // Backend VAD now performs final speech detection.
+
         setAudioBlob(blob);
         setRecording(false);
         setVolume(0);

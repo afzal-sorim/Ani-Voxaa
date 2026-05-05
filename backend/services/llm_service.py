@@ -1,6 +1,6 @@
 """
 VOXA Backend — LLM Service (Layer 6 & 10: AI Agent + Response Generation)
-Uses Groq API (FREE tier) for Mistral 7B (primary) and LLaMA 3 (fallback).
+Uses Groq API (FREE tier) for LLaMA 3 70B (primary) and LLaMA 3 8B (fallback).
 
 Groq provides free access to open-source LLMs with ultra-fast inference.
 Free tier: 30 req/min, 14,400 req/day — plenty for a demo.
@@ -308,8 +308,20 @@ def extract_entities(query: str) -> dict:
         import json
         return json.loads(response.choices[0].message.content)
     except Exception as e:
-        logger.error(f"LLM Entity Extraction failed: {e}")
-        return {}
+        logger.warning(f"Primary model ({PRIMARY_MODEL}) failed for entity extraction: {e}. Trying fallback...")
+        try:
+            response = client.chat.completions.create(
+                model=FALLBACK_MODEL,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.0,
+                max_tokens=256,
+                response_format={"type": "json_object"}
+            )
+            import json
+            return json.loads(response.choices[0].message.content)
+        except Exception as e2:
+            logger.error(f"Fallback model ({FALLBACK_MODEL}) also failed for entity extraction: {e2}")
+            return {}
 
 
 def extract_time_range(query: str) -> dict:
@@ -356,8 +368,23 @@ def extract_time_range(query: str) -> dict:
             return None
         return result
     except Exception as e:
-        logger.error(f"LLM Time Extraction failed: {e}")
-        return None
+        logger.warning(f"Primary model ({PRIMARY_MODEL}) failed for time extraction: {e}. Trying fallback...")
+        try:
+            response = client.chat.completions.create(
+                model=FALLBACK_MODEL,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.0,
+                max_tokens=256,
+                response_format={"type": "json_object"}
+            )
+            import json
+            result = json.loads(response.choices[0].message.content)
+            if result.get("type") is None:
+                return None
+            return result
+        except Exception as e2:
+            logger.error(f"Fallback model ({FALLBACK_MODEL}) also failed for time extraction: {e2}")
+            return None
 
 
 def check_llm_health() -> dict:
@@ -382,4 +409,3 @@ def check_llm_health() -> dict:
             "primary_model": PRIMARY_MODEL,
             "fallback_model": FALLBACK_MODEL,
         }
-

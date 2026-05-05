@@ -1,7 +1,7 @@
 import React from 'react';
 import useAuthStore from '../store/useAuthStore';
 
-const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || '';
+const API_BASE = (import.meta.env.VITE_API_URL || 'https://voice-model-lk22.onrender.com/api').replace('/api', '');
 
 export const getInitials = (name) => {
   if (!name) return 'U';

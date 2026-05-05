@@ -2627,7 +2627,7 @@ def execute_dashboard_query(query: str) -> str:
                    SUM(f.forecast_units) as f_units
             FROM production_data p
             LEFT JOIN forecast_data f ON p.week = f.week AND p.plant = f.plant
-            {prod_where.replace("week", "p.week").replace("year", "p.year").replace("month", "p.month").replace("plant", "p.plant").replace("model", "p.model").replace("department", "p.department")}
+            {prod_where.replace("date", "p.date").replace("Date", "p.Date").replace("week", "p.week").replace("year", "p.year").replace("month", "p.month").replace("plant", "p.plant").replace("model", "p.model").replace("department", "p.department")}
             GROUP BY p.week
             ORDER BY p.week
         """

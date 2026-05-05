@@ -13,22 +13,8 @@
  *   POST /query          → direct data query
  */
 
-import {
-  mockTranscribeAudio,
-  mockStreamMessage,
-  mockSendMessage,
-  mockCheckHealth,
-  mockGetHistory,
-  mockLogin,
-  mockSignup,
-  mockGetMe,
-  mockRequestPasswordReset,
-  mockResetPassword,
-} from './mockApi';
-
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
-const WS_BASE = import.meta.env.VITE_WS_URL || 'ws://localhost:8000/api';
-const IS_MOCK = import.meta.env.VITE_MOCK_API === 'true';
+const API_BASE = import.meta.env.VITE_API_URL || 'https://voice-model-lk22.onrender.com/api';
+const WS_BASE = import.meta.env.VITE_WS_URL || 'wss://voice-model-lk22.onrender.com/api';
 
 /**
  * Helper to get the auth token from local storage
@@ -63,8 +49,6 @@ export function closeStream() {
  * Health check — GET /health
  */
 export async function checkHealth() {
-  if (IS_MOCK) return mockCheckHealth();
-
   const res = await fetch(`${API_BASE}/health`);
   if (!res.ok) throw new Error('Health check failed');
   return res.json();
@@ -74,8 +58,6 @@ export async function checkHealth() {
  * Speech-to-Text — POST /speech-to-text
  */
 export async function transcribeAudio(audioBlob) {
-  if (IS_MOCK) return mockTranscribeAudio(audioBlob);
-
   const formData = new FormData();
   formData.append('audio', audioBlob, 'recording.webm');
 
@@ -97,11 +79,9 @@ export async function transcribeAudio(audioBlob) {
  * Chat (non-streaming fallback) — POST /chat
  */
 export async function sendMessage(message, conversationId) {
-  if (IS_MOCK) return mockSendMessage(message, conversationId);
-
   const res = await fetch(`${API_BASE}/chat`, {
     method: 'POST',
-    headers: { 
+    headers: {
       'Content-Type': 'application/json',
       ...getAuthHeaders()
     },
@@ -151,33 +131,6 @@ export function streamMessage(message, conversationId, onToken, onComplete, onEr
     flush();
   };
 
-  if (IS_MOCK) {
-    const controller = { cancelled: false };
-    
-    const wrappedOnToken = (token) => {
-      buffer += token;
-      startBatching();
-    };
-    
-    const wrappedOnComplete = () => {
-      cleanup();
-      onComplete();
-    };
-    
-    const wrappedOnError = (err) => {
-      cleanup();
-      onError(err);
-    };
-
-    mockStreamMessage(message, conversationId, wrappedOnToken, wrappedOnComplete, wrappedOnError, controller);
-    return {
-      close: () => {
-        controller.cancelled = true;
-        cleanup();
-      },
-    };
-  }
-
   let retries = 0;
   const maxRetries = 2;
 
@@ -185,7 +138,7 @@ export function streamMessage(message, conversationId, onToken, onComplete, onEr
     try {
       const token = getAuthToken();
       const wsUrl = token ? `${WS_BASE}/stream?token=${token}` : `${WS_BASE}/stream`;
-      
+
       const ws = new WebSocket(wsUrl);
       activeSocket = ws;
 
@@ -276,11 +229,9 @@ export function streamMessage(message, conversationId, onToken, onComplete, onEr
  * Direct data query — POST /query
  */
 export async function executeQuery(query, conversationId) {
-  if (IS_MOCK) return mockSendMessage(query, conversationId);
-
   const res = await fetch(`${API_BASE}/query`, {
     method: 'POST',
-    headers: { 
+    headers: {
       'Content-Type': 'application/json',
       ...getAuthHeaders()
     },
@@ -299,8 +250,6 @@ export async function executeQuery(query, conversationId) {
  * Fetch conversation history — GET /history
  */
 export async function getHistory() {
-  if (IS_MOCK) return mockGetHistory();
-
   const res = await fetch(`${API_BASE}/history`, {
     headers: { ...getAuthHeaders() }
   });
@@ -312,11 +261,9 @@ export async function getHistory() {
  * Sync conversation history to backend — POST /sync
  */
 export async function syncHistory(conversations) {
-  if (IS_MOCK) return { status: 'mocked' };
-
   const res = await fetch(`${API_BASE}/sync`, {
     method: 'POST',
-    headers: { 
+    headers: {
       'Content-Type': 'application/json',
       ...getAuthHeaders()
     },
@@ -335,8 +282,6 @@ export async function syncHistory(conversations) {
  * Authentication - POST /auth/login
  */
 export async function login(email, password) {
-  if (IS_MOCK) return mockLogin(email, password);
-
   const res = await fetch(`${API_BASE}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -355,8 +300,6 @@ export async function login(email, password) {
  * Signup - POST /auth/signup
  */
 export async function signup(userData) {
-  if (IS_MOCK) return mockSignup(userData);
-
   const res = await fetch(`${API_BASE}/auth/signup`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -375,8 +318,6 @@ export async function signup(userData) {
  * Get current user - GET /auth/me
  */
 export async function getMe(token) {
-  if (IS_MOCK) return mockGetMe();
-
   const res = await fetch(`${API_BASE}/auth/me`, {
     headers: { 'Authorization': `Bearer ${token}` },
   });
@@ -389,8 +330,6 @@ export async function getMe(token) {
  * Request Password Reset - POST /auth/request-reset
  */
 export async function requestPasswordReset(email) {
-  if (IS_MOCK) return mockRequestPasswordReset(email);
-
   const res = await fetch(`${API_BASE}/auth/request-reset`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -409,15 +348,13 @@ export async function requestPasswordReset(email) {
  * Reset Password - POST /auth/reset-password
  */
 export async function resetPassword(username, oldPassword, newPassword) {
-  if (IS_MOCK) return mockResetPassword(username, oldPassword, newPassword);
-
   const res = await fetch(`${API_BASE}/auth/reset-password`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ 
-      username, 
-      old_password: oldPassword, 
-      new_password: newPassword 
+    body: JSON.stringify({
+      username,
+      old_password: oldPassword,
+      new_password: newPassword
     }),
   });
 
