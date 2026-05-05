@@ -7,13 +7,29 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import logging
+import sys
+import os
 from pathlib import Path
 
-# from backend.config import HOST, PORT, CORS_ORIGINS, DATA_DIR, WHISPER_MODEL
-from config import HOST, PORT, CORS_ORIGINS, DATA_DIR, WHISPER_MODEL
-from services.data_service import init_data_service
-from services.stt_service import init_stt_service
-from routers import health, speech, chat, query, history, auth
+# ── Dynamic Path Shim for Local/Render Compatibility ──
+# This allows 'from backend...' imports to work whether run from the root or the backend folder.
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+PARENT_DIR = os.path.dirname(CURRENT_DIR)
+if PARENT_DIR not in sys.path:
+    sys.path.append(PARENT_DIR)
+if CURRENT_DIR not in sys.path:
+    sys.path.append(CURRENT_DIR)
+
+try:
+    from backend.config import HOST, PORT, CORS_ORIGINS, DATA_DIR
+    from backend.services.data_service import init_data_service
+    from backend.services.stt_service import init_stt_service
+    from backend.routers import health, speech, chat, query, history, auth
+except ImportError:
+    from config import HOST, PORT, CORS_ORIGINS, DATA_DIR
+    from services.data_service import init_data_service
+    from services.stt_service import init_stt_service
+    from routers import health, speech, chat, query, history, auth
 
 # Configure logging
 logging.basicConfig(
@@ -40,24 +56,35 @@ app.add_middleware(
 # ── Service Initialization ──
 @app.on_event("startup")
 async def startup_event():
-    logger.info("Initializing VOXA backend services...")
+    import asyncio
+    logger.info("VOXA Backend starting... (Initialization moved to background)")
+    app.state.ready = False
     
-    # Initialize Data Service (DuckDB + Excel)
+    # Start heavy loading in the background so we don't block the health check
+    asyncio.create_task(run_background_initialization())
+
+async def run_background_initialization():
+    """
+    Handles heavy data loading and service setup without blocking the main event loop.
+    """
+    logger.info("🚀 Background Initialization started...")
+    
+    # 1. Initialize Data Service (DuckDB + Excel)
     try:
         init_data_service(DATA_DIR)
-        logger.info("Data service initialized")
+        logger.info("✅ Data service initialized")
     except Exception as e:
-        logger.error(f"Failed to initialize data service: {e}")
-        # We don't exit here to allow other services to start, 
-        # but queries will fail.
+        logger.error(f"❌ Failed to initialize data service: {e}")
     
-    # Initialize STT Service (Whisper)
+    # 2. Initialize STT Service (Unified Groq API)
     try:
-        # Note: This might be slow on first run as it downloads the model
-        init_stt_service(WHISPER_MODEL)
-        logger.info(f"STT service initialized with model: {WHISPER_MODEL}")
+        init_stt_service()
+        logger.info("✅ STT service initialized (Groq API mode)")
     except Exception as e:
-        logger.error(f"Failed to initialize STT service: {e}")
+        logger.error(f"❌ Failed to initialize STT service: {e}")
+    
+    app.state.ready = True
+    logger.info("🌟 VOXA Backend is FULLY READY and data is loaded.")
 
 from fastapi.staticfiles import StaticFiles
 
@@ -81,6 +108,7 @@ app.mount("/uploads", StaticFiles(directory=str(uploads_dir)), name="uploads")
 async def root():
     return {
         "message": "VOXA Backend is running",
+        "ready": getattr(app.state, "ready", False),
         "docs": "/docs",
         "health": "/api/health"
     }

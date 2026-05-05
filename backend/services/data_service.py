@@ -12,7 +12,6 @@ import logging
 
 logger = logging.getLogger("voxa.data")
 
-
 class DataService:
     """
     DuckDB-backed data layer.
