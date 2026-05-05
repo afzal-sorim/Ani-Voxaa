@@ -27,6 +27,13 @@ CORS_ORIGINS = [o.strip() for o in os.getenv("CORS_ORIGINS", "http://localhost:5
 # ── Data ──
 DATA_DIR = Path(os.getenv("DATA_DIR", str(BACKEND_DIR / ".." / "data"))).resolve()
 
+# ── Conversation Memory ──
+MEMORY_BACKEND = os.getenv("MEMORY_BACKEND", "memory").lower()
+REDIS_URL = os.getenv("REDIS_URL", "")
+MEMORY_CONTEXT_WINDOW = int(os.getenv("MEMORY_CONTEXT_WINDOW", "4"))
+MEMORY_MAX_INTERACTIONS = int(os.getenv("MEMORY_MAX_INTERACTIONS", "40"))
+MEMORY_COMPRESSION_THRESHOLD = int(os.getenv("MEMORY_COMPRESSION_THRESHOLD", "20"))
+
 # ── JWT Auth ──
 JWT_SECRET = os.getenv("JWT_SECRET", "voxa-demo-secret-key-change-in-production")
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")

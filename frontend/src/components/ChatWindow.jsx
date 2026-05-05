@@ -131,6 +131,7 @@ export default function ChatWindow() {
     let convId = activeConversationId;
     if (!convId) convId = createConversation();
 
+    const priorHistory = useChatStore.getState().conversations[convId]?.messages || [];
     addMessage(convId, { role: 'user', content: text, type });
     setLoading(true);
 
@@ -157,7 +158,8 @@ export default function ChatWindow() {
           isError: true,
         });
         streamHandleRef.current = null;
-      }
+      },
+      priorHistory
     );
   }, [activeConversationId, createConversation, addMessage, setLoading, startStreaming, appendToken, finalizeStream, cancelStream, handleCancelStream]);
 
