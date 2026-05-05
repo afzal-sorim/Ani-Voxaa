@@ -278,6 +278,32 @@ def _format_period_label(raw: str | None) -> str:
 
 # ── Template Report Helpers ──
 
+def compute_kpi(current: int, previous: int) -> dict:
+    if previous == 0:
+        return {
+            "current": current,
+            "previous": previous,
+            "change_percent": 0,
+            "trend": "neutral"
+        }
+
+    change = ((current - previous) / previous) * 100
+
+    if change > 0:
+        trend = "up"
+    elif change < 0:
+        trend = "down"
+    else:
+        trend = "neutral"
+
+    return {
+        "current": current,
+        "previous": previous,
+        "change_percent": round(change, 2),
+        "trend": trend
+    }
+
+
 def _is_template_report_query(query: str) -> bool:
     """
     Returns True when the user asks for a time-based report / dashboard report
@@ -490,22 +516,77 @@ def execute_template_report(query: str) -> str:
         prev_month_date = datetime.now().replace(day=1) - timedelta(days=1)
         prev_range = {"type": "month", "month": prev_month_date.month, "year": prev_month_date.year, "requested": "prev"}
 
-    prev_total = 0
+    prev_dept_data = {}
+    prev_totals = {"in_production": 0, "completed": 0, "quality_hold": 0, "rework": 0, "dispatched": 0, "total": 0}
+
     if prev_range:
         prev_expr, _ = _choose_time_clause("production_data", prev_range)
+        prev_where_parts = []
         if prev_expr:
+            prev_where_parts.append(prev_expr)
+        for col, val in filters.items():
+            if isinstance(val, list):
+                quoted = [f"LOWER('{str(v).replace(chr(39), chr(39)+chr(39))}')" for v in val]
+                prev_where_parts.append(f"LOWER({col}) IN ({', '.join(quoted)})")
+            else:
+                safe_val = str(val).replace("'", "''")
+                prev_where_parts.append(f"LOWER({col}) = LOWER('{safe_val}')")
+        prev_prod_where = f"WHERE {' AND '.join(prev_where_parts)}" if prev_where_parts else ""
+
+        prev_alert_expr, _ = _choose_time_clause("alerts_quality", prev_range)
+        prev_alert_where_base = []
+        if prev_alert_expr:
+            prev_alert_where_base.append(prev_alert_expr)
+        for col, val in alert_filters.items():
+            if isinstance(val, list):
+                quoted = [f"LOWER('{str(v).replace(chr(39), chr(39)+chr(39))}')" for v in val]
+                prev_alert_where_base.append(f"LOWER({col}) IN ({', '.join(quoted)})")
+            else:
+                safe_val = str(val).replace("'", "''")
+                prev_alert_where_base.append(f"LOWER({col}) = LOWER('{safe_val}')")
+
+        for dept in departments:
+            safe_dept = dept.replace("'", "''")
+            dept_filter = f"LOWER(department) = LOWER('{safe_dept}')"
+            p_where = f"{prev_prod_where} AND {dept_filter}" if prev_prod_where else f"WHERE {dept_filter}"
+            
             try:
-                prev_row = data_svc.execute_query(f"SELECT COALESCE(SUM(units), 0) AS t FROM production_data WHERE {prev_expr}")
-                prev_total = int(prev_row.iloc[0]["t"]) if not prev_row.empty else 0
+                p_units_row = data_svc.execute_query(f"SELECT COALESCE(SUM(units), 0) AS total FROM production_data {p_where}")
+                p_total = int(p_units_row.iloc[0]["total"]) if not p_units_row.empty else 0
             except Exception:
-                prev_total = 0
+                p_total = 0
+                
+            a_where_parts = prev_alert_where_base + [f"LOWER(department) = LOWER('{safe_dept}')"]
+            a_where = "WHERE " + " AND ".join(a_where_parts)
+            try:
+                p_alert_row = data_svc.execute_query(f"SELECT COALESCE(SUM(affected_units), 0) AS affected FROM alerts_quality {a_where}")
+                p_affected = int(p_alert_row.iloc[0]["affected"]) if not p_alert_row.empty else 0
+            except Exception:
+                p_affected = 0
+                
+            p_qh = int(p_affected * 0.6)
+            p_rw = p_affected - p_qh
+            
+            p_disp = max(int(p_total * 0.2), 0) if dept in ["Assembly", "Quality Check", "Logistics"] else 0
+            p_comp = max(int(p_total * 0.35) - p_qh - p_rw, 0)
+            p_in_prod = max(p_total - p_comp - p_qh - p_rw - p_disp, 0)
+            
+            prev_dept_data[dept] = {
+                "in_production": p_in_prod, "completed": p_comp,
+                "quality_hold": p_qh, "rework": p_rw,
+                "dispatched": p_disp, "total": p_in_prod + p_comp + p_qh + p_rw + p_disp
+            }
+        
+        prev_totals = {k: sum(d[k] for d in prev_dept_data.values()) for k in ["in_production", "completed", "quality_hold", "rework", "dispatched", "total"]}
 
-    def trend_pct(current, previous):
-        if previous == 0:
-            return "0.0"
-        return f"{abs(round((current - previous) / previous * 100, 1))}"
+    kpi_total = compute_kpi(totals["total"], prev_totals["total"])
+    kpi_completed = compute_kpi(totals["completed"], prev_totals["completed"])
+    kpi_quality_hold = compute_kpi(totals["quality_hold"], prev_totals["quality_hold"])
+    kpi_rework = compute_kpi(totals["rework"], prev_totals["rework"])
 
-    total_trend = trend_pct(totals["total"], prev_total)
+    def format_kpi(kpi):
+        arrow = '↑' if kpi['trend']=='up' else '↓' if kpi['trend']=='down' else ''
+        return f"{kpi['change_percent']}% {arrow}".strip()
 
     # ── 5. Date range label ──
     now = datetime.now()
@@ -575,22 +656,22 @@ def execute_template_report(query: str) -> str:
     html = html.replace("May 12 – May 18, 2024", date_range_label)
 
     # ── KPI CARDS ──
-    html = html.replace("Total Vehicles This Week", f"Total Vehicles {period_label}")
+    html = html.replace("Total Vehicles This Week", "Total Vehicles")
     # Regex to find the value 1,078 followed by the trend div
     html = re.sub(r'>1,078</div>(\s*<div class="kpi-trend trend-green">)', f'>{fmt(totals["total"])}</div>\\1', html)
-    html = html.replace("6.4% vs last week", f"{total_trend}% vs prev period")
+    html = html.replace("6.4% vs last week", format_kpi(kpi_total))
 
     # Completed
     html = re.sub(r'>365</div>(\s*<div class="kpi-trend trend-green">)', f'>{fmt(totals["completed"])}</div>\\1', html)
-    html = html.replace("7.8% vs last week", f"— period total")
+    html = html.replace("7.8% vs last week", format_kpi(kpi_completed))
 
     # Quality Hold
     html = re.sub(r'>28</div>(\s*<div class="kpi-trend trend-amber">)', f'>{fmt(totals["quality_hold"])}</div>\\1', html)
-    html = html.replace("12.0% vs last week", "— period total")
+    html = html.replace("12.0% vs last week", format_kpi(kpi_quality_hold))
 
     # Rework
     html = re.sub(r'>17</div>(\s*<div class="kpi-trend trend-amber">)', f'>{fmt(totals["rework"])}</div>\\1', html)
-    html = html.replace("13.3% vs last week", "— period total")
+    html = html.replace("13.3% vs last week", format_kpi(kpi_rework))
 
     # ── TABLE ROWS ──
     def make_td(val, css_class="", zero_muted=True):
