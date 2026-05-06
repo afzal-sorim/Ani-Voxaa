@@ -99,3 +99,5 @@ __pycache__/
 # Build artifacts
 build/
 dist/
+.env
+.env.example
