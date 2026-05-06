@@ -9,3 +9,5 @@ venv/
 *.duckdb.wal
 logs/
 *.log
+.env
+.env.example
