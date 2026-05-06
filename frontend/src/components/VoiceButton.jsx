@@ -21,10 +21,7 @@ export default function VoiceButton({ onRecordComplete, disabled = false }) {
   const state = isTranscribing ? 'transcribing' : isRecording ? 'recording' : 'idle';
 
   return (
-    <div
-      className="flex items-center gap-2 flex-shrink-0 rounded-full transition-all duration-250"
-      id="voice-button-container"
-    >
+    <div className="flex items-center gap-2 flex-shrink-0 transition-all duration-250" id="voice-button-container">
       {state === 'transcribing' ? (
         /* Compact orbital loader for chat input bar */
         <div
@@ -46,14 +43,14 @@ export default function VoiceButton({ onRecordComplete, disabled = false }) {
             transition-all duration-200 border-none outline-none
             disabled:opacity-40 disabled:cursor-not-allowed disabled:!transform-none disabled:!animate-none
             ${state === 'idle'
-              ? 'bg-gold-gradient shadow-[0_3px_12px_rgba(212,175,55,0.3)] hover:scale-110 active:scale-95'
-              : 'bg-red-500 shadow-[0_4px_12px_rgba(239,68,68,0.35)] border-2 border-[var(--surf)] animate-pulse-beat'}
+              ? 'ci-primary-btn hover:scale-105 active:scale-95'
+              : 'shadow-[0_4px_12px_rgba(239,68,68,0.35)] border border-[color:color-mix(in_srgb,var(--ci-error-solid)_45%,transparent)] animate-pulse-beat'}
           `}
-          style={{ borderRadius: '9999px' }}
+          style={{ borderRadius: '4px' }}
           onClick={onRecordComplete}
           disabled={disabled}
-          aria-label={isRecording ? 'Stop recording' : 'Start recording'}
-          title={isRecording ? 'Stop' : 'Speak'}
+          aria-label={isRecording ? 'Stop voice command' : 'Start voice command'}
+          title={isRecording ? 'Stop voice command' : 'Voice command'}
         >
           {state === 'recording' ? <HiStop size={18} /> : <HiMicrophone size={20} />}
         </button>

@@ -1,0 +1,562 @@
+[
+  {
+    "id": "CRG001",
+    "name": "Betty Lee",
+    "role": "Rehab Support",
+    "shift": "Night",
+    "assigned_patient_id": "PAT0605"
+  },
+  {
+    "id": "CRG002",
+    "name": "Betty Gonzalez",
+    "role": "Hospice Companion",
+    "shift": "Night",
+    "assigned_patient_id": "PAT0392"
+  },
+  {
+    "id": "CRG003",
+    "name": "Kevin Garcia",
+    "role": "Hospice Companion",
+    "shift": "Morning",
+    "assigned_patient_id": "PAT0217"
+  },
+  {
+    "id": "CRG004",
+    "name": "Donna Gonzalez",
+    "role": "Rehab Support",
+    "shift": "Evening",
+    "assigned_patient_id": "PAT0193"
+  },
+  {
+    "id": "CRG005",
+    "name": "Charles Ramirez",
+    "role": "Personal Care Assistant",
+    "shift": "Morning",
+    "assigned_patient_id": "PAT0158"
+  },
+  {
+    "id": "CRG006",
+    "name": "Robert Lee",
+    "role": "Nursing Aide",
+    "shift": "Morning",
+    "assigned_patient_id": "PAT0012"
+  },
+  {
+    "id": "CRG007",
+    "name": "Kevin Wilson",
+    "role": "Personal Care Assistant",
+    "shift": "Morning",
+    "assigned_patient_id": "PAT0499"
+  },
+  {
+    "id": "CRG008",
+    "name": "Carol Sanchez",
+    "role": "Hospice Companion",
+    "shift": "Evening",
+    "assigned_patient_id": "PAT0141"
+  },
+  {
+    "id": "CRG009",
+    "name": "Sandra Martin",
+    "role": "Personal Care Assistant",
+    "shift": "Evening",
+    "assigned_patient_id": "PAT0619"
+  },
+  {
+    "id": "CRG010",
+    "name": "Sandra Moore",
+    "role": "Hospice Companion",
+    "shift": "Evening",
+    "assigned_patient_id": "PAT0522"
+  },
+  {
+    "id": "CRG011",
+    "name": "Joseph Garcia",
+    "role": "Hospice Companion",
+    "shift": "Night",
+    "assigned_patient_id": "PAT0364"
+  },
+  {
+    "id": "CRG012",
+    "name": "Andrew Thomas",
+    "role": "Personal Care Assistant",
+    "shift": "Night",
+    "assigned_patient_id": "PAT0008"
+  },
+  {
+    "id": "CRG013",
+    "name": "Sarah Wilson",
+    "role": "Therapy Assistant",
+    "shift": "Night",
+    "assigned_patient_id": "PAT0514"
+  },
+  {
+    "id": "CRG014",
+    "name": "John Johnson",
+    "role": "Therapy Assistant",
+    "shift": "Evening",
+    "assigned_patient_id": "PAT0376"
+  },
+  {
+    "id": "CRG015",
+    "name": "Linda Jackson",
+    "role": "Hospice Companion",
+    "shift": "Night",
+    "assigned_patient_id": "PAT0378"
+  },
+  {
+    "id": "CRG016",
+    "name": "Elizabeth White",
+    "role": "Therapy Assistant",
+    "shift": "Evening",
+    "assigned_patient_id": "PAT0082"
+  },
+  {
+    "id": "CRG017",
+    "name": "Emily Williams",
+    "role": "Therapy Assistant",
+    "shift": "Night",
+    "assigned_patient_id": "PAT0477"
+  },
+  {
+    "id": "CRG018",
+    "name": "Jessica Thomas",
+    "role": "Nursing Aide",
+    "shift": "Night",
+    "assigned_patient_id": "PAT0091"
+  },
+  {
+    "id": "CRG019",
+    "name": "Michelle Martinez",
+    "role": "Therapy Assistant",
+    "shift": "Morning",
+    "assigned_patient_id": "PAT0553"
+  },
+  {
+    "id": "CRG020",
+    "name": "Paul Harris",
+    "role": "Nursing Aide",
+    "shift": "Evening",
+    "assigned_patient_id": "PAT0352"
+  },
+  {
+    "id": "CRG021",
+    "name": "Steven Lewis",
+    "role": "Hospice Companion",
+    "shift": "Night",
+    "assigned_patient_id": "PAT0465"
+  },
+  {
+    "id": "CRG022",
+    "name": "Anthony Lopez",
+    "role": "Rehab Support",
+    "shift": "Evening",
+    "assigned_patient_id": "PAT0340"
+  },
+  {
+    "id": "CRG023",
+    "name": "John Thompson",
+    "role": "Therapy Assistant",
+    "shift": "Night",
+    "assigned_patient_id": "PAT0172"
+  },
+  {
+    "id": "CRG024",
+    "name": "George Sanchez",
+    "role": "Therapy Assistant",
+    "shift": "Evening",
+    "assigned_patient_id": "PAT0312"
+  },
+  {
+    "id": "CRG025",
+    "name": "Kenneth Thomas",
+    "role": "Therapy Assistant",
+    "shift": "Morning",
+    "assigned_patient_id": "PAT0063"
+  },
+  {
+    "id": "CRG026",
+    "name": "Patricia Perez",
+    "role": "Rehab Support",
+    "shift": "Night",
+    "assigned_patient_id": "PAT0587"
+  },
+  {
+    "id": "CRG027",
+    "name": "Charles Thomas",
+    "role": "Nursing Aide",
+    "shift": "Morning",
+    "assigned_patient_id": "PAT0028"
+  },
+  {
+    "id": "CRG028",
+    "name": "Robert Ramirez",
+    "role": "Rehab Support",
+    "shift": "Evening",
+    "assigned_patient_id": "PAT0518"
+  },
+  {
+    "id": "CRG029",
+    "name": "Dorothy Rodriguez",
+    "role": "Rehab Support",
+    "shift": "Evening",
+    "assigned_patient_id": "PAT0136"
+  },
+  {
+    "id": "CRG030",
+    "name": "Deborah Brown",
+    "role": "Therapy Assistant",
+    "shift": "Morning",
+    "assigned_patient_id": "PAT0015"
+  },
+  {
+    "id": "CRG031",
+    "name": "Deborah Jones",
+    "role": "Hospice Companion",
+    "shift": "Evening",
+    "assigned_patient_id": "PAT0606"
+  },
+  {
+    "id": "CRG032",
+    "name": "Thomas Sanchez",
+    "role": "Personal Care Assistant",
+    "shift": "Evening",
+    "assigned_patient_id": "PAT0180"
+  },
+  {
+    "id": "CRG033",
+    "name": "Emily Ramirez",
+    "role": "Nursing Aide",
+    "shift": "Evening",
+    "assigned_patient_id": "PAT0186"
+  },
+  {
+    "id": "CRG034",
+    "name": "Elizabeth Martin",
+    "role": "Personal Care Assistant",
+    "shift": "Evening",
+    "assigned_patient_id": "PAT0087"
+  },
+  {
+    "id": "CRG035",
+    "name": "Stephanie Gonzalez",
+    "role": "Personal Care Assistant",
+    "shift": "Night",
+    "assigned_patient_id": "PAT0423"
+  },
+  {
+    "id": "CRG036",
+    "name": "George Lee",
+    "role": "Personal Care Assistant",
+    "shift": "Morning",
+    "assigned_patient_id": "PAT0451"
+  },
+  {
+    "id": "CRG037",
+    "name": "George Clark",
+    "role": "Rehab Support",
+    "shift": "Morning",
+    "assigned_patient_id": "PAT0592"
+  },
+  {
+    "id": "CRG038",
+    "name": "Edward Clark",
+    "role": "Nursing Aide",
+    "shift": "Morning",
+    "assigned_patient_id": "PAT0271"
+  },
+  {
+    "id": "CRG039",
+    "name": "Ashley Gonzalez",
+    "role": "Hospice Companion",
+    "shift": "Evening",
+    "assigned_patient_id": "PAT0172"
+  },
+  {
+    "id": "CRG040",
+    "name": "Deborah Harris",
+    "role": "Therapy Assistant",
+    "shift": "Morning",
+    "assigned_patient_id": "PAT0488"
+  },
+  {
+    "id": "CRG041",
+    "name": "Amanda Thompson",
+    "role": "Hospice Companion",
+    "shift": "Evening",
+    "assigned_patient_id": "PAT0389"
+  },
+  {
+    "id": "CRG042",
+    "name": "Elizabeth Taylor",
+    "role": "Hospice Companion",
+    "shift": "Morning",
+    "assigned_patient_id": "PAT0269"
+  },
+  {
+    "id": "CRG043",
+    "name": "Mark Gonzalez",
+    "role": "Rehab Support",
+    "shift": "Night",
+    "assigned_patient_id": "PAT0296"
+  },
+  {
+    "id": "CRG044",
+    "name": "Michael Robinson",
+    "role": "Therapy Assistant",
+    "shift": "Night",
+    "assigned_patient_id": "PAT0043"
+  },
+  {
+    "id": "CRG045",
+    "name": "Sandra Martin",
+    "role": "Rehab Support",
+    "shift": "Evening",
+    "assigned_patient_id": "PAT0363"
+  },
+  {
+    "id": "CRG046",
+    "name": "Sarah Sanchez",
+    "role": "Nursing Aide",
+    "shift": "Evening",
+    "assigned_patient_id": "PAT0277"
+  },
+  {
+    "id": "CRG047",
+    "name": "Betty Anderson",
+    "role": "Personal Care Assistant",
+    "shift": "Night",
+    "assigned_patient_id": "PAT0599"
+  },
+  {
+    "id": "CRG048",
+    "name": "Stephanie Miller",
+    "role": "Therapy Assistant",
+    "shift": "Evening",
+    "assigned_patient_id": "PAT0603"
+  },
+  {
+    "id": "CRG049",
+    "name": "Christopher Moore",
+    "role": "Nursing Aide",
+    "shift": "Night",
+    "assigned_patient_id": "PAT0185"
+  },
+  {
+    "id": "CRG050",
+    "name": "Robert Smith",
+    "role": "Hospice Companion",
+    "shift": "Morning",
+    "assigned_patient_id": "PAT0009"
+  },
+  {
+    "id": "CRG051",
+    "name": "Michael Perez",
+    "role": "Hospice Companion",
+    "shift": "Evening",
+    "assigned_patient_id": "PAT0538"
+  },
+  {
+    "id": "CRG052",
+    "name": "George Martinez",
+    "role": "Rehab Support",
+    "shift": "Morning",
+    "assigned_patient_id": "PAT0225"
+  },
+  {
+    "id": "CRG053",
+    "name": "Mary Martin",
+    "role": "Nursing Aide",
+    "shift": "Morning",
+    "assigned_patient_id": "PAT0035"
+  },
+  {
+    "id": "CRG054",
+    "name": "Kevin Lewis",
+    "role": "Personal Care Assistant",
+    "shift": "Night",
+    "assigned_patient_id": "PAT0609"
+  },
+  {
+    "id": "CRG055",
+    "name": "Melissa Brown",
+    "role": "Nursing Aide",
+    "shift": "Night",
+    "assigned_patient_id": "PAT0125"
+  },
+  {
+    "id": "CRG056",
+    "name": "Matthew Perez",
+    "role": "Therapy Assistant",
+    "shift": "Morning",
+    "assigned_patient_id": "PAT0134"
+  },
+  {
+    "id": "CRG057",
+    "name": "Brian Garcia",
+    "role": "Rehab Support",
+    "shift": "Evening",
+    "assigned_patient_id": "PAT0114"
+  },
+  {
+    "id": "CRG058",
+    "name": "Kevin Robinson",
+    "role": "Nursing Aide",
+    "shift": "Night",
+    "assigned_patient_id": "PAT0479"
+  },
+  {
+    "id": "CRG059",
+    "name": "Sarah Harris",
+    "role": "Hospice Companion",
+    "shift": "Night",
+    "assigned_patient_id": "PAT0465"
+  },
+  {
+    "id": "CRG060",
+    "name": "Thomas Garcia",
+    "role": "Nursing Aide",
+    "shift": "Evening",
+    "assigned_patient_id": "PAT0332"
+  },
+  {
+    "id": "CRG061",
+    "name": "Matthew Gonzalez",
+    "role": "Rehab Support",
+    "shift": "Morning",
+    "assigned_patient_id": "PAT0064"
+  },
+  {
+    "id": "CRG062",
+    "name": "Thomas Garcia",
+    "role": "Hospice Companion",
+    "shift": "Morning",
+    "assigned_patient_id": "PAT0265"
+  },
+  {
+    "id": "CRG063",
+    "name": "Richard Martin",
+    "role": "Hospice Companion",
+    "shift": "Morning",
+    "assigned_patient_id": "PAT0504"
+  },
+  {
+    "id": "CRG064",
+    "name": "Michael Jones",
+    "role": "Therapy Assistant",
+    "shift": "Evening",
+    "assigned_patient_id": "PAT0504"
+  },
+  {
+    "id": "CRG065",
+    "name": "Dorothy Lee",
+    "role": "Nursing Aide",
+    "shift": "Evening",
+    "assigned_patient_id": "PAT0224"
+  },
+  {
+    "id": "CRG066",
+    "name": "Michael Johnson",
+    "role": "Nursing Aide",
+    "shift": "Morning",
+    "assigned_patient_id": "PAT0266"
+  },
+  {
+    "id": "CRG067",
+    "name": "George Rodriguez",
+    "role": "Hospice Companion",
+    "shift": "Morning",
+    "assigned_patient_id": "PAT0586"
+  },
+  {
+    "id": "CRG068",
+    "name": "Elizabeth Lee",
+    "role": "Nursing Aide",
+    "shift": "Morning",
+    "assigned_patient_id": "PAT0510"
+  },
+  {
+    "id": "CRG069",
+    "name": "Sarah Jones",
+    "role": "Rehab Support",
+    "shift": "Evening",
+    "assigned_patient_id": "PAT0400"
+  },
+  {
+    "id": "CRG070",
+    "name": "James Taylor",
+    "role": "Hospice Companion",
+    "shift": "Evening",
+    "assigned_patient_id": "PAT0589"
+  },
+  {
+    "id": "CRG071",
+    "name": "Betty Ramirez",
+    "role": "Nursing Aide",
+    "shift": "Night",
+    "assigned_patient_id": "PAT0447"
+  },
+  {
+    "id": "CRG072",
+    "name": "James Gonzalez",
+    "role": "Hospice Companion",
+    "shift": "Morning",
+    "assigned_patient_id": "PAT0232"
+  },
+  {
+    "id": "CRG073",
+    "name": "Paul Robinson",
+    "role": "Rehab Support",
+    "shift": "Evening",
+    "assigned_patient_id": "PAT0581"
+  },
+  {
+    "id": "CRG074",
+    "name": "Betty Johnson",
+    "role": "Nursing Aide",
+    "shift": "Evening",
+    "assigned_patient_id": "PAT0311"
+  },
+  {
+    "id": "CRG075",
+    "name": "Nancy Williams",
+    "role": "Hospice Companion",
+    "shift": "Evening",
+    "assigned_patient_id": "PAT0548"
+  },
+  {
+    "id": "CRG076",
+    "name": "Barbara Moore",
+    "role": "Nursing Aide",
+    "shift": "Evening",
+    "assigned_patient_id": "PAT0208"
+  },
+  {
+    "id": "CRG077",
+    "name": "Karen Thompson",
+    "role": "Hospice Companion",
+    "shift": "Morning",
+    "assigned_patient_id": "PAT0196"
+  },
+  {
+    "id": "CRG078",
+    "name": "Kimberly Williams",
+    "role": "Hospice Companion",
+    "shift": "Night",
+    "assigned_patient_id": "PAT0368"
+  },
+  {
+    "id": "CRG079",
+    "name": "William Johnson",
+    "role": "Personal Care Assistant",
+    "shift": "Morning",
+    "assigned_patient_id": "PAT0195"
+  },
+  {
+    "id": "CRG080",
+    "name": "Jessica Thomas",
+    "role": "Hospice Companion",
+    "shift": "Morning",
+    "assigned_patient_id": "PAT0608"
+  }
+]

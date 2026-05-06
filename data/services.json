@@ -1,0 +1,98 @@
+[
+  {
+    "id": "SRV001",
+    "name": "Hospice Home Support",
+    "category": "Hospice",
+    "cost": 3200,
+    "duration_days": 30,
+    "success_rate": 0.86
+  },
+  {
+    "id": "SRV002",
+    "name": "Palliative Nursing Care",
+    "category": "Hospice",
+    "cost": 4100,
+    "duration_days": 45,
+    "success_rate": 0.83
+  },
+  {
+    "id": "SRV003",
+    "name": "Pain Management Program",
+    "category": "Hospice",
+    "cost": 2800,
+    "duration_days": 21,
+    "success_rate": 0.88
+  },
+  {
+    "id": "SRV004",
+    "name": "Disability Daily Living Assistance",
+    "category": "Disability",
+    "cost": 2600,
+    "duration_days": 30,
+    "success_rate": 0.91
+  },
+  {
+    "id": "SRV005",
+    "name": "Mobility Rehabilitation",
+    "category": "Disability",
+    "cost": 3500,
+    "duration_days": 40,
+    "success_rate": 0.87
+  },
+  {
+    "id": "SRV006",
+    "name": "Occupational Therapy",
+    "category": "Disability",
+    "cost": 3000,
+    "duration_days": 35,
+    "success_rate": 0.89
+  },
+  {
+    "id": "SRV007",
+    "name": "Personal Hygiene Support",
+    "category": "Personal Care",
+    "cost": 1800,
+    "duration_days": 28,
+    "success_rate": 0.94
+  },
+  {
+    "id": "SRV008",
+    "name": "Meal and Nutrition Assistance",
+    "category": "Personal Care",
+    "cost": 1500,
+    "duration_days": 30,
+    "success_rate": 0.93
+  },
+  {
+    "id": "SRV009",
+    "name": "Medication Reminder Services",
+    "category": "Personal Care",
+    "cost": 1200,
+    "duration_days": 30,
+    "success_rate": 0.95
+  },
+  {
+    "id": "SRV010",
+    "name": "ICU Transition Support",
+    "category": "Hospice",
+    "cost": 5200,
+    "duration_days": 14,
+    "success_rate": 0.79
+  },
+  {
+    "id": "SRV011",
+    "name": "Home Physiotherapy",
+    "category": "Disability",
+    "cost": 2700,
+    "duration_days": 24,
+    "success_rate": 0.9
+  },
+  {
+    "id": "SRV012",
+    "name": "Companion Care Visits",
+    "category": "Personal Care",
+    "cost": 1400,
+    "duration_days": 30,
+    "success_rate": 0.96
+  }
+]

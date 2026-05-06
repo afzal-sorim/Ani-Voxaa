@@ -26,22 +26,62 @@ class DataService:
         self._loaded = False
 
     def load_data(self):
-        """Load CSV and Excel files into DuckDB tables."""
+        """Load CSV, Excel, and JSON files into DuckDB tables."""
         try:
             files = [
                 path for path in self.data_dir.iterdir()
-                if path.suffix.lower() in {".csv", ".xlsx", ".xls"}
+                if path.suffix.lower() in {".csv", ".xlsx", ".xls", ".json"}
             ]
 
             if not files:
-                logger.warning(f"No CSV or Excel data files found in {self.data_dir}")
+                logger.warning(f"No supported data files found in {self.data_dir}")
 
             for path in files:
                 table_name = str(path.stem).strip().lower().replace(" ", "_").replace("-", "_")
-                if path.suffix.lower() == ".csv":
+                suffix = path.suffix.lower()
+
+                if suffix == ".csv":
                     df = pd.read_csv(path)
-                else:
+                elif suffix in {".xlsx", ".xls"}:
                     df = pd.read_excel(path, engine="openpyxl")
+                else:
+                    # JSON support:
+                    # 1) list[object] -> one table (file stem)
+                    # 2) dict[str, list[object]] -> multiple tables (key names)
+                    # 3) dict -> single-row table (file stem)
+                    import json
+
+                    with path.open("r", encoding="utf-8") as f:
+                        payload = json.load(f)
+
+                    if isinstance(payload, list):
+                        df = pd.DataFrame(payload)
+                    elif isinstance(payload, dict):
+                        list_entries = {k: v for k, v in payload.items() if isinstance(v, list)}
+                        scalar_entries = {k: v for k, v in payload.items() if not isinstance(v, list)}
+
+                        # Materialize each list as its own table (for master dataset files)
+                        for key, value in list_entries.items():
+                            nested_table = str(key).strip().lower().replace(" ", "_").replace("-", "_")
+                            nested_df = pd.DataFrame(value)
+                            nested_df.columns = [
+                                str(col).strip().lower().replace(" ", "_").replace("(", "").replace(")", "")
+                                for col in nested_df.columns
+                            ]
+                            self.conn.execute(f"DROP TABLE IF EXISTS {nested_table}")
+                            self.conn.execute(f"CREATE TABLE {nested_table} AS SELECT * FROM nested_df")
+                            nested_count = self.conn.execute(f"SELECT COUNT(*) FROM {nested_table}").fetchone()[0]
+                            logger.info(f"Loaded {nested_table}: {nested_count} rows from {path.name}")
+
+                        # Preserve summary-style scalar dicts as one-row tables
+                        if scalar_entries:
+                            df = pd.DataFrame([scalar_entries])
+                        else:
+                            # No single-table content left for this file
+                            continue
+                    else:
+                        logger.warning(f"Skipping unsupported JSON shape in {path.name}")
+                        continue
 
                 df.columns = [
                     str(col).strip().lower().replace(" ", "_").replace("(", "").replace(")", "")

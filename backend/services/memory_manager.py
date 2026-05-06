@@ -171,7 +171,7 @@ class ConversationMemoryManager:
     def _extract_key_entities(self, query: str) -> dict[str, str | None]:
         text = query.lower()
         metric = next(
-            (m for m in ["revenue", "production", "units", "alerts", "forecast", "tasks"] if m in text),
+            (m for m in ["revenue", "patients", "services", "doctors", "vitals", "alerts", "billing", "operations"] if m in text),
             None,
         )
         aggregation = next(

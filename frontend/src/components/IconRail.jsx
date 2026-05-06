@@ -3,6 +3,7 @@ import { HiOutlineChatAlt2, HiOutlineSearch } from 'react-icons/hi';
 import useAuthStore from '../store/useAuthStore';
 import useChatStore from '../store/useChatStore';
 import UserAvatar from './UserAvatar';
+import AppLogo from './AppLogo';
 
 /*
  * IconRail — the always-visible narrow icon strip on the left edge.
@@ -31,7 +32,7 @@ export default function IconRail({ onToggleSidebar }) {
 
   const hoverIn  = (e) => {
     e.currentTarget.style.background = 'var(--sb-hover)';
-    e.currentTarget.style.color      = '#D4AF37';
+    e.currentTarget.style.color      = '#3B82F6';
   };
   const hoverOut = (e) => {
     e.currentTarget.style.background = 'transparent';
@@ -57,19 +58,7 @@ export default function IconRail({ onToggleSidebar }) {
         aria-label="Open conversations"
         title="Open conversations"
       >
-        {/* Compact VOXA mark */}
-        <svg width="20" height="20" viewBox="0 0 40 40" fill="none">
-          <defs>
-            <linearGradient id="rail-logo" x1="0" y1="0" x2="40" y2="40">
-              <stop offset="0%" stopColor="#D4AF37" />
-              <stop offset="100%" stopColor="#F5E6B3" />
-            </linearGradient>
-          </defs>
-          <circle cx="20" cy="20" r="18" stroke="url(#rail-logo)" strokeWidth="1.5" fill="none" opacity="0.5" />
-          <path d="M14 26 C14 18,20 13,20 13 C20 13,26 18,26 26"
-            stroke="url(#rail-logo)" strokeWidth="2" strokeLinecap="round" fill="none" />
-          <circle cx="20" cy="14" r="2.5" fill="url(#rail-logo)" />
-        </svg>
+        <AppLogo size={40} className="rounded-sm" />
       </button>
 
       {/* Thin divider below logo */}
@@ -111,7 +100,7 @@ export default function IconRail({ onToggleSidebar }) {
       >
         <UserAvatar 
           className="w-8 h-8 rounded-full flex items-center justify-center font-semibold text-[0.75rem] overflow-hidden"
-          style={{ background: 'linear-gradient(135deg,#D4AF37,#B8962E)', color: '#0B0B0F' }}
+          style={{ background: 'linear-gradient(135deg,#3B82F6,#1D4ED8)', color: '#0B0B0F' }}
         />
       </div>
     </div>

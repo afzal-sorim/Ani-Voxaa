@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { HiOutlineDocumentAdd, HiOutlineDocument, HiOutlineCloudUpload } from 'react-icons/hi';
 import toast from 'react-hot-toast';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'https://voice-model-lk22.onrender.com/api';
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
 function getAuthToken() {
   const authData = JSON.parse(localStorage.getItem('auth-storage') || '{}');

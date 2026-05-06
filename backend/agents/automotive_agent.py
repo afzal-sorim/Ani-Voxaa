@@ -13,6 +13,7 @@ import json
 import logging
 import re
 import calendar
+from pathlib import Path
 from typing import AsyncGenerator, Dict, Any
 from datetime import datetime, date, timedelta
 
@@ -21,11 +22,667 @@ import pandas as pd
 try:
     from backend.services.data_service import get_data_service
     from backend.services import llm_service
+    from backend.config import DATA_DIR
 except ImportError:
     from services.data_service import get_data_service
     from services import llm_service
+    from config import DATA_DIR
 
 logger = logging.getLogger("voxa.agent")
+
+PREDEFINED_RESPONSE_PATTERNS = (
+    "give me healthcare dashboard report",
+    "revenue by service this month",
+    "total patients served today",
+    "doctor performance ranking",
+    "active vs critical patient count",
+    "abnormal vitals alerts summary",
+    "patients per doctor",
+    "region-wise patient distribution",
+    "pending payment cases",
+    "patient outcome trends",
+)
+
+_JSON_CONTEXT_CACHE: dict[str, Any] = {"signature": None, "contexts": {}}
+QUERY_TOPIC_KEYWORDS: dict[str, tuple[str, ...]] = {
+    "billing": ("payment", "billing", "invoice", "revenue", "due", "pending"),
+    "patients": ("patient", "admission", "discharge", "critical", "active", "outcome"),
+    "appointments": ("appointment", "schedule", "visit", "booked"),
+    "doctors": ("doctor", "physician", "provider"),
+    "caregivers": ("caregiver", "nurse", "staff"),
+    "services": ("service", "treatment", "procedure"),
+    "service_usage": ("service", "utilization", "usage"),
+    "vitals": ("vital", "bp", "pulse", "spo2", "temperature"),
+    "operations": ("operation", "ops", "throughput", "turnaround"),
+    "regions": ("region", "city", "state", "location"),
+    "products": ("product", "plan", "package"),
+}
+
+
+def _get_healthcare_data_dir() -> Path:
+    configured_dir = Path(DATA_DIR)
+    repo_data_dir = Path(__file__).resolve().parents[2] / "data"
+
+    configured_has_json = configured_dir.exists() and any(configured_dir.glob("*.json"))
+    if configured_has_json:
+        return configured_dir
+
+    repo_has_json = repo_data_dir.exists() and any(repo_data_dir.glob("*.json"))
+    if repo_has_json:
+        return repo_data_dir
+
+    return configured_dir
+
+
+def _normalize_predefined_match_text(value: str) -> str:
+    return re.sub(r"\s+", " ", re.sub(r"[^a-z0-9\s]", " ", str(value or "").lower())).strip()
+
+
+def _is_predefined_request_response(query: str) -> bool:
+    q = _normalize_predefined_match_text(query)
+    if not q:
+        return False
+    for pattern in PREDEFINED_RESPONSE_PATTERNS:
+        p = _normalize_predefined_match_text(pattern)
+        if q == p or p in q:
+            return True
+    return False
+
+
+def _load_healthcare_json(filename: str) -> dict | list | None:
+    path = _get_healthcare_data_dir() / filename
+    if not path.exists():
+        return None
+    try:
+        with path.open("r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return None
+
+
+def _is_healthcare_data_query(query: str) -> bool:
+    q = query.lower()
+    healthcare_terms = [
+        "healthcare", "product", "products", "services", "team", "roles",
+        "infrastructure", "facilities", "company", "mission", "categories",
+        "blog", "topics", "manufacturing plant",
+        "patient", "patients", "doctor", "doctors", "billing", "vitals",
+        "critical", "active", "revenue", "service", "services",
+    ]
+    return any(term in q for term in healthcare_terms)
+
+
+def _summarize_json_payload(payload: Any, max_full_items: int = 8, sample_items: int = 3) -> dict:
+    if isinstance(payload, list):
+        summary = {
+            "shape": "list",
+            "item_count": len(payload),
+        }
+        if payload and isinstance(payload[0], dict):
+            fields = set()
+            for item in payload[:200]:
+                if isinstance(item, dict):
+                    fields.update(str(k) for k in item.keys())
+            summary["fields"] = sorted(fields)
+
+        if len(payload) <= max_full_items:
+            summary["records"] = payload
+        else:
+            summary["sample_head"] = payload[:sample_items]
+            summary["sample_tail"] = payload[-sample_items:]
+        return summary
+
+    if isinstance(payload, dict):
+        summary: dict[str, Any] = {
+            "shape": "object",
+            "keys": list(payload.keys()),
+        }
+        nested: dict[str, Any] = {}
+        for key, value in payload.items():
+            if isinstance(value, list):
+                nested[key] = _summarize_json_payload(
+                    value,
+                    max_full_items=max_full_items,
+                    sample_items=sample_items,
+                )
+            elif isinstance(value, dict):
+                nested[key] = {
+                    "shape": "object",
+                    "keys": list(value.keys())[:30],
+                    "sample": {
+                        k: value[k] for k in list(value.keys())[:10]
+                    },
+                }
+            else:
+                nested[key] = value
+        summary["data"] = nested
+        return summary
+
+    return {
+        "shape": type(payload).__name__,
+        "value": payload,
+    }
+
+
+def _is_numeric(value: Any) -> bool:
+    return isinstance(value, (int, float)) and not isinstance(value, bool)
+
+
+def _to_iso_date(value: Any) -> str | None:
+    if not isinstance(value, str):
+        return None
+    candidate = value.strip()
+    for fmt in ("%Y-%m-%d", "%Y/%m/%d", "%d-%m-%Y", "%d/%m/%Y"):
+        try:
+            return datetime.strptime(candidate, fmt).date().isoformat()
+        except Exception:
+            continue
+    return None
+
+
+def _profile_records(records: list[dict], query: str, sample_items: int = 2) -> dict:
+    if not records:
+        return {"record_count": 0}
+
+    numeric_stats: dict[str, dict[str, float]] = {}
+    categorical_counts: dict[str, dict[str, int]] = {}
+    date_stats: dict[str, dict[str, str]] = {}
+    query_lower = (query or "").lower()
+
+    for record in records:
+        if not isinstance(record, dict):
+            continue
+        for key, value in record.items():
+            col = str(key)
+            if _is_numeric(value):
+                stat = numeric_stats.setdefault(col, {"sum": 0.0, "count": 0.0, "min": float(value), "max": float(value)})
+                v = float(value)
+                stat["sum"] += v
+                stat["count"] += 1.0
+                stat["min"] = min(stat["min"], v)
+                stat["max"] = max(stat["max"], v)
+            elif isinstance(value, str):
+                iso = _to_iso_date(value)
+                if iso:
+                    dstat = date_stats.setdefault(col, {"min": iso, "max": iso})
+                    dstat["min"] = min(dstat["min"], iso)
+                    dstat["max"] = max(dstat["max"], iso)
+                else:
+                    value_norm = value.strip()
+                    if value_norm:
+                        c = categorical_counts.setdefault(col, {})
+                        c[value_norm] = c.get(value_norm, 0) + 1
+
+    compact_numeric: dict[str, Any] = {}
+    for col, stat in numeric_stats.items():
+        avg = stat["sum"] / stat["count"] if stat["count"] else 0.0
+        compact_numeric[col] = {
+            "sum": round(stat["sum"], 2),
+            "avg": round(avg, 2),
+            "min": round(stat["min"], 2),
+            "max": round(stat["max"], 2),
+        }
+
+    compact_categorical: dict[str, Any] = {}
+    for col, freq in categorical_counts.items():
+        top = sorted(freq.items(), key=lambda item: item[1], reverse=True)[:3]
+        if top:
+            compact_categorical[col] = [{"value": value, "count": count} for value, count in top]
+
+    focus_rows: list[dict[str, Any]] = []
+    if query_lower:
+        for record in records:
+            if not isinstance(record, dict):
+                continue
+            joined = " ".join(str(v).lower() for v in record.values() if v is not None)
+            if any(token in joined for token in query_lower.split() if len(token) > 3):
+                focus_rows.append(record)
+            if len(focus_rows) >= sample_items:
+                break
+
+    summary: dict[str, Any] = {
+        "record_count": len(records),
+        "numeric_stats": compact_numeric,
+        "top_categories": compact_categorical,
+        "date_ranges": date_stats,
+        "sample_rows": records[:sample_items],
+    }
+    if focus_rows:
+        summary["query_focus_rows"] = focus_rows
+    return summary
+
+
+def _select_relevant_json_files(query: str, json_paths: list[Path], max_files: int = 5) -> list[Path]:
+    q = (query or "").lower()
+    score_map: dict[Path, int] = {}
+    for path in json_paths:
+        name = path.name.lower()
+        score = 0
+        stem = path.stem.lower()
+        for topic, terms in QUERY_TOPIC_KEYWORDS.items():
+            if any(term in q for term in terms):
+                if topic == stem or topic in stem:
+                    score += 9
+                elif topic in name:
+                    score += 6
+        if "summary" in name:
+            score += 2
+        if score > 0:
+            score_map[path] = score
+
+    if not score_map:
+        return json_paths[:max_files]
+
+    ranked = sorted(score_map.items(), key=lambda item: item[1], reverse=True)
+    selected = [path for path, _ in ranked[:max_files]]
+    return selected
+
+
+def _build_healthcare_data_context(query: str | None = None, max_chars: int = 4500) -> str:
+    data_dir = _get_healthcare_data_dir()
+    json_paths = sorted(data_dir.glob("*.json"))
+    signature = tuple(
+        (path.name, path.stat().st_size, path.stat().st_mtime_ns)
+        for path in json_paths
+        if path.exists()
+    )
+    query_key = _normalize_predefined_match_text(query or "")
+    cache_key = f"{query_key}|{max_chars}"
+
+    if _JSON_CONTEXT_CACHE["signature"] == signature:
+        cached = _JSON_CONTEXT_CACHE["contexts"].get(cache_key)
+        if cached:
+            return cached
+    else:
+        _JSON_CONTEXT_CACHE["contexts"] = {}
+
+    context_payload: dict[str, Any] = {}
+    selected_paths = _select_relevant_json_files(query or "", json_paths, max_files=3)
+
+    for path in selected_paths:
+        loaded = _load_healthcare_json(path.name)
+        if loaded is None:
+            continue
+        if isinstance(loaded, list) and loaded and isinstance(loaded[0], dict):
+            context_payload[path.name] = {
+                "summary": _summarize_json_payload(loaded, max_full_items=2, sample_items=1),
+                "analytics": _profile_records(loaded[:500], query or "", sample_items=2),
+            }
+        elif isinstance(loaded, dict):
+            enriched: dict[str, Any] = {"summary": _summarize_json_payload(loaded, max_full_items=2, sample_items=1)}
+            object_analytics: dict[str, Any] = {}
+            for key, value in loaded.items():
+                if isinstance(value, list) and value and isinstance(value[0], dict):
+                    object_analytics[key] = _profile_records(value[:500], query or "", sample_items=2)
+            if object_analytics:
+                enriched["nested_analytics"] = object_analytics
+            context_payload[path.name] = enriched
+        else:
+            context_payload[path.name] = _summarize_json_payload(loaded, max_full_items=2, sample_items=1)
+
+    if not context_payload:
+        return "No JSON files found in data folder."
+
+    context = json.dumps(
+        {
+            "query_focus": (query or "").strip(),
+            "selected_files": [p.name for p in selected_paths],
+            "json_data_analysis": context_payload,
+        },
+        ensure_ascii=True,
+        indent=2,
+    )
+
+    if len(context) > max_chars:
+        context = context[:max_chars] + "\n\n[TRUNCATED FOR TOKEN LIMIT]"
+
+    _JSON_CONTEXT_CACHE["signature"] = signature
+    _JSON_CONTEXT_CACHE["contexts"][cache_key] = context
+    return context
+
+
+def _build_healthcare_llm_instruction(query: str) -> str:
+    return (
+        "You are VOXA, a Healthcare Analytics Assistant.\n"
+        "Answer every question by analyzing ONLY the JSON data context provided below.\n"
+        "Rules:\n"
+        "1. Do not invent numbers, entities, or events.\n"
+        "2. If exact data is missing, clearly say: No data available for this request.\n"
+        "3. If useful, return a concise markdown table.\n"
+        "4. If the user asks outside healthcare data scope, politely explain scope and offer a healthcare-data alternative.\n"
+        "5. Keep answers concise and factual."
+    )
+
+
+def _fallback_healthcare_response() -> str:
+    products = _load_healthcare_json("products.json") or []
+    names = [p.get("name", "") for p in products[:10] if isinstance(p, dict) and p.get("name")]
+    if names:
+        return "Healthcare products available:\n- " + "\n- ".join(names)
+    return "I could not find healthcare data in the data folder."
+
+
+def _generate_healthcare_response(query: str, conversation_history: list[dict] | None = None) -> str:
+    data_context = (
+        f"{_build_healthcare_llm_instruction(query)}\n\n"
+        "HEALTHCARE JSON DATA CONTEXT:\n"
+        f"{_build_healthcare_data_context(query)}"
+    )
+    
+    # Also include data from DuckDB tables if available
+    data_svc = get_data_service()
+    schemas = data_svc.get_table_schemas()
+    
+    # Query patients and doctors tables if they exist
+    additional_data = {}
+    if "patients" in schemas:
+        try:
+            patients_df = data_svc.execute_query("SELECT * FROM patients LIMIT 100")
+            additional_data["patients_sample"] = patients_df.to_dict('records')
+        except Exception:
+            pass
+    
+    if "doctors" in schemas:
+        try:
+            doctors_df = data_svc.execute_query("SELECT * FROM doctors LIMIT 100")
+            additional_data["doctors_sample"] = doctors_df.to_dict('records')
+        except Exception:
+            pass
+    
+    if "billing" in schemas:
+        try:
+            billing_df = data_svc.execute_query("SELECT * FROM billing LIMIT 100")
+            additional_data["billing_sample"] = billing_df.to_dict('records')
+        except Exception:
+            pass
+    
+    if additional_data:
+        data_context += f"\n\nADDITIONAL DATABASE DATA:\n{json.dumps(additional_data, ensure_ascii=True, indent=2)}"
+    
+    try:
+        return llm_service.generate_response(
+            user_query=query,
+            data_context=data_context,
+            conversation_history=conversation_history,
+        )
+    except Exception:
+        return _fallback_healthcare_response()
+
+
+async def _stream_healthcare_response(
+    query: str,
+    conversation_history: list[dict] | None = None,
+) -> AsyncGenerator[str, None]:
+    data_context = (
+        f"{_build_healthcare_llm_instruction(query)}\n\n"
+        "HEALTHCARE JSON DATA CONTEXT:\n"
+        f"{_build_healthcare_data_context(query)}"
+    )
+    try:
+        async for token in llm_service.stream_response(
+            user_query=query,
+            data_context=data_context,
+            conversation_history=conversation_history,
+        ):
+            yield token
+    except Exception:
+        yield _fallback_healthcare_response()
+
+def _render_healthcare_analytics_response(
+    query: str,
+    title: str,
+    df: pd.DataFrame,
+    conversation_history: list[dict] | None = None,
+) -> str:
+    """
+    Convert deterministic SQL output into a natural LLM answer.
+    Falls back to markdown table text if LLM is unavailable.
+    """
+    data_context = (
+        "You are a healthcare analytics assistant.\n"
+        "Use ONLY the SQL result below.\n"
+        "Do not invent values.\n"
+        "Respond with:\n"
+        f"1) A one-line summary for '{title}'\n"
+        "2) A concise markdown table.\n\n"
+        f"QUERY: {query}\n\n"
+        f"SQL_RESULT_TABLE:\n{df.to_markdown(index=False)}"
+    )
+    try:
+        return llm_service.generate_response(
+            user_query=query,
+            data_context=data_context,
+            conversation_history=conversation_history,
+        )
+    except Exception:
+        return f"{title}:\n{df.to_markdown(index=False)}"
+
+def _generate_llm_only_response(
+    query: str,
+    instruction: str,
+    conversation_history: list[dict] | None = None,
+) -> str:
+    try:
+        return llm_service.generate_response(
+            user_query=query,
+            data_context=instruction,
+            conversation_history=conversation_history,
+        )
+    except Exception:
+        return "I could not generate a response at the moment. Please try again."
+
+
+LEGACY_TO_HEALTHCARE_MAP = {
+    "machine efficiency": "doctor performance",
+    "machines": "doctors",
+    "machine": "doctor",
+    "production output": "patients served",
+    "production units": "patients served",
+    "production": "patient services",
+    "defective units": "critical patients",
+    "maintenance alerts": "abnormal vitals alerts",
+    "maintenance logs": "patient vitals",
+    "inventory status": "active patient count",
+    "raw materials": "patients",
+    "supply chain": "caregiver network",
+    "factory": "region",
+    "plant": "region",
+    "model": "service",
+}
+
+
+def _normalize_legacy_query_to_healthcare(query: str) -> str:
+    q = query
+    for old, new in LEGACY_TO_HEALTHCARE_MAP.items():
+        q = re.sub(rf"\b{re.escape(old)}\b", new, q, flags=re.IGNORECASE)
+    return q
+
+
+def _execute_healthcare_analytics(query: str) -> str | None:
+    """
+    Deterministic healthcare analytics for high-precision requests.
+    Returns markdown directly when a query matches a deterministic pattern.
+    """
+    q = (query or "").strip().lower()
+    data_svc = get_data_service()
+    schemas = data_svc.get_table_schemas()
+
+    def has_table(name: str) -> bool:
+        return name in schemas
+
+    # KPI dashboard summary
+    if ("dashboard" in q or "kpi" in q) and "healthcare" in q and has_table("patients"):
+        active_patients = 0
+        critical_patients = 0
+        top_doctor = "N/A"
+        top_region = "N/A"
+        top_service = "N/A"
+        total_revenue = 0.0
+        active_doctors = 0
+
+        try:
+            if has_table("patients"):
+                active_patients = int(
+                    data_svc.execute_query(
+                        "SELECT COUNT(*) AS c FROM patients WHERE LOWER(COALESCE(status, '')) = 'active'"
+                    ).iloc[0]["c"]
+                )
+                top_region_df = data_svc.execute_query(
+                    "SELECT region, COUNT(*) AS c FROM patients WHERE region IS NOT NULL GROUP BY region ORDER BY c DESC LIMIT 1"
+                )
+                if not top_region_df.empty:
+                    top_region = str(top_region_df.iloc[0]["region"])
+
+            if has_table("vitals"):
+                critical_patients = int(
+                    data_svc.execute_query(
+                        "SELECT COUNT(*) AS c FROM vitals WHERE LOWER(COALESCE(alert_level, '')) IN ('critical', 'high')"
+                    ).iloc[0]["c"]
+                )
+
+            if has_table("operations"):
+                top_service_df = data_svc.execute_query(
+                    "SELECT service_id, COUNT(*) AS c FROM operations WHERE service_id IS NOT NULL GROUP BY service_id ORDER BY c DESC LIMIT 1"
+                )
+                if not top_service_df.empty:
+                    top_service = str(top_service_df.iloc[0]["service_id"])
+
+            if has_table("billing"):
+                total_revenue = float(
+                    data_svc.execute_query("SELECT COALESCE(SUM(amount), 0) AS total FROM billing").iloc[0]["total"]
+                )
+                top_doctor_df = data_svc.execute_query(
+                    "SELECT doctor_id, COALESCE(SUM(amount), 0) AS rev FROM billing "
+                    "WHERE doctor_id IS NOT NULL GROUP BY doctor_id ORDER BY rev DESC LIMIT 1"
+                )
+                if not top_doctor_df.empty:
+                    top_doctor = str(top_doctor_df.iloc[0]["doctor_id"])
+
+            if has_table("doctors"):
+                active_doctors = int(data_svc.execute_query("SELECT COUNT(*) AS c FROM doctors").iloc[0]["c"])
+        except Exception as e:
+            logger.warning(f"Deterministic KPI query failed, falling back to LLM: {e}")
+            return None
+
+        return (
+            "KPI\n"
+            "Healthcare Dashboard Report\n"
+            f"SUMMARY Total Revenue: ${total_revenue:,.2f} | Active Patients: {active_patients} | "
+            f"Critical Patients: {critical_patients} | Active Doctors: {active_doctors} | "
+            f"Top Doctor: {top_doctor} | Top Region: {top_region} | Most Used Service: {top_service}\n\n"
+            "DATA TABLE\n\n"
+            "| metric | value |\n"
+            "|---|---|\n"
+            f"| total_revenue | {total_revenue:,.2f} |\n"
+            f"| active_patients | {active_patients} |\n"
+            f"| critical_patients | {critical_patients} |\n"
+            f"| active_doctors | {active_doctors} |\n"
+            f"| top_doctor | {top_doctor} |\n"
+            f"| top_region | {top_region} |\n"
+            f"| top_service | {top_service} |\n"
+        )
+
+    # Inactive patients
+    if "inactive patient" in q and has_table("patients"):
+        df = data_svc.execute_query(
+            "SELECT id, name, age, gender, region, status "
+            "FROM patients WHERE LOWER(COALESCE(status, '')) IN ('inactive', 'completed', 'discharged') "
+            "ORDER BY id LIMIT 10"
+        )
+        if df.empty:
+            return "SUMMARY No inactive patients found.\n\nDATA TABLE\n\n| id | name | status |\n|---|---|---|\n"
+        return (
+            f"SUMMARY Found {len(df)} inactive/completed/discharged patients.\n\n"
+            f"DATA TABLE\n\n{df.to_markdown(index=False)}"
+        )
+
+    # Patients from region (e.g., Algeria/New York)
+    region_match = re.search(r"(?:from|in)\s+([a-z][a-z\s\-]{1,40})", q)
+    if ("patient" in q and region_match and has_table("patients")):
+        region = region_match.group(1).strip()
+        if region in {"the", "a", "an"}:
+            return None
+        limit = 5 if "5" in q or "five" in q else 10
+        safe_region = region.replace("'", "''")
+        df = data_svc.execute_query(
+            f"SELECT id, name, age, gender, region, condition, service_type, doctor_id, admission_date, discharge_date, status "
+            f"FROM patients WHERE LOWER(COALESCE(region, '')) = '{safe_region}' "
+            f"ORDER BY id LIMIT {limit}"
+        )
+        if df.empty:
+            return f"SUMMARY No patients found for region '{region.title()}'.\n\nDATA TABLE\n\n| id | name | region |\n|---|---|---|\n"
+        return f"SUMMARY Showing {len(df)} patients from {region.title()}.\n\nDATA TABLE\n\n{df.to_markdown(index=False)}"
+
+    # Region with highest patients
+    if ("region" in q and ("higher" in q or "highest" in q or "top" in q) and has_table("patients")):
+        df = data_svc.execute_query(
+            "SELECT region AS region_name, COUNT(*) AS total_patients "
+            "FROM patients WHERE region IS NOT NULL GROUP BY region ORDER BY total_patients DESC LIMIT 5"
+        )
+        if df.empty:
+            return "SUMMARY No region data found.\n\nDATA TABLE\n\n| region_name | total_patients |\n|---|---|\n"
+        top = df.iloc[0]
+        return (
+            f"SUMMARY Region with highest patients: {top['region_name']} ({int(top['total_patients'])}).\n\n"
+            f"DATA TABLE\n\n{df.to_markdown(index=False)}"
+        )
+
+    # Youngest / Oldest patient
+    if ("youngest patient" in q or "oldest patient" in q) and has_table("patients"):
+        order = "ASC" if "youngest" in q else "DESC"
+        df = data_svc.execute_query(
+            f"SELECT id, name, age, gender, region, status FROM patients WHERE age IS NOT NULL ORDER BY age {order}, id LIMIT 1"
+        )
+        if df.empty:
+            return None
+        kind = "youngest" if "youngest" in q else "oldest"
+        row = df.iloc[0]
+        return (
+            f"SUMMARY The {kind} patient is {row['name']} ({int(row['age'])} years).\n\n"
+            f"DATA TABLE\n\n{df.to_markdown(index=False)}"
+        )
+
+    # Youngest doctor (prefer age, fallback experience_years)
+    if "youngest doctor" in q and has_table("doctors"):
+        doctor_cols = {c["name"] for c in schemas.get("doctors", [])}
+        doctor_id_col = "doctor_id" if "doctor_id" in doctor_cols else ("id" if "id" in doctor_cols else None)
+        doctor_name_col = "doctor_name" if "doctor_name" in doctor_cols else ("name" if "name" in doctor_cols else None)
+        specialty_col = "specialty" if "specialty" in doctor_cols else ("specialization" if "specialization" in doctor_cols else None)
+        if not doctor_id_col and not doctor_name_col:
+            return "SUMMARY Doctor identifier fields are unavailable.\n\nDATA TABLE\n\n| id | name |\n|---|---|\n"
+
+        selected_cols = []
+        if doctor_id_col:
+            selected_cols.append(f"{doctor_id_col} AS doctor_id")
+        if doctor_name_col:
+            selected_cols.append(f"{doctor_name_col} AS doctor_name")
+        if specialty_col:
+            selected_cols.append(f"{specialty_col} AS specialty")
+
+        if "age" in doctor_cols:
+            sql = (
+                f"SELECT {', '.join(selected_cols)}, age "
+                "FROM doctors WHERE age IS NOT NULL ORDER BY age ASC LIMIT 1"
+            )
+            basis = "age"
+        elif "experience_years" in doctor_cols:
+            sql = (
+                f"SELECT {', '.join(selected_cols)}, experience_years FROM doctors "
+                "WHERE experience_years IS NOT NULL ORDER BY experience_years ASC LIMIT 1"
+            )
+            basis = "experience_years"
+        else:
+            return "SUMMARY Doctor age/experience fields are unavailable.\n\nDATA TABLE\n\n| doctor_id | doctor_name |\n|---|---|\n"
+        df = data_svc.execute_query(sql)
+        if df.empty:
+            return None
+        row = df.iloc[0]
+        return (
+            f"SUMMARY The youngest available doctor by {basis} is {row.get('doctor_name', row.get('doctor_id', 'Unknown'))}.\n\n"
+            f"DATA TABLE\n\n{df.to_markdown(index=False)}"
+        )
+
+    return None
 
 # ── Intent Categories ──
 INTENTS = {
@@ -3330,6 +3987,10 @@ def compute_cross_dataset_signals() -> dict:
         "correlation_summary": "No clear cross-dataset relationship found.",
     }
 
+    schemas = data_svc.get_table_schemas()
+    if "production_data" not in schemas or "alerts_quality" not in schemas:
+        return signals
+
     try:
         production = data_svc.execute_query(
             "SELECT week, SUM(units) AS total_units, SUM(revenue) AS total_revenue FROM production_data GROUP BY week ORDER BY week"
@@ -3431,6 +4092,10 @@ def _is_conversational_query(query: str) -> bool:
     q = query.strip().lower()
     words = q.split()
 
+    # Never treat predefined report prompts as small-talk.
+    if _is_predefined_request_response(q):
+        return False
+
     greetings = {
         "hi", "hello", "hey", "howdy", "hiya", "greetings", "sup", "yo",
         "good morning", "good afternoon", "good evening", "good night",
@@ -3454,6 +4119,8 @@ def _is_conversational_query(query: str) -> bool:
         "model", "week", "quarter", "month", "sales", "output", "department",
         "dashboard", "report", "summary", "overview", "analytics", "stats",
         "inventory", "status", "schedule",
+        "patient", "patients", "doctor", "doctors", "billing", "payment",
+        "payments", "pending", "vitals", "critical", "outcome", "outcomes",
     }
     if len(words) <= 4 and not any(w in data_domain_words for w in words):
         return True
@@ -3530,6 +4197,21 @@ async def process_query(
     original_query = query
     query = _fix_common_typos(original_query)
     typo_correction_note = ""
+    query = _normalize_legacy_query_to_healthcare(query)
+    try:
+        healthcare_analytics_response = _execute_healthcare_analytics(query)
+    except Exception as e:
+        logger.warning(f"Deterministic healthcare analytics failed, falling back to LLM: {e}")
+        healthcare_analytics_response = None
+    if healthcare_analytics_response:
+        return healthcare_analytics_response
+
+    if _is_predefined_request_response(query):
+        logger.info("Routing predefined chat query through JSON-grounded LLM path.")
+        return _generate_healthcare_response(query, conversation_history)
+    logger.info("Routing non-predefined chat query through JSON-grounded LLM path.")
+    return _generate_healthcare_response(query, conversation_history)
+
     if query.lower() != original_query.lower():
         logger.info(f"Fixed typo: '{original_query}' → '{query}'")
         typo_correction_note = f"\n\n[SYSTEM NOTE: The user's query had a typo. Original: '{original_query}'. I have interpreted this as: '{query}'. Please proceed with this interpretation and acknowledge the correction naturally in your response.]"
@@ -3556,12 +4238,12 @@ async def process_query(
     if llm_entities.get("is_automotive_related") is False and not is_report_request:
         logger.info(f"AI Domain Check: Query detected as explicitly out-of-domain: '{query}'.")
         clarification_prompt = (
-            "The user asked about a subject outside the VOXA Automotive domain (e.g., Meta, Google, Apple, weather, etc.).\n\n"
+            "The user asked about a subject outside the VOXA Healthcare Analytics domain (e.g., stock market, weather, unrelated company trivia, etc.).\n\n"
             "STRICT RULES:\n"
-            "1. Politely explain that you are the VOXA Automotive Assistant for Manufacturing Operations.\n"
-            "2. Clarify that you only have access to Production, Revenue, and Quality data for OUR specific automotive plants and vehicle models.\n"
+            "1. Politely explain that you are the VOXA Healthcare Analytics Assistant.\n"
+            "2. Clarify that you only have access to healthcare operations data: patients, doctors, services, billing, vitals, outcomes, and regions.\n"
             "3. DO NOT provide any numbers or data dashboards for external companies.\n"
-            "4. Ask if they would like to see an internal production or revenue report instead."
+            "4. Ask if they would like a healthcare report instead (for example pending payments, patient outcomes, or active vs critical patients)."
         )
         return llm_service.generate_response(
             user_query=query,
@@ -3624,7 +4306,7 @@ async def process_query(
             "The user asked a data-related question but it was slightly ambiguous. "
             "Ask 1-2 polite counter-questions to understand if they want to see: "
             "1. Production Units, 2. Revenue, or 3. Quality Alerts. "
-            "Also ask if they are interested in a specific plant (Dearborn, Claycomo, etc.) or time period."
+            "Also ask if they are interested in a specific region/service/doctor or time period."
         )
         return llm_service.generate_response(
             user_query=query,
@@ -3640,12 +4322,16 @@ async def process_query(
     )
 
     # Detect if query sounds like a data question that failed structured parsing
-    data_keywords = ["how many", "total", "what is the revenue", "production of", "units", "alerts in"]
+    data_keywords = ["how many", "total", "what is the revenue", "patient count for", "units", "alerts in"]
     if any(k in query.lower() for k in data_keywords) and "why" not in query.lower():
-         return (
-             "I understand you are looking for data, but I couldn't find a direct way to calculate that specific value from my automotive records. "
-             "I specialize in Production Units, Revenue, and Quality Alerts. "
-             "Could you rephrase your question? For example: 'Show me production units for last week'."
+         return _generate_llm_only_response(
+             query,
+             (
+                 "The user asked a data-like question that failed structured parsing. "
+                 "Politely explain the limitation, do not invent numbers, and ask for a more specific rephrase "
+                 "using Production Units, Revenue, or Quality Alerts with an example."
+             ),
+             conversation_history=conversation_history,
          )
 
     response = llm_service.generate_response(
@@ -3669,6 +4355,26 @@ async def stream_query(
     original_query = query
     query = _fix_common_typos(original_query)
     typo_correction_note = ""
+    query = _normalize_legacy_query_to_healthcare(query)
+    try:
+        healthcare_analytics_response = _execute_healthcare_analytics(query)
+    except Exception as e:
+        logger.warning(f"Deterministic healthcare analytics failed in stream, falling back to LLM: {e}")
+        healthcare_analytics_response = None
+    if healthcare_analytics_response:
+        yield healthcare_analytics_response
+        return
+
+    if _is_predefined_request_response(query):
+        logger.info("Routing predefined stream query through JSON-grounded LLM path.")
+        async for token in _stream_healthcare_response(query, conversation_history):
+            yield token
+        return
+    logger.info("Routing non-predefined stream query through JSON-grounded LLM path.")
+    async for token in _stream_healthcare_response(query, conversation_history):
+        yield token
+    return
+
     if query.lower() != original_query.lower():
         logger.info(f"Fixed typo (stream): '{original_query}' → '{query}'")
         typo_correction_note = f"\n\n[SYSTEM NOTE: The user's query had a typo. Original: '{original_query}'. I have interpreted this as: '{query}'. Please proceed with this interpretation and acknowledge the correction naturally in your response.]"
@@ -3693,12 +4399,12 @@ async def stream_query(
     if llm_entities.get("is_automotive_related") is False and not is_report_request:
         logger.info(f"AI Domain Check (stream): Query detected as explicitly out-of-domain: '{query}'.")
         clarification_prompt = (
-            "The user asked about a subject outside the VOXA Automotive domain (e.g., Meta, Google, etc.).\n\n"
+            "The user asked about a subject outside the VOXA Healthcare Analytics domain (e.g., unrelated company trivia).\n\n"
             "STRICT RULES:\n"
-            "1. Politely explain that you are the VOXA Automotive Assistant for Manufacturing Operations.\n"
-            "2. Clarify that you only have access to internal production, revenue, and quality data for our plants and models.\n"
-            "3. DO NOT provide numbers or dashboards for external companies.\n"
-            "4. Ask if they would like to see an automotive report instead."
+            "1. Politely explain that you are the VOXA Healthcare Analytics Assistant.\n"
+            "2. Clarify that you only have access to healthcare operations data: patients, doctors, services, billing, vitals, outcomes, and regions.\n"
+            "3. DO NOT provide numbers or dashboards for external subjects.\n"
+            "4. Ask if they want a healthcare report instead (for example pending payments, patient outcomes, or active vs critical patients)."
         )
         async for token in llm_service.stream_response(
             user_query=query,
@@ -3755,7 +4461,7 @@ async def stream_query(
             yield structured_response
             return
     elif structured_intent and structured_intent.get("intent_confidence", 1.0) < 0.8:
-        clarification_prompt = "Ask 1-2 polite counter-questions to clarify if the user wants production, revenue, or quality alerts, and for which plant/period."
+        clarification_prompt = "Ask 1-2 polite counter-questions to clarify if the user wants patients, billing, services, vitals, or outcomes, and for which region/service/doctor/time period."
         async for token in llm_service.stream_response(
             user_query=query,
             data_context=clarification_prompt,
@@ -3772,9 +4478,18 @@ async def stream_query(
     )
 
     # Detect if query sounds like a data question that failed structured parsing
-    data_keywords = ["how many", "total", "what is the revenue", "production of", "units", "alerts in"]
+    data_keywords = ["how many", "total", "what is the revenue", "patient count for", "units", "alerts in"]
     if any(k in query.lower() for k in data_keywords) and "why" not in query.lower():
-         yield "I couldn't find a direct way to calculate that value from the current dataset. Could you rephrase your question? For example: 'Show me production by plant for Q1'."
+         fallback = _generate_llm_only_response(
+             query,
+             (
+                 "The user asked a data-like question that failed structured parsing. "
+                 "Politely explain the limitation, do not invent numbers, and ask for a more specific rephrase "
+                 "using Production Units, Revenue, or Quality Alerts with an example."
+             ),
+             conversation_history=conversation_history,
+         )
+         yield fallback
          return
 
     async for token in llm_service.stream_response(

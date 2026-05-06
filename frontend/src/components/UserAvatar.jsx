@@ -1,7 +1,7 @@
 import React from 'react';
 import useAuthStore from '../store/useAuthStore';
 
-const API_BASE = (import.meta.env.VITE_API_URL || 'https://voice-model-lk22.onrender.com/api').replace('/api', '');
+const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:8000/api').replace('/api', '');
 
 export const getInitials = (name) => {
   if (!name) return 'U';
@@ -18,8 +18,8 @@ export default function UserAvatar({ className = '', style = {} }) {
     : null;
 
   const defaultFallbackStyle = {
-    background: 'linear-gradient(135deg, #D4AF37, #B8962E)',
-    color: '#0B0B0F',
+    background: 'linear-gradient(135deg, #3B82F6, #1D4ED8)',
+    color: '#FFFFFF',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',

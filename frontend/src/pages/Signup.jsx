@@ -73,7 +73,7 @@ export default function Signup() {
                 <path d="M20 8V16M24 23L33 28M16 23L7 28" stroke="var(--bg)" strokeWidth="3" strokeLinecap="round" />
               </svg>
             </div>
-            <span className="text-2xl font-black text-[var(--txt)] tracking-tighter">VOXA</span>
+            <span className="text-2xl font-black text-[var(--txt)] tracking-tighter">AniCare Vox</span>
           </div>
 
           <div>
@@ -103,7 +103,7 @@ export default function Signup() {
                 <path d="M20 8V16M24 23L33 28M16 23L7 28" stroke="var(--bg)" strokeWidth="4" strokeLinecap="round" />
               </svg>
             </div>
-            <span className="text-xl font-black text-[var(--txt)] tracking-tighter">VOXA</span>
+            <span className="text-xl font-black text-[var(--txt)] tracking-tighter">AniCare Vox</span>
           </div>
 
           <div className="mb-4">
@@ -250,7 +250,7 @@ export default function Signup() {
             <button
               type="submit"
               disabled={loading}
-              className="animate-shine w-full flex items-center justify-center py-3.5 px-6 rounded-xl bg-gradient-to-r from-[#D4AF37] via-[#F5E6B3] to-[#B8962E] transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-gold-600/20 group disabled:opacity-50 mt-4"
+              className="animate-shine w-full flex items-center justify-center py-3.5 px-6 rounded-xl bg-gradient-to-r from-[#3B82F6] via-[#BFDBFE] to-[#1D4ED8] transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-gold-600/20 group disabled:opacity-50 mt-4"
             >
               {loading ? (
                 <div className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin" />

@@ -51,10 +51,10 @@ export default function App() {
           },
           success: {
             duration: 2500,
-            iconTheme: { primary: '#D4AF37', secondary: '#0B0B0F' },
+            iconTheme: { primary: '#3B82F6', secondary: '#0B0B0F' },
             style: {
-              border:     '1px solid rgba(212,175,55,0.35)',
-              boxShadow:  '0 8px 32px rgba(0,0,0,0.50), 0 0 0 1px rgba(212,175,55,0.08) inset',
+              border:     '1px solid rgba(59,130,246,0.35)',
+              boxShadow:  '0 8px 32px rgba(0,0,0,0.50), 0 0 0 1px rgba(59,130,246,0.08) inset',
             },
           },
           error: {

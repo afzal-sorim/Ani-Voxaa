@@ -1,4 +1,4 @@
-@tailwind base;
+﻿@tailwind base;
 @tailwind components;
 @tailwind utilities;
 
@@ -144,7 +144,7 @@
   input:focus-visible,
   textarea:focus-visible,
   a:focus-visible {
-    outline: 2px solid #D4AF37;
+    outline: 2px solid #3B82F6;
     outline-offset: 2px;
     border-radius: 2px;
   }
@@ -153,14 +153,14 @@
   ::-webkit-scrollbar              { width: 4px; height: 4px; }
   ::-webkit-scrollbar-track        { background: transparent; }
   ::-webkit-scrollbar-thumb        {
-    background: rgba(212,175,55,0.20);
+    background: rgba(59,130,246,0.20);
     border-radius: 9999px;
     transition: background 0.2s;
   }
-  ::-webkit-scrollbar-thumb:hover  { background: rgba(212,175,55,0.50); }
+  ::-webkit-scrollbar-thumb:hover  { background: rgba(59,130,246,0.50); }
   ::-webkit-scrollbar-corner       { background: transparent; }
   /* Firefox scrollbar */
-  * { scrollbar-width: thin; scrollbar-color: rgba(212,175,55,0.22) transparent; }
+  * { scrollbar-width: thin; scrollbar-color: rgba(59,130,246,0.22) transparent; }
 }
 
 @keyframes fadeIn {
@@ -219,7 +219,7 @@
 @layer utilities {
   /* Gradient text */
   .text-gold-gradient {
-    background: linear-gradient(135deg, #D4AF37 0%, #F5E6B3 50%, #B8962E 100%);
+    background: linear-gradient(135deg, #3B82F6 0%, #BFDBFE 50%, #1D4ED8 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -227,7 +227,7 @@
   }
 
   .text-gold-gradient-animated {
-    background: linear-gradient(135deg, #D4AF37 0%, #F5E6B3 50%, #B8962E 100%);
+    background: linear-gradient(135deg, #3B82F6 0%, #BFDBFE 50%, #1D4ED8 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -296,7 +296,7 @@
 
   /* Gold gradient background */
   .bg-gold-gradient {
-    background: linear-gradient(135deg, #D4AF37 0%, #B8962E 100%);
+    background: linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%);
   }
 
   /* Gradient border trick via pseudo-element */
@@ -306,7 +306,7 @@
     inset: -1px;
     border-radius: inherit;
     padding: 2px;
-    background: linear-gradient(135deg, #D4AF37, #F5E6B3, #B8962E);
+    background: linear-gradient(135deg, #3B82F6, #BFDBFE, #1D4ED8);
     background-size: 200% 200%;
     /* Clip the gradient to only show through the border ring, not the fill */
     -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
@@ -365,7 +365,7 @@
   --txt3:       #9CA3AF;
   --brd:        rgba(0,0,0,0.08);
   --brd2:       rgba(0,0,0,0.15);
-  --gold-acc:   #B8962E;
+  --gold-acc:   #1D4ED8;
   /* Sidebar tokens — light */
   --sb-bg:          rgba(255,255,255,0.98);
   --sb-txt:         #1A1A2E;
@@ -373,8 +373,8 @@
   --sb-txt3:        #9898B4;
   --sb-brd:         rgba(0,0,0,0.07);
   --sb-hover:       rgba(0,0,0,0.04);
-  --sb-active:      rgba(184,150,46,0.09);
-  --sb-active-brd:  rgba(184,150,46,0.25);
+  --sb-active:      rgba(29,78,216,0.09);
+  --sb-active-brd:  rgba(29,78,216,0.25);
 }
 
 [data-theme="dark"] {
@@ -387,7 +387,7 @@
   --txt3:       #5E5E7E;
   --brd:        rgba(255,255,255,0.06);
   --brd2:       rgba(255,255,255,0.12);
-  --gold-acc:   #D4AF37;
+  --gold-acc:   #3B82F6;
   /* Sidebar tokens — dark */
   --sb-bg:          rgba(10,9,14,0.98);
   --sb-txt:         #E8E8F2;
@@ -395,8 +395,8 @@
   --sb-txt3:        #4E4E68;
   --sb-brd:         rgba(255,255,255,0.06);
   --sb-hover:       rgba(255,255,255,0.04);
-  --sb-active:      rgba(212,175,55,0.09);
-  --sb-active-brd:  rgba(212,175,55,0.22);
+  --sb-active:      rgba(59,130,246,0.09);
+  --sb-active-brd:  rgba(59,130,246,0.22);
 }
 
 /* Markdown content styles (cannot be expressed purely in Tailwind without @apply) */
@@ -413,8 +413,8 @@
   .prose-gold ul, .prose-gold ol { padding-left: 1.25rem; margin: 0.5rem 0; }
   .prose-gold li { margin: 0.25rem 0; }
   .prose-gold code {
-    background: rgba(212,175,55,0.10);
-    color: #F5E6B3;
+    background: rgba(59,130,246,0.10);
+    color: #BFDBFE;
     padding: 0.15em 0.4em;
     border-radius: 0.375rem;
     font-size: 0.88em;
@@ -422,7 +422,7 @@
   }
   .prose-gold pre {
     background: rgba(0,0,0,0.4);
-    border: 1px solid rgba(212,175,55,0.15);
+    border: 1px solid rgba(59,130,246,0.15);
     border-radius: 0.5rem;
     padding: 0.75rem;
     margin: 0.5rem 0;
@@ -436,11 +436,11 @@
     font-size: 0.85em;
   }
   .prose-gold blockquote {
-    border-left: 3px solid #D4AF37;
+    border-left: 3px solid #3B82F6;
     padding: 0.5rem 0.75rem;
     margin: 0.5rem 0;
     color: #9D9DB0;
-    background: rgba(212,175,55,0.05);
+    background: rgba(59,130,246,0.05);
     border-radius: 0 0.375rem 0.375rem 0;
   }
   .prose-gold hr {
@@ -448,16 +448,16 @@
     border-top: 1px solid rgba(255,255,255,0.06);
     margin: 0.75rem 0;
   }
-  .prose-gold a { color: #D4AF37; text-decoration: underline; }
+  .prose-gold a { color: #3B82F6; text-decoration: underline; }
 
   /* Light mode prose adjustments */
   [data-theme="light"] .prose-gold code {
-    background: rgba(184,150,46,0.12);
-    color: #7A5C1A;
+    background: rgba(29,78,216,0.12);
+    color: #1D4ED8;
   }
-  [data-theme="light"] .prose-gold pre  { background: #F0EDE6; border-color: rgba(184,150,46,0.2); }
+  [data-theme="light"] .prose-gold pre  { background: #F1F6FD; border-color: rgba(29,78,216,0.2); }
   [data-theme="light"] .prose-gold pre code { color: #1A1A1F; }
-  [data-theme="light"] .prose-gold blockquote { color: #6B6B7B; background: rgba(184,150,46,0.05); }
+  [data-theme="light"] .prose-gold blockquote { color: #6B6B7B; background: rgba(29,78,216,0.06); }
   [data-theme="light"] .prose-gold hr  { border-top-color: rgba(0,0,0,0.08); }
 
   /* Table wrapper */
@@ -469,12 +469,12 @@
     background: rgba(26,26,31,0.65);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(212,175,55,0.15);
+    border: 1px solid rgba(59,130,246,0.15);
     box-shadow: 0 2px 8px rgba(0,0,0,0.3);
   }
   [data-theme="light"] .table-glass {
     background: rgba(255,255,255,0.85);
-    border-color: rgba(184,150,46,0.2);
+    border-color: rgba(29,78,216,0.2);
   }
   .table-glass table {
     width: 100%;
@@ -483,8 +483,8 @@
     text-align: left;
   }
   .table-glass thead {
-    background: rgba(212,175,55,0.08);
-    border-bottom: 1px solid rgba(212,175,55,0.15);
+    background: rgba(59,130,246,0.08);
+    border-bottom: 1px solid rgba(59,130,246,0.15);
   }
   .table-glass th {
     padding: 12px 16px;
@@ -493,7 +493,7 @@
     text-transform: uppercase;
     letter-spacing: 0.03em;
     white-space: nowrap;
-    color: #D4AF37;
+    color: #3B82F6;
   }
   .table-glass td {
     padding: 12px 16px;
@@ -502,10 +502,10 @@
     font-size: 14px;
   }
   [data-theme="light"] .table-glass td { color: #6B6B7B; border-bottom-color: rgba(0,0,0,0.06); }
-  [data-theme="light"] .table-glass th { color: #B8962E; }
+  [data-theme="light"] .table-glass th { color: #1D4ED8; }
   .table-glass tbody tr:last-child td { border-bottom: none; }
   .table-glass tbody tr { transition: background 150ms ease; }
-  .table-glass tbody tr:hover { background: rgba(212,175,55,0.04); }
+  .table-glass tbody tr:hover { background: rgba(59,130,246,0.04); }
 }
 
 .hide-scrollbar {
@@ -514,4 +514,95 @@
 }
 .hide-scrollbar::-webkit-scrollbar {
   display: none;
+}
+
+/* Restored latest chatbot visual skin */
+
+[data-theme="light"] #app-header {
+  background: rgba(255, 255, 255, 0.94);
+  color: #1E293B;
+  border-bottom: 1px solid #d9e5f3;
+}
+
+[data-theme="light"] #app-header .text-\[var\(--txt\)\] {
+  color: #1E293B !important;
+}
+
+[data-theme="light"] .ci-assistant-bubble {
+  background: #ffffff;
+  border: 1px solid #d4dfe9;
+  border-radius: 26px 26px 26px 12px !important;
+  box-shadow: 0 10px 26px rgba(20, 56, 90, 0.16);
+}
+
+[data-theme="light"] .ci-user-bubble {
+  background: linear-gradient(160deg, #1783d2, #2d6dcc);
+  color: #f7fcff;
+  border: 1px solid #1f6dbc;
+  border-radius: 20px 20px 12px 20px !important;
+  box-shadow: 0 8px 18px rgba(26, 91, 152, 0.28);
+}
+
+[data-theme="light"] .chatbot-reference-markdown .table-glass {
+  border-radius: 24px;
+  border: 1px solid #c8d8e7;
+  background: #ffffff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95), 0 8px 18px rgba(35, 67, 97, 0.13);
+}
+
+[data-theme="light"] .chatbot-reference-markdown .table-glass thead {
+  background: #eef4fb;
+  border-bottom: 1px solid #ccdced;
+}
+
+[data-theme="light"] .chatbot-reference-markdown .table-glass th {
+  color: #6d7780;
+  font-size: 11px;
+  letter-spacing: 0.07em;
+}
+
+[data-theme="light"] .chatbot-reference-markdown .table-glass td {
+  color: #2f3f4c;
+  border-bottom-color: #e6edf4;
+}
+
+[data-theme="light"] .chat-input-row {
+  border-radius: 20px !important;
+  border: 1px solid #d6e0ea !important;
+  background: #ffffff;
+  box-shadow: 0 10px 24px rgba(30, 63, 93, 0.14);
+}
+
+[data-theme="light"] #text-input-field {
+  border: 1px solid #d9e1e8;
+  background: #ffffff;
+  border-radius: 999px;
+  min-height: 40px;
+}
+
+[data-theme="light"] #voice-record-btn.vb-idle,
+[data-theme="light"] #text-send-btn {
+  border-radius: 999px !important;
+}
+
+.chat-input-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 62px;
+}
+
+#voice-button-container {
+  display: flex;
+  align-items: center;
+}
+
+#text-input-field {
+  width: 100%;
+  line-height: 1.4;
+}
+
+[data-theme="light"] #voice-record-btn.vb-idle {
+  background: linear-gradient(160deg, #3B82F6, #1D4ED8) !important;
+  color: #ffffff !important;
 }

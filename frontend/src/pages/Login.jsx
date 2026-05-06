@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import { HiMail, HiLockClosed, HiArrowRight, HiSparkles, HiEye, HiEyeOff } from 'react-icons/hi';
@@ -31,7 +31,7 @@ export default function Login() {
     <div className="min-h-screen w-full flex flex-col lg:flex-row bg-[var(--bg)] overflow-y-auto">
 
       {/* ── Left Side: Immersive Hero Area (Hidden on Mobile) ── */}
-      <div className="hidden lg:flex lg:w-2/5 xl:w-[45%] relative overflow-hidden bg-[var(--bg2)] border-r border-[var(--brd)]">
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-[var(--bg2)] border-r border-[var(--brd)]">
         {/* The Hero Image */}
         <img
           src="/images/auth-hero.png"
@@ -86,7 +86,7 @@ export default function Login() {
       </div>
 
       {/* ── Right Side: Professional Auth Pane ── */}
-      <div className="flex-1 flex flex-col justify-center items-start px-8 sm:px-16 lg:px-24 xl:px-32 bg-[var(--bg)] relative overflow-y-auto hide-scrollbar min-h-screen pt-12 pb-12">
+      <div className="flex-1 lg:w-1/2 flex flex-col justify-center items-start px-8 sm:px-16 lg:px-24 xl:px-32 bg-[var(--bg)] relative overflow-y-auto hide-scrollbar min-h-screen pt-12 pb-12">
 
         {/* Top Header Branding */}
         <div className="absolute top-10 flex items-center gap-2">
@@ -153,7 +153,7 @@ export default function Login() {
             <button
               type="submit"
               disabled={loading}
-              className="animate-shine w-full flex items-center justify-center py-4 px-6 rounded-2xl bg-gradient-to-r from-[#D4AF37] via-[#F5E6B3] to-[#B8962E] transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-gold-600/20 group disabled:opacity-50"
+              className="animate-shine w-full flex items-center justify-center py-4 px-6 rounded-2xl bg-gradient-to-r from-[#3B82F6] via-[#BFDBFE] to-[#1D4ED8] transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-blue-600/20 group disabled:opacity-50"
             >
               {loading ? (
                 <div className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin" />

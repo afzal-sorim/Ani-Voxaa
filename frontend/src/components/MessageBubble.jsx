@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from 'react';
+﻿import React, { useMemo, useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { 
@@ -8,7 +8,8 @@ import {
 import { toast } from 'react-hot-toast';
 
 import UserAvatar from './UserAvatar';
-import DashboardResponse from './DashboardResponse';
+import PredefinedResponseTemplate from './PredefinedResponseTemplate';
+import { getPredefinedTemplateKey } from './predefinedTemplateUtils';
 
 import useUIStore from '../store/useUIStore';
 import { useRef } from 'react';
@@ -83,7 +84,7 @@ function IframeResizer({ srcDoc, messageId }) {
  * Strict message schema expected:
  * { id, role, content, type: 'text'|'voice', createdAt, isError }
  */
-export default function MessageBubble({ message, onRetry, onRegenerate, onEdit, isStreaming }) {
+export default function MessageBubble({ message, onRetry, onRegenerate, onEdit, isStreaming, triggerQuery }) {
   const { role, content, type, createdAt, isError } = message;
   const isUser = role === 'user';
   const isVoice = type === 'voice';
@@ -132,6 +133,11 @@ export default function MessageBubble({ message, onRetry, onRegenerate, onEdit, 
       hour: 'numeric', minute: '2-digit', hour12: true,
     });
   }, [createdAt]);
+  const predefinedTemplateKey = useMemo(() => {
+    if (isUser || isError || !triggerQuery || isStreaming) return null;
+    return getPredefinedTemplateKey(triggerQuery);
+  }, [isUser, isError, triggerQuery, isStreaming]);
+  const hasPredefinedTemplate = Boolean(predefinedTemplateKey);
 
   const isWide = useMemo(() => {
     // All assistant responses should now fit the screen width for a consistent executive dashboard feel
@@ -151,15 +157,15 @@ export default function MessageBubble({ message, onRetry, onRegenerate, onEdit, 
       {isUser ? (
         <UserAvatar 
           className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-[0.65rem] sm:text-xs font-bold mt-0.5 overflow-hidden shadow-lg"
-          style={{ background: 'linear-gradient(135deg, #D4AF37, #B8962E)', color: '#0B0B0F' }}
+          style={{ background: 'linear-gradient(135deg, #3B82F6, #1D4ED8)', color: '#F8FBFF' }}
         />
       ) : (
-        <div className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center bg-[var(--surf)] border border-gold/[0.18] mt-0.5">
+        <div className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center bg-[var(--surf)] border border-blue-400/20 mt-0.5">
           <svg width="18" height="18" viewBox="0 0 28 28" fill="none">
             <defs>
               <linearGradient id={`ai-grad-${message.id}`} x1="0" y1="0" x2="28" y2="28">
-                <stop offset="0%" stopColor="#D4AF37" />
-                <stop offset="100%" stopColor="#F5E6B3" />
+                <stop offset="0%" stopColor="#3B82F6" />
+                <stop offset="100%" stopColor="#BFDBFE" />
               </linearGradient>
             </defs>
             <circle cx="14" cy="14" r="13" stroke={`url(#ai-grad-${message.id})`} strokeWidth="2" fill="none" />
@@ -177,10 +183,10 @@ export default function MessageBubble({ message, onRetry, onRegenerate, onEdit, 
             px-3 sm:px-4 py-2 sm:py-3 rounded-xl
             text-[0.8375rem] sm:text-[0.9375rem] leading-[1.6] sm:leading-[1.65] break-all
             ${isUser
-              ? 'bg-gold-gradient text-black rounded-br-sm shadow-[0_4px_15px_rgba(212,175,55,0.25)]'
-              : `bg-[var(--surf)] border border-gold/[0.15] rounded-bl-sm shadow-[0_2px_8px_rgba(0,0,0,0.3)]
-                 ${isError ? '!bg-red-500/10 !border-red-500/40' : ''}`}
+              ? 'ci-user-bubble'
+              : `ci-assistant-bubble ${isError ? '!bg-red-500/10 !border-red-500/40' : ''}`}
             ${isEditing ? 'w-full !p-0' : ''}
+            ${hasPredefinedTemplate ? '!p-0 !bg-transparent !border-transparent !shadow-none overflow-hidden' : ''}
             ${isWide ? 'w-full' : ''}
           `}
         >
@@ -214,7 +220,7 @@ export default function MessageBubble({ message, onRetry, onRegenerate, onEdit, 
                 </button>
                 <button 
                   onClick={handleEditSubmit}
-                  className="px-4 py-1.5 text-[11px] font-black uppercase tracking-widest bg-[#0B0B0F] text-[#D4AF37] rounded-lg hover:bg-black transition-all shadow-md active:scale-95"
+                  className="px-4 py-1.5 text-[11px] font-black uppercase tracking-widest bg-[#0B0B0F] text-[#3B82F6] rounded-lg hover:bg-black transition-all shadow-md active:scale-95"
                 >
                   Send
                 </button>
@@ -222,8 +228,12 @@ export default function MessageBubble({ message, onRetry, onRegenerate, onEdit, 
             </div>
           ) : isUser ? (
             <p>{content}</p>
+          ) : hasPredefinedTemplate ? (
+            <div className="w-full flex flex-col gap-3">
+              <PredefinedResponseTemplate templateKey={predefinedTemplateKey} content={content} />
+            </div>
           ) : (
-            <div className={`prose-gold overflow-x-auto ${isError ? 'text-red-400' : ''}`}>
+            <div className={`prose-gold chatbot-reference-markdown overflow-x-auto ${isError ? 'text-red-400' : ''}`}>
               {(() => {
                 const c = content || '';
                 let displayContent = c;
@@ -280,7 +290,7 @@ export default function MessageBubble({ message, onRetry, onRegenerate, onEdit, 
                         </ReactMarkdown>
                       )}
 
-                      <div className="w-full bg-white rounded-xl overflow-hidden my-4 border border-gold/[0.3] shadow-lg animate-fade-in-scale" style={{ maxWidth: '100%', display: 'block' }}>
+                      <div className="w-full bg-white rounded-xl overflow-hidden my-4 border border-blue-300/40 shadow-lg animate-fade-in-scale" style={{ maxWidth: '100%', display: 'block' }}>
                         <IframeResizer srcDoc={extractedHtml} messageId={message.id} />
                       </div>
 
@@ -322,7 +332,7 @@ export default function MessageBubble({ message, onRetry, onRegenerate, onEdit, 
 
           {/* Streaming cursor */}
           {isStreaming && (
-            <span className="inline-block text-gold animate-pulse-beat ml-0.5" aria-hidden="true">▊</span>
+            <span className="inline-block text-blue-500 animate-pulse-beat ml-0.5" aria-hidden="true">▊</span>
           )}
         </div>
 
@@ -402,12 +412,12 @@ export default function MessageBubble({ message, onRetry, onRegenerate, onEdit, 
 export function TypingIndicator() {
   return (
     <div className="flex gap-3 py-2 max-w-[1000px] w-full mx-auto animate-fade-in-up" id="typing-indicator">
-      <div className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-[var(--surf)] border border-gold/[0.18] mt-0.5">
+      <div className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-[var(--surf)] border border-blue-400/20 mt-0.5">
         <svg width="18" height="18" viewBox="0 0 28 28" fill="none">
           <defs>
             <linearGradient id="ai-grad-typing" x1="0" y1="0" x2="28" y2="28">
-              <stop offset="0%" stopColor="#D4AF37" />
-              <stop offset="100%" stopColor="#F5E6B3" />
+              <stop offset="0%" stopColor="#3B82F6" />
+              <stop offset="100%" stopColor="#BFDBFE" />
             </linearGradient>
           </defs>
           <circle cx="14" cy="14" r="13" stroke="url(#ai-grad-typing)" strokeWidth="2" fill="none" />
@@ -416,7 +426,7 @@ export function TypingIndicator() {
         </svg>
       </div>
       <div className="flex flex-col gap-1 max-w-[calc(100%-52px)] min-w-0">
-        <div className="px-4 py-3 rounded-xl rounded-bl-sm bg-[var(--surf)] border border-gold/[0.15] shadow-[0_2px_8px_rgba(0,0,0,0.3)]">
+        <div className="px-4 py-3 rounded-xl rounded-bl-sm bg-[var(--surf)] border border-blue-300/25 shadow-[0_2px_8px_rgba(0,0,0,0.3)]">
           <div className="flex gap-1.5 py-1">
             <span className="w-2 h-2 rounded-full bg-[var(--txt3)] animate-typing-dot" style={{ animationDelay: '0s' }} />
             <span className="w-2 h-2 rounded-full bg-[var(--txt3)] animate-typing-dot" style={{ animationDelay: '0.15s' }} />

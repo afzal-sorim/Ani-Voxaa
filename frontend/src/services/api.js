@@ -13,8 +13,8 @@
  *   POST /query          → direct data query
  */
 
-const API_BASE = import.meta.env.VITE_API_URL || 'https://voice-model-lk22.onrender.com/api';
-const WS_BASE = import.meta.env.VITE_WS_URL || 'wss://voice-model-lk22.onrender.com/api';
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+const WS_BASE = import.meta.env.VITE_WS_URL || 'ws://localhost:8000/api';
 
 /**
  * Helper to get the auth token from local storage

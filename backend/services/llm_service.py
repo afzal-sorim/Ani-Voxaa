@@ -18,6 +18,12 @@ except ImportError:
 
 logger = logging.getLogger("voxa.llm")
 
+# Conservative prompt-size guards to avoid Groq 413 errors on large contexts.
+MAX_DATA_CONTEXT_CHARS = 6000
+MAX_SYSTEM_CONTENT_CHARS = 9000
+MAX_HISTORY_MESSAGES = 6
+MAX_HISTORY_MESSAGE_CHARS = 800
+
 # Clients (lazy init)
 _sync_client: Groq | None = None
 _async_client: AsyncGroq | None = None
@@ -209,17 +215,30 @@ def _build_messages(
         system_content += "\n".join(f"- {rule}" for rule in LLM_GUARDRAILS)
 
     if data_context:
-        system_content += f"\n\n--- DATA CONTEXT ---\n{data_context}\n--- END DATA CONTEXT ---"
+        safe_data_context = data_context
+        if len(safe_data_context) > MAX_DATA_CONTEXT_CHARS:
+            safe_data_context = (
+                safe_data_context[:MAX_DATA_CONTEXT_CHARS]
+                + "\n\n[DATA CONTEXT TRUNCATED FOR TOKEN LIMIT]"
+            )
+        system_content += f"\n\n--- DATA CONTEXT ---\n{safe_data_context}\n--- END DATA CONTEXT ---"
 
     system_content += f"\n\nCurrent date/time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S (%A)')}"
+    if len(system_content) > MAX_SYSTEM_CONTENT_CHARS:
+        system_content = (
+            system_content[:MAX_SYSTEM_CONTENT_CHARS]
+            + "\n\n[SYSTEM CONTEXT TRUNCATED FOR TOKEN LIMIT]"
+        )
 
     messages = [{"role": "system", "content": system_content}]
 
     if conversation_history:
-        for msg in conversation_history[-10:]:
+        for msg in conversation_history[-MAX_HISTORY_MESSAGES:]:
             role = msg.get("role", "user")
             content = msg.get("content", "")
             if role in ("user", "assistant") and content:
+                if len(content) > MAX_HISTORY_MESSAGE_CHARS:
+                    content = content[:MAX_HISTORY_MESSAGE_CHARS] + " ...[truncated]"
                 messages.append({"role": role, "content": content})
 
     messages.append({"role": "user", "content": user_query})
@@ -241,17 +260,30 @@ def _build_explanation_messages(
         system_content += "\n".join(f"- {rule}" for rule in LLM_GUARDRAILS)
 
     if data_context:
-        system_content += f"\n\n--- DATA CONTEXT ---\n{data_context}\n--- END DATA CONTEXT ---"
+        safe_data_context = data_context
+        if len(safe_data_context) > MAX_DATA_CONTEXT_CHARS:
+            safe_data_context = (
+                safe_data_context[:MAX_DATA_CONTEXT_CHARS]
+                + "\n\n[DATA CONTEXT TRUNCATED FOR TOKEN LIMIT]"
+            )
+        system_content += f"\n\n--- DATA CONTEXT ---\n{safe_data_context}\n--- END DATA CONTEXT ---"
 
     system_content += f"\n\nCurrent date/time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S (%A)')}"
+    if len(system_content) > MAX_SYSTEM_CONTENT_CHARS:
+        system_content = (
+            system_content[:MAX_SYSTEM_CONTENT_CHARS]
+            + "\n\n[SYSTEM CONTEXT TRUNCATED FOR TOKEN LIMIT]"
+        )
 
     messages = [{"role": "system", "content": system_content}]
 
     if conversation_history:
-        for msg in conversation_history[-10:]:
+        for msg in conversation_history[-MAX_HISTORY_MESSAGES:]:
             role = msg.get("role", "user")
             content = msg.get("content", "")
             if role in ("user", "assistant") and content:
+                if len(content) > MAX_HISTORY_MESSAGE_CHARS:
+                    content = content[:MAX_HISTORY_MESSAGE_CHARS] + " ...[truncated]"
                 messages.append({"role": role, "content": content})
 
     messages.append(
@@ -280,17 +312,17 @@ def extract_entities(query: str) -> dict:
     client = _get_sync_client()
     
     prompt = f"""
-    You are an NLU engine for an Automotive Manufacturing Assistant.
+    You are an NLU engine for a Healthcare Service Analytics Assistant.
     Extract structured information from the following query.
     Query: "{query}"
 
     Return ONLY a valid JSON object with these keys:
-    - is_automotive_related: (boolean: true if the query is about OUR automotive manufacturing plants, production, revenue, or quality. Generic requests for "reports", "dashboards", or "summaries" should also be considered TRUE. Set to FALSE ONLY if the query is explicitly about unrelated companies like Meta, Google, Apple, Amazon, or other industries/trivia, EVEN IF it mentions 'revenue' or 'sales'.)
-    - metric: (one of: "units", "revenue", "alerts", "forecast_units", "forecast_revenue", "affected_units", or null)
+    - is_automotive_related: (boolean: true if the query is about OUR healthcare service operations, patients, doctors, billing, outcomes, or vitals. Generic requests for "reports", "dashboards", or "summaries" should also be considered TRUE. Set to FALSE ONLY if the query is explicitly about unrelated companies like Meta, Google, Apple, Amazon, or other industries/trivia, EVEN IF it mentions 'revenue' or 'sales'.)
+    - metric: (one of: "patients", "revenue", "alerts", "services", "vitals", "critical_patients", "pending_payments", or null)
     - aggregation: (one of: "sum", "avg", "count", "max", "min", or null)
-    - plant: (e.g. "Dearborn", "Claycomo", or null)
-    - model: (e.g. "F-150", "Transit", or null)
-    - department: (e.g. "Body Shop", "Paint Shop", or null)
+    - plant: (use as region, e.g. "California", "Texas", or null)
+    - model: (use as service name/category, e.g. "Hospice Home Support", or null)
+    - department: (use as care area, e.g. "Disability", "Hospice", or null)
     - time_range: (a description like "last 10 days", "Q1 2024", "this week", or null)
     
     CRITICAL: If is_automotive_related is false, all other fields MUST be null.

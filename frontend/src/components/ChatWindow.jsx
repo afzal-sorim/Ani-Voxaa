@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useCallback, useState } from 'react';
+import React, { useRef, useEffect, useCallback, useState, useMemo } from 'react';
 import useChatStore from '../store/useChatStore';
 import useVoiceStore from '../store/useVoiceStore';
 import useVoiceRecorder from '../hooks/useVoiceRecorder';
@@ -59,6 +59,19 @@ export default function ChatWindow() {
   const activeConversation = activeConversationId ? conversations[activeConversationId] : null;
   const messages   = activeConversation?.messages || [];
   const hasMessages = messages.length > 0;
+  const getTriggerQueryForAssistant = useCallback((assistantIndex) => {
+    for (let i = assistantIndex - 1; i >= 0; i -= 1) {
+      if (messages[i]?.role === 'user') return messages[i].content || '';
+    }
+    return '';
+  }, [messages]);
+
+  const streamingTriggerQuery = useMemo(() => {
+    for (let i = messages.length - 1; i >= 0; i -= 1) {
+      if (messages[i]?.role === 'user') return messages[i].content || '';
+    }
+    return '';
+  }, [messages]);
 
   /*
    * Smart auto-scroll: only scrolls to the bottom when the user is already
@@ -308,10 +321,11 @@ export default function ChatWindow() {
         <div className="flex-1 flex flex-col py-4 px-1 sm:py-6 sm:px-5 md:px-6 gap-1.5 sm:gap-2 max-w-[1600px] w-full mx-auto">
 
 
-          {messages.map((msg) => (
+          {messages.map((msg, idx) => (
             <MessageBubble
               key={msg.id}
               message={msg}
+              triggerQuery={msg.role === 'assistant' ? getTriggerQueryForAssistant(idx) : null}
               onRetry={msg.isError ? () => handleRetry(msg.id, 'retry') : null}
               onRegenerate={
                 msg.role === 'assistant' && !msg.isError
@@ -325,6 +339,7 @@ export default function ChatWindow() {
           {isStreaming && streamingText && (
             <MessageBubble
               message={{ id: 'streaming', role: 'assistant', content: streamingText, type: 'text', createdAt: Date.now() }}
+              triggerQuery={streamingTriggerQuery}
               isStreaming
             />
           )}
@@ -336,7 +351,7 @@ export default function ChatWindow() {
         {showScrollBottom && (
           <button
             onClick={scrollToBottom}
-            className="fixed bottom-[120px] right-6 sm:right-10 z-30 w-10 h-10 rounded-full bg-[var(--surf)] border border-gold/[0.4] text-[#D4AF37] shadow-[0_4px_12px_rgba(0,0,0,0.4)] flex items-center justify-center hover:bg-[var(--surf-hover)] active:scale-90 transition-all duration-200 animate-fade-in"
+            className="fixed bottom-[120px] right-6 sm:right-10 z-30 w-10 h-10 rounded-full bg-[var(--surf)] border border-gold/[0.4] text-[#3B82F6] shadow-[0_4px_12px_rgba(0,0,0,0.4)] flex items-center justify-center hover:bg-[var(--surf-hover)] active:scale-90 transition-all duration-200 animate-fade-in"
             title="Scroll to bottom"
           >
             <HiArrowDown size={18} />
@@ -357,7 +372,7 @@ export default function ChatWindow() {
           <button
             className="
               inline-flex items-center gap-1.5 sm:gap-2
-              px-3 sm:px-4 py-1 sm:py-1.5 rounded-full
+              px-3 sm:px-4 py-1 sm:py-1.5 rounded-md
               bg-[var(--surf)] border border-[var(--brd)] text-[var(--txt2)]
               text-[0.7rem] sm:text-xs cursor-pointer
               hover:border-red-500/50 hover:text-red-400 hover:bg-red-500/5
@@ -378,7 +393,7 @@ export default function ChatWindow() {
         <div
           className={`
             chat-input-row max-w-[1000px] w-full flex items-center gap-1.5 sm:gap-2 relative
-            glass-surface border border-[var(--brd2)] rounded-full
+            glass-surface border border-[var(--brd2)] rounded-lg
             px-2 sm:px-2.5 py-1.5 pl-2.5 sm:pl-3
             shadow-[0_4px_16px_rgba(0,0,0,0.3)] transition-all duration-150
             gradient-border-focus

@@ -17,10 +17,10 @@ export default {
     extend: {
       colors: {
         gold: {
-          DEFAULT: '#D4AF37',
-          dark:    '#B8962E',
-          light:   '#F5E6B3',
-          muted:   '#A89060',
+          DEFAULT: '#3B82F6',
+          dark:    '#1D4ED8',
+          light:   '#BFDBFE',
+          muted:   '#60A5FA',
         },
         background: {
           DEFAULT:   '#0B0B0F',

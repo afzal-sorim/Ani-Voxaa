@@ -6,6 +6,8 @@ Initializes FastAPI app, mounts routers, and manages service startup.
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
+import asyncio
 import logging
 import sys
 import os
@@ -38,30 +40,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger("voxa.main")
 
-app = FastAPI(
-    title="VOXA — Voice-Enabled AI Automotive Assistant",
-    description="Backend API for VOXA, serving automotive plant data insights via voice/text.",
-    version="1.0.0",
-)
-
-# ── Middleware ──
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=CORS_ORIGINS,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 # ── Service Initialization ──
-@app.on_event("startup")
-async def startup_event():
-    import asyncio
-    logger.info("VOXA Backend starting... (Initialization moved to background)")
-    app.state.ready = False
-    
-    # Start heavy loading in the background so we don't block the health check
-    asyncio.create_task(run_background_initialization())
 
 async def run_background_initialization():
     """
@@ -86,6 +65,32 @@ async def run_background_initialization():
     app.state.ready = True
     logger.info("🌟 VOXA Backend is FULLY READY and data is loaded.")
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    logger.info("VOXA Backend starting... (Initialization moved to background)")
+    app.state.ready = False
+    asyncio.create_task(run_background_initialization())
+    yield
+    # Shutdown (cleanup if needed)
+    logger.info("VOXA Backend shutting down...")
+
+app = FastAPI(
+    title="VOXA — Voice-Enabled AI Automotive Assistant",
+    description="Backend API for VOXA, serving automotive plant data insights via voice/text.",
+    version="1.0.0",
+    lifespan=lifespan,
+)
+
+# ── Middleware ──
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=CORS_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 from fastapi.staticfiles import StaticFiles
 
 # Create uploads directory if it doesn't exist
@@ -95,6 +100,8 @@ uploads_dir.mkdir(parents=True, exist_ok=True)
 # ── Router Mounting ──
 # Prefix all routes with /api as expected by the frontend
 app.include_router(health.router, prefix="/api", tags=["Health"])
+# Also include health router without prefix for load balancer compatibility
+app.include_router(health.router, tags=["Health - No Prefix"])
 app.include_router(speech.router, prefix="/api", tags=["Speech"])
 app.include_router(chat.router, prefix="/api", tags=["Chat"])
 app.include_router(query.router, prefix="/api", tags=["Query"])

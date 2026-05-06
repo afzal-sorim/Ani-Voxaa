@@ -26,10 +26,25 @@ FOLLOW_UP_PATTERNS = [
 METRIC_TERMS = {
     "revenue",
     "sales",
-    "production",
+    "patients",
+    "patient",
+    "doctor",
+    "service",
+    "vitals",
+    "outcomes",
     "units",
     "alerts",
     "issues",
+    "billing",
+    "payment",
+    "payments",
+    "pending",
+    "overdue",
+    "critical",
+    "active",
+    "outcome",
+    "case",
+    "cases",
     "forecast",
     "tasks",
     "schedule",
@@ -54,7 +69,7 @@ TIME_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
-GROUP_BY_TERMS = {"plant", "model", "department", "week", "month", "quarter", "date", "status", "issue type"}
+GROUP_BY_TERMS = {"region", "doctor", "service", "caregiver", "week", "month", "quarter", "date", "status", "condition"}
 FILTER_PREFIX_PATTERN = re.compile(
     r"\b(for|in|at|only|just)\s+"
     r"(?P<value>[a-zA-Z0-9][a-zA-Z0-9\s\-.&]+?)"
@@ -317,7 +332,7 @@ def _replace_or_append_filter(previous_query: str, target: str) -> str:
         if not TIME_PATTERN.search(existing):
             return previous_query[: last.start(2)] + target + previous_query[last.end(2) :]
 
-    if re.search(r"\b(by|per)\s+(plant|model|department|week|month|quarter)\b", previous_query, re.IGNORECASE):
+    if re.search(r"\b(by|per)\s+(region|doctor|service|caregiver|week|month|quarter)\b", previous_query, re.IGNORECASE):
         return f"{previous_query} filtered for {target}"
     return f"{previous_query} for {target}"
 
@@ -338,9 +353,9 @@ def _replace_or_append_group_by(previous_query: str, target: str) -> str:
             count=1,
             flags=re.IGNORECASE,
         )
-    if re.search(r"\bby\s+(plant|model|department|week|month|quarter|date|status)\b", previous_query, re.IGNORECASE):
+    if re.search(r"\bby\s+(region|doctor|service|caregiver|week|month|quarter|date|status)\b", previous_query, re.IGNORECASE):
         return re.sub(
-            r"\bby\s+(plant|model|department|week|month|quarter|date|status)\b",
+            r"\bby\s+(region|doctor|service|caregiver|week|month|quarter|date|status)\b",
             f"grouped by {group}",
             previous_query,
             count=1,
@@ -352,7 +367,7 @@ def _replace_or_append_group_by(previous_query: str, target: str) -> str:
 def _extract_group_by(query: str) -> str | None:
     match = re.search(
         r"\b(?:grouped\s+by|group\s+by|breakdown\s+by|by)\s+"
-        r"(plant|model|department|week|month|quarter|date|status|issue type)\b",
+        r"(region|doctor|service|caregiver|week|month|quarter|date|status|condition)\b",
         query,
         flags=re.IGNORECASE,
     )

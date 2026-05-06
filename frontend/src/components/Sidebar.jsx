@@ -11,6 +11,7 @@ import CustomDropdown from './CustomDropdown';
 import ConfirmModal from './ConfirmModal';
 import UserAvatar from './UserAvatar';
 import DocumentUpload from './DocumentUpload';
+import AppLogo from './AppLogo';
 
 export default function Sidebar({ isOpen, onClose }) {
   /* ── Store selectors ── */
@@ -177,30 +178,12 @@ export default function Sidebar({ isOpen, onClose }) {
           style={{ borderBottom: '1px solid var(--sb-brd)' }}
         >
           <div className="flex items-center gap-2">
-            {/* Automotive steering wheel logo mark */}
-            <svg width="18" height="18" viewBox="0 0 40 40" fill="none">
-              <defs>
-                <linearGradient id="sb-logo" x1="0" y1="0" x2="40" y2="40">
-                  <stop offset="0%" stopColor="#D4AF37" />
-                  <stop offset="100%" stopColor="#F5E6B3" />
-                </linearGradient>
-              </defs>
-              {/* Outer rim */}
-              <circle cx="20" cy="20" r="16" stroke="url(#sb-logo)" strokeWidth="2" fill="none" />
-              {/* Center hub */}
-              <circle cx="20" cy="20" r="3.5" fill="url(#sb-logo)" opacity="0.9" />
-              {/* Top spoke */}
-              <line x1="20" y1="7" x2="20" y2="16.5" stroke="url(#sb-logo)" strokeWidth="2.5" strokeLinecap="round" />
-              {/* Bottom-right spoke */}
-              <line x1="23" y1="22" x2="32" y2="27" stroke="url(#sb-logo)" strokeWidth="2.5" strokeLinecap="round" />
-              {/* Bottom-left spoke */}
-              <line x1="17" y1="22" x2="8" y2="27" stroke="url(#sb-logo)" strokeWidth="2.5" strokeLinecap="round" />
-            </svg>
+            <AppLogo size={85} className="rounded-sm" />
             <span
               className="text-[0.875rem] font-semibold tracking-tight"
               style={{ color: 'var(--sb-txt)' }}
             >
-              VOXA
+              AniCare Vox
             </span>
           </div>
 
@@ -221,14 +204,12 @@ export default function Sidebar({ isOpen, onClose }) {
         <div className="px-3 py-2.5 flex-shrink-0">
           <button
             id="sidebar-new-chat-btn"
-            className="flex items-center gap-2 px-3 py-2 rounded-lg w-full transition-all duration-150 text-left"
+            className="ci-sidebar-btn flex items-center gap-2 px-3 py-2 rounded-lg w-full transition-all duration-150 text-left"
             style={{
-              background: 'var(--sb-hover)',
-              border: '1px solid var(--sb-brd)',
               color: 'var(--sb-txt2)',
             }}
             onMouseEnter={e => {
-              e.currentTarget.style.borderColor = 'rgba(212,175,55,0.30)';
+              e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--ci-primary-solid) 45%, transparent)';
               e.currentTarget.style.color = 'var(--sb-txt)';
             }}
             onMouseLeave={e => {
@@ -237,7 +218,7 @@ export default function Sidebar({ isOpen, onClose }) {
             }}
             onClick={handleNewChat}
           >
-            <HiOutlinePlus size={16} style={{ color: '#D4AF37', flexShrink: 0 }} />
+            <HiOutlinePlus size={16} style={{ color: 'var(--ci-primary-solid)', flexShrink: 0 }} />
             <span className="text-[0.8125rem] font-medium">New Chat</span>
           </button>
         </div>
@@ -289,7 +270,7 @@ export default function Sidebar({ isOpen, onClose }) {
                       {/* Chat icon — gold when active */}
                       <HiOutlineChatAlt2
                         size={13}
-                        style={{ color: isActive ? '#D4AF37' : 'var(--sb-txt3)', flexShrink: 0 }}
+                        style={{ color: isActive ? 'var(--ci-primary-solid)' : 'var(--sb-txt3)', flexShrink: 0 }}
                       />
 
                       {/* Conversation title or Edit input */}
@@ -327,7 +308,7 @@ export default function Sidebar({ isOpen, onClose }) {
                           <button
                             className="flex-shrink-0 w-5 h-5 rounded flex items-center justify-center transition-all duration-150"
                             style={{ color: 'var(--sb-txt3)' }}
-                            onMouseEnter={e => { e.currentTarget.style.color = '#D4AF37'; e.currentTarget.style.background = 'rgba(212,175,55,0.10)'; }}
+                            onMouseEnter={e => { e.currentTarget.style.color = 'var(--ci-primary-solid)'; e.currentTarget.style.background = 'color-mix(in srgb, var(--ci-primary-solid) 12%, transparent)'; }}
                             onMouseLeave={e => { e.currentTarget.style.color = 'var(--sb-txt3)'; e.currentTarget.style.background = 'transparent'; }}
                             onClick={(e) => handleRenameStart(e, conv.id, conv.title)}
                             aria-label="Rename conversation"
@@ -339,7 +320,7 @@ export default function Sidebar({ isOpen, onClose }) {
                           <button
                             className="flex-shrink-0 w-5 h-5 rounded flex items-center justify-center transition-all duration-150"
                             style={{ color: 'var(--sb-txt3)' }}
-                            onMouseEnter={e => { e.currentTarget.style.color = '#F87171'; e.currentTarget.style.background = 'rgba(248,113,113,0.10)'; }}
+                            onMouseEnter={e => { e.currentTarget.style.color = 'var(--ci-error-solid)'; e.currentTarget.style.background = 'color-mix(in srgb, var(--ci-error-solid) 16%, transparent)'; }}
                             onMouseLeave={e => { e.currentTarget.style.color = 'var(--sb-txt3)'; e.currentTarget.style.background = 'transparent'; }}
                             onClick={(e) => { e.stopPropagation(); setDeleteTarget(conv.id); }}
                             aria-label="Delete conversation"
@@ -365,7 +346,7 @@ export default function Sidebar({ isOpen, onClose }) {
           <div className="relative group/avatar cursor-pointer">
             <UserAvatar 
               className="w-8 h-8 flex-shrink-0 rounded-full flex items-center justify-center font-semibold text-[0.7rem] overflow-hidden"
-              style={{ background: 'linear-gradient(135deg,#D4AF37,#B8962E)', color: '#0B0B0F' }}
+              style={{ background: 'linear-gradient(135deg,var(--ci-primary-solid),#4cd6ff)', color: 'var(--ci-on-primary)' }}
             />
             <input
               type="file"
@@ -494,12 +475,12 @@ export default function Sidebar({ isOpen, onClose }) {
                 <button
                   className="w-full py-2 px-3 rounded-lg text-sm font-medium transition-all duration-150"
                   style={{
-                    color: '#F87171',
-                    background: 'rgba(248,113,113,0.08)',
+                    color: 'var(--ci-error-solid)',
+                    background: 'color-mix(in srgb, var(--ci-error-solid) 10%, transparent)',
                     border: '1px solid transparent',
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.background = '#EF4444'; e.currentTarget.style.color = '#fff'; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(248,113,113,0.08)'; e.currentTarget.style.color = '#F87171'; }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'color-mix(in srgb, var(--ci-error-solid) 88%, black)'; e.currentTarget.style.color = '#ffffff'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'color-mix(in srgb, var(--ci-error-solid) 10%, transparent)'; e.currentTarget.style.color = 'var(--ci-error-solid)'; }}
                   onClick={() => setClearModal(true)}
                 >
                   Clear all conversations
@@ -508,17 +489,17 @@ export default function Sidebar({ isOpen, onClose }) {
                 {user?.role === 'admin' && (
                   <button
                     className="w-full py-2 px-3 rounded-lg text-sm font-medium transition-all duration-150 flex items-center gap-2"
-                    style={{
-                      color: '#D4AF37',
-                      background: 'rgba(212,175,55,0.08)',
+                  style={{
+                      color: 'var(--ci-primary-solid)',
+                      background: 'color-mix(in srgb, var(--ci-primary-solid) 10%, transparent)',
                       border: '1px solid transparent',
                     }}
                     onMouseEnter={e => {
-                      e.currentTarget.style.background = 'rgba(212,175,55,0.15)';
-                      e.currentTarget.style.borderColor = 'rgba(212,175,55,0.25)';
+                      e.currentTarget.style.background = 'color-mix(in srgb, var(--ci-primary-solid) 16%, transparent)';
+                      e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--ci-primary-solid) 28%, transparent)';
                     }}
                     onMouseLeave={e => {
-                      e.currentTarget.style.background = 'rgba(212,175,55,0.08)';
+                      e.currentTarget.style.background = 'color-mix(in srgb, var(--ci-primary-solid) 10%, transparent)';
                       e.currentTarget.style.borderColor = 'transparent';
                     }}
                     onClick={() => {
@@ -547,7 +528,7 @@ export default function Sidebar({ isOpen, onClose }) {
                     background: 'var(--sb-hover)',
                     border: '1px solid var(--sb-brd)',
                   }}
-                  onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(212,175,55,0.25)'}
+                  onMouseEnter={e => e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--ci-primary-solid) 35%, transparent)'}
                   onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--sb-brd)'}
                   onClick={() => {
                     logout();

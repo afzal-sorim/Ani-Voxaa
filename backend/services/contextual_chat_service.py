@@ -15,6 +15,7 @@ from typing import AsyncGenerator
 try:
     from backend.agents.automotive_agent import process_query, stream_query
     from backend.services.memory_manager import get_memory_manager
+    from backend.services import llm_service
     from backend.services.query_rewriter import (
         build_prompt_context,
         extract_structured_memory,
@@ -24,12 +25,46 @@ try:
 except ImportError:
     from agents.automotive_agent import process_query, stream_query
     from services.memory_manager import get_memory_manager
+    from services import llm_service
     from services.query_rewriter import (
         build_prompt_context,
         extract_structured_memory,
         is_followup,
         rewrite_query,
     )
+
+HEALTHCARE_DIRECT_TERMS = (
+    "pending payment",
+    "payment pending",
+    "overdue payment",
+    "billing pending",
+    "active patient",
+    "critical patient",
+    "patient outcome",
+    "patients per doctor",
+    "revenue by service",
+)
+
+
+def _is_direct_healthcare_request(query: str) -> bool:
+    q = (query or "").lower()
+    return any(term in q for term in HEALTHCARE_DIRECT_TERMS)
+
+
+def _generate_clarification_with_llm(query: str, conversation_history: list[dict] | None = None) -> str:
+    prompt = (
+        "The user sent a follow-up that appears context-dependent. "
+        "Politely ask a short clarification question to identify intended healthcare scope. "
+        "Keep it concise and helpful."
+    )
+    try:
+        return llm_service.generate_response(
+            user_query=query,
+            data_context=prompt,
+            conversation_history=conversation_history,
+        )
+    except Exception:
+        return "Could you clarify which healthcare area you want this applied to?"
 
 
 async def process_contextual_query(
@@ -42,11 +77,8 @@ async def process_contextual_query(
     context_block = memory.get_context_block(session_id, query) if followup else None
     rewrite = rewrite_query(query, context_block or {"previous_context": [], "current_query": query})
 
-    if rewrite.needs_clarification:
-        response = (
-            "I can use the previous conversation, but this follow-up is still ambiguous. "
-            "Which metric, plant, model, or time period should I apply it to?"
-        )
+    if rewrite.needs_clarification and not _is_direct_healthcare_request(query):
+        response = _generate_clarification_with_llm(query, conversation_history)
         memory.append_interaction(
             session_id=session_id,
             user_query=query,
@@ -105,11 +137,8 @@ async def stream_contextual_query(
     context_block = memory.get_context_block(session_id, query) if followup else None
     rewrite = rewrite_query(query, context_block or {"previous_context": [], "current_query": query})
 
-    if rewrite.needs_clarification:
-        response = (
-            "I can use the previous conversation, but this follow-up is still ambiguous. "
-            "Which metric, plant, model, or time period should I apply it to?"
-        )
+    if rewrite.needs_clarification and not _is_direct_healthcare_request(query):
+        response = _generate_clarification_with_llm(query, conversation_history)
         memory.append_interaction(
             session_id=session_id,
             user_query=query,

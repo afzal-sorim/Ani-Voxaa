@@ -1,14 +1,18 @@
 import React from 'react';
-import { HiOutlineMenuAlt2, HiOutlineLogout } from 'react-icons/hi';
+import { HiOutlineMenuAlt2, HiOutlineLogout, HiOutlineMoon, HiOutlineSun } from 'react-icons/hi';
 import useAuthStore from '../store/useAuthStore';
 import useChatStore from '../store/useChatStore';
+import useThemeStore from '../store/useThemeStore';
 import { toast } from 'react-hot-toast';
+import AppLogo from './AppLogo';
 
 export default function Header({ onToggleSidebar, onCloseSidebar }) {
   /* ── Store selectors ── */
   const activeConversationId = useChatStore((s) => s.activeConversationId);
   const conversations        = useChatStore((s) => s.conversations);
   const logout               = useAuthStore((s) => s.logout);
+  const theme                = useThemeStore((s) => s.theme);
+  const toggleTheme          = useThemeStore((s) => s.toggleTheme);
 
 
 
@@ -59,27 +63,9 @@ export default function Header({ onToggleSidebar, onCloseSidebar }) {
         {/* Logo + app name — only shown when inside an active chat */}
         {!isWelcomeScreen && (
           <div className="flex items-center gap-2 animate-fade-in">
-            {/* Automotive steering wheel logo mark */}
-            <svg width="24" height="24" viewBox="0 0 40 40" fill="none">
-              <defs>
-                <linearGradient id="hdr-logo" x1="0" y1="0" x2="40" y2="40">
-                  <stop offset="0%" stopColor="#D4AF37" />
-                  <stop offset="100%" stopColor="#F5E6B3" />
-                </linearGradient>
-              </defs>
-              {/* Outer rim */}
-              <circle cx="20" cy="20" r="16" stroke="url(#hdr-logo)" strokeWidth="2" fill="none" />
-              {/* Center hub */}
-              <circle cx="20" cy="20" r="3.5" fill="url(#hdr-logo)" opacity="0.9" />
-              {/* Top spoke — 12 o'clock */}
-              <line x1="20" y1="7" x2="20" y2="16.5" stroke="url(#hdr-logo)" strokeWidth="2.5" strokeLinecap="round" />
-              {/* Bottom-right spoke — 4 o'clock */}
-              <line x1="23" y1="22" x2="32" y2="27" stroke="url(#hdr-logo)" strokeWidth="2.5" strokeLinecap="round" />
-              {/* Bottom-left spoke — 8 o'clock */}
-              <line x1="17" y1="22" x2="8" y2="27" stroke="url(#hdr-logo)" strokeWidth="2.5" strokeLinecap="round" />
-            </svg>
+            <AppLogo className="rounded-md" style={{ width:'130px' }} />
             <span className="font-semibold text-sm text-[var(--txt)]">
-              VOXA
+              AniCare Vox
               {/* Subtitle hidden on small screens to save space */}
               <span className="hidden sm:inline text-xs font-normal">
                 {' '}: Voice Enabled AI Assistant
@@ -90,6 +76,21 @@ export default function Header({ onToggleSidebar, onCloseSidebar }) {
       </div>
 
       <div className="flex items-center gap-2 bg-[var(--brd)] px-2 py-1.5 rounded-xl">
+        <button
+          id="theme-toggle-btn"
+          className="
+            w-9 h-9 rounded-xl flex items-center justify-center
+            bg-[var(--brd)] text-[var(--txt)]
+            hover:bg-[var(--brd2)] hover:scale-105 active:scale-95
+            transition-all duration-200
+          "
+          onClick={toggleTheme}
+          aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+          title={theme === 'dark' ? 'Light mode' : 'Dark mode'}
+        >
+          {theme === 'dark' ? <HiOutlineSun size={20} /> : <HiOutlineMoon size={20} />}
+        </button>
+
         {/* Logout button */}
         <button
           id="logout-btn"

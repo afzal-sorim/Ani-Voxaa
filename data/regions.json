@@ -1,0 +1,62 @@
+[
+  {
+    "region_name": "California",
+    "total_patients": 45,
+    "total_revenue": 470665.63,
+    "avg_patient_age": 67.6
+  },
+  {
+    "region_name": "Texas",
+    "total_patients": 85,
+    "total_revenue": 924862.85,
+    "avg_patient_age": 53.2
+  },
+  {
+    "region_name": "Florida",
+    "total_patients": 44,
+    "total_revenue": 454272.79,
+    "avg_patient_age": 57.1
+  },
+  {
+    "region_name": "New York",
+    "total_patients": 100,
+    "total_revenue": 1067136.27,
+    "avg_patient_age": 58.5
+  },
+  {
+    "region_name": "Illinois",
+    "total_patients": 33,
+    "total_revenue": 363040.04,
+    "avg_patient_age": 58.4
+  },
+  {
+    "region_name": "Georgia",
+    "total_patients": 44,
+    "total_revenue": 502148.11,
+    "avg_patient_age": 64.5
+  },
+  {
+    "region_name": "Arizona",
+    "total_patients": 76,
+    "total_revenue": 783978.4,
+    "avg_patient_age": 61.7
+  },
+  {
+    "region_name": "Washington",
+    "total_patients": 53,
+    "total_revenue": 561790.8,
+    "avg_patient_age": 57.2
+  },
+  {
+    "region_name": "Colorado",
+    "total_patients": 52,
+    "total_revenue": 567972.81,
+    "avg_patient_age": 55.0
+  },
+  {
+    "region_name": "North Carolina",
+    "total_patients": 88,
+    "total_revenue": 1001247.2,
+    "avg_patient_age": 59.4
+  }
+]

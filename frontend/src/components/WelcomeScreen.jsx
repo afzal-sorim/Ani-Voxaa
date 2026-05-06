@@ -2,18 +2,19 @@ import React from 'react';
 import { HiMicrophone, HiStop } from 'react-icons/hi';
 import AudioWaveform, { AudioGlow } from './AudioVisualizer';
 import TextInput from './TextInput';
+import AppLogo from './AppLogo';
 
 const EXAMPLES = [
-  { text: 'Give me dashboard report', icon: '📊' },
-  { text: 'Forecast report for next month', icon: '🔮' },
-  { text: 'Weekly production summary', icon: '🏭' },
-  { text: 'Quality alerts dashboard', icon: '⚠️' },
-  { text: 'Revenue projection report', icon: '💰' },
-  { text: 'Top models by revenue this month', icon: '🚗' },
-  { text: 'Production breakdown by plant', icon: '🏭' },
-  { text: 'Active quality alerts by department', icon: '⚠️' },
-  { text: 'Plant with highest quality issues', icon: '🔍' },
-  { text: 'Revenue trends for Q1 2026', icon: '📈' },
+  { text: 'Give me healthcare dashboard report', icon: 'KPI' },
+  { text: 'Revenue by service this month', icon: 'REV' },
+  { text: 'Total patients served today', icon: 'PT' },
+  { text: 'Doctor performance ranking', icon: 'DOC' },
+  { text: 'Active vs critical patient count', icon: 'RISK' },
+  { text: 'Abnormal vitals alerts summary', icon: 'ALRT' },
+  { text: 'Patients per doctor', icon: 'LOAD' },
+  { text: 'Region-wise patient distribution', icon: 'REG' },
+  { text: 'Pending payment cases', icon: 'PAY' },
+  { text: 'Patient outcome trends', icon: 'TRND' },
 ];
 
 export default function WelcomeScreen({
@@ -41,30 +42,8 @@ export default function WelcomeScreen({
         gap-3 sm:gap-[clamp(8px,1.8vh,18px)]
       ">
 
-        {/* Automotive steering wheel logo */}
         <div className="flex items-center justify-center flex-shrink-0">
-          <svg
-            className="w-9 h-9 sm:w-11 sm:h-11"
-            viewBox="0 0 40 40"
-            fill="none"
-          >
-            <defs>
-              <linearGradient id="wlg" x1="0" y1="0" x2="40" y2="40">
-                <stop offset="0%" stopColor="#D4AF37" />
-                <stop offset="100%" stopColor="#F5E6B3" />
-              </linearGradient>
-            </defs>
-            {/* Outer rim */}
-            <circle cx="20" cy="20" r="16" stroke="url(#wlg)" strokeWidth="2" fill="none" />
-            {/* Center hub */}
-            <circle cx="20" cy="20" r="3.5" fill="url(#wlg)" opacity="0.9" />
-            {/* Top spoke — 12 o'clock */}
-            <line x1="20" y1="7" x2="20" y2="16.5" stroke="url(#wlg)" strokeWidth="2.5" strokeLinecap="round" />
-            {/* Bottom-right spoke — 4 o'clock */}
-            <line x1="23" y1="22" x2="32" y2="27" stroke="url(#wlg)" strokeWidth="2.5" strokeLinecap="round" />
-            {/* Bottom-left spoke — 8 o'clock */}
-            <line x1="17" y1="22" x2="8" y2="27" stroke="url(#wlg)" strokeWidth="2.5" strokeLinecap="round" />
-          </svg>
+          <AppLogo width="130px" className="rounded-md" />
         </div>
 
         {/* Title */}
@@ -73,7 +52,7 @@ export default function WelcomeScreen({
           text-[1.1rem] sm:text-[1.4rem] md:text-[1.6rem]
           px-2
         ">
-          VOXA : Voice Enabled AI Assistant
+          AniCare Vox : Voice Enabled AI Assistant
         </h1>
 
         {/* Subtitle */}
@@ -114,7 +93,7 @@ export default function WelcomeScreen({
                   text-white transition-all duration-200 flex-shrink-0
                   ${isRecording
                     ? 'bg-red-500 shadow-[0_4px_28px_rgba(239,68,68,0.4)] animate-pulse-beat'
-                    : 'bg-gold-gradient shadow-[0_4px_24px_rgba(212,175,55,0.35)] hover:scale-[1.06] active:scale-95'}
+                    : 'bg-gold-gradient shadow-[0_4px_24px_rgba(59,130,246,0.35)] hover:scale-[1.06] active:scale-95'}
                   disabled:opacity-40 disabled:cursor-not-allowed disabled:!transform-none disabled:!animate-none
                 `}
                 style={{
