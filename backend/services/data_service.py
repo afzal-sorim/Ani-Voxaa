@@ -51,7 +51,7 @@ class DataService:
                     # 3) dict -> single-row table (file stem)
                     import json
 
-                    with path.open("r", encoding="utf-8") as f:
+                    with path.open("r", encoding="utf-8-sig") as f:
                         payload = json.load(f)
 
                     if isinstance(payload, list):

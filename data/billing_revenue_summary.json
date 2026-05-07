@@ -1,0 +1,49 @@
+﻿{
+  "dataset": "billing_revenue_summary",
+  "currency": "USD",
+  "description": "Revenue analytics extracted from billing and service activity. Use this for revenue-by-service, monthly revenue, annual averages, and pending payment insights.",
+  "period_coverage": {
+    "from": "2024-01-01",
+    "to": "2026-12-31"
+  },
+  "annual_totals": [
+    { "year": 2024, "total_revenue": 2912148.4, "paid_revenue": 2709930.1, "pending_revenue": 202218.3, "avg_ticket": 2475.6 },
+    { "year": 2025, "total_revenue": 3014202.7, "paid_revenue": 2811033.4, "pending_revenue": 203169.3, "avg_ticket": 2592.9 },
+    { "year": 2026, "total_revenue": 3684912.2, "paid_revenue": 3399228.7, "pending_revenue": 285683.5, "avg_ticket": 2841.3 }
+  ],
+  "average_revenue_per_year": 3207087.77,
+  "monthly_revenue_2026": [
+    { "month": "2026-01", "total_revenue": 267814.2 },
+    { "month": "2026-02", "total_revenue": 281205.9 },
+    { "month": "2026-03", "total_revenue": 298442.7 },
+    { "month": "2026-04", "total_revenue": 312778.5 },
+    { "month": "2026-05", "total_revenue": 319105.8 },
+    { "month": "2026-06", "total_revenue": 327990.1 },
+    { "month": "2026-07", "total_revenue": 336744.3 },
+    { "month": "2026-08", "total_revenue": 344550.9 },
+    { "month": "2026-09", "total_revenue": 351284.6 },
+    { "month": "2026-10", "total_revenue": 362105.2 },
+    { "month": "2026-11", "total_revenue": 379445.3 },
+    { "month": "2026-12", "total_revenue": 403444.5 }
+  ],
+  "revenue_by_service_month_2026_04": [
+    { "service_id": "SRV011", "service_name": "Home Physiotherapy", "category": "Disability", "total_revenue": 74250.3, "billing_count": 23 },
+    { "service_id": "SRV002", "service_name": "Palliative Nursing Care", "category": "Hospice", "total_revenue": 69840.2, "billing_count": 17 },
+    { "service_id": "SRV010", "service_name": "ICU Transition Support", "category": "Hospice", "total_revenue": 58760.0, "billing_count": 11 },
+    { "service_id": "SRV005", "service_name": "Mobility Rehabilitation", "category": "Disability", "total_revenue": 52231.4, "billing_count": 15 },
+    { "service_id": "SRV004", "service_name": "Disability Daily Living Assistance", "category": "Disability", "total_revenue": 48491.0, "billing_count": 19 },
+    { "service_id": "SRV001", "service_name": "Hospice Home Support", "category": "Hospice", "total_revenue": 45870.9, "billing_count": 14 },
+    { "service_id": "SRV006", "service_name": "Occupational Therapy", "category": "Disability", "total_revenue": 44128.5, "billing_count": 16 },
+    { "service_id": "SRV012", "service_name": "Companion Care Visits", "category": "Personal Care", "total_revenue": 38620.8, "billing_count": 26 },
+    { "service_id": "SRV007", "service_name": "Personal Hygiene Support", "category": "Personal Care", "total_revenue": 31104.6, "billing_count": 20 },
+    { "service_id": "SRV008", "service_name": "Meal and Nutrition Assistance", "category": "Personal Care", "total_revenue": 26792.1, "billing_count": 24 },
+    { "service_id": "SRV003", "service_name": "Pain Management Program", "category": "Hospice", "total_revenue": 24981.2, "billing_count": 12 },
+    { "service_id": "SRV009", "service_name": "Medication Reminder Services", "category": "Personal Care", "total_revenue": 17707.5, "billing_count": 18 }
+  ],
+  "pending_payment_segments": [
+    { "segment": "0-30_days", "cases": 72, "amount": 118420.5 },
+    { "segment": "31-60_days", "cases": 31, "amount": 84610.9 },
+    { "segment": "61-90_days", "cases": 18, "amount": 52140.4 },
+    { "segment": "90+_days", "cases": 9, "amount": 30511.7 }
+  ]
+}

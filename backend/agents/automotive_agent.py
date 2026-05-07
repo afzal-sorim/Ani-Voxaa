@@ -38,6 +38,7 @@ PREDEFINED_RESPONSE_PATTERNS = (
     "active vs critical patient count",
     "abnormal vitals alerts summary",
     "patients per doctor",
+    "patient per doctor",
     "region-wise patient distribution",
     "pending payment cases",
     "patient outcome trends",
@@ -94,7 +95,7 @@ def _load_healthcare_json(filename: str) -> dict | list | None:
     if not path.exists():
         return None
     try:
-        with path.open("r", encoding="utf-8") as f:
+        with path.open("r", encoding="utf-8-sig") as f:
             return json.load(f)
     except Exception:
         return None
@@ -297,7 +298,30 @@ def _build_healthcare_data_context(query: str | None = None, max_chars: int = 45
         _JSON_CONTEXT_CACHE["contexts"] = {}
 
     context_payload: dict[str, Any] = {}
-    selected_paths = _select_relevant_json_files(query or "", json_paths, max_files=3)
+    is_load_prompt = ("patients per doctor" in query_key) or ("doctor load" in query_key)
+    selected_paths = _select_relevant_json_files(
+        query or "",
+        json_paths,
+        max_files=len(json_paths) if is_load_prompt else 5,
+    )
+    if is_load_prompt:
+        priority_order = [
+            "doctor_load_analytics.json",
+            "doctors.json",
+            "patients.json",
+            "appointments.json",
+            "vitals.json",
+            "operations.json",
+            "summary_metrics.json",
+            "billing_revenue_summary.json",
+            "billing.json",
+            "service_usage.json",
+        ]
+        priority_map = {name: idx for idx, name in enumerate(priority_order)}
+        selected_paths = sorted(
+            selected_paths,
+            key=lambda p: priority_map.get(p.name, len(priority_order) + 1),
+        )
 
     for path in selected_paths:
         loaded = _load_healthcare_json(path.name)
@@ -333,16 +357,143 @@ def _build_healthcare_data_context(query: str | None = None, max_chars: int = 45
         indent=2,
     )
 
-    if len(context) > max_chars:
-        context = context[:max_chars] + "\n\n[TRUNCATED FOR TOKEN LIMIT]"
+    context_limit = 14000 if is_load_prompt else max_chars
+    if len(context) > context_limit:
+        context = context[:context_limit] + "\n\n[TRUNCATED FOR TOKEN LIMIT]"
 
     _JSON_CONTEXT_CACHE["signature"] = signature
     _JSON_CONTEXT_CACHE["contexts"][cache_key] = context
     return context
 
 
+def _is_doctor_load_prompt(query: str) -> bool:
+    q = _normalize_predefined_match_text(query or "")
+    return ("patients per doctor" in q) or ("patient per doctor" in q) or ("doctor load" in q)
+
+
+def _has_markdown_table(text: str) -> bool:
+    lines = str(text or "").splitlines()
+    for i in range(len(lines) - 1):
+        header = lines[i].strip()
+        separator = lines[i + 1].strip()
+        if not (header.startswith("|") and "|" in header[1:]):
+            continue
+        sep_core = separator.replace("|", "").replace(":", "").replace(" ", "")
+        if sep_core and set(sep_core) == {"-"}:
+            return True
+    return False
+
+
+def _has_required_doctor_load_table(text: str) -> bool:
+    src = str(text or "")
+    lines = [ln.strip() for ln in src.splitlines() if ln.strip()]
+    if not lines:
+        return False
+
+    required_cols = [
+        "doctor_name",
+        "patient_count",
+        "status",
+        "active_load",
+        "shift_progress_percent",
+        "efficiency_percent",
+    ]
+    header_index = -1
+    for i, line in enumerate(lines):
+        if "|" not in line:
+            continue
+        normalized = re.sub(r"\s+", "", line.lower())
+        if all(col in normalized for col in required_cols):
+            header_index = i
+            break
+
+    if header_index == -1:
+        return False
+
+    if header_index + 2 >= len(lines):
+        return False
+
+    sep = lines[header_index + 1]
+    sep_core = sep.replace("|", "").replace(":", "").replace(" ", "")
+    if not (sep_core and set(sep_core) == {"-"}):
+        return False
+
+    data_rows = 0
+    for row in lines[header_index + 2:]:
+        if "|" not in row:
+            if data_rows > 0:
+                break
+            continue
+        cells = [c.strip() for c in row.strip("|").split("|")]
+        if len(cells) >= 6 and any(cells):
+            data_rows += 1
+
+    return data_rows >= 1
+
+
+def _ensure_doctor_load_structure(
+    query: str,
+    response_text: str,
+    data_context: str | None = None,
+    conversation_history: list[dict] | None = None,
+) -> str:
+    if not _is_doctor_load_prompt(query):
+        return response_text
+    if not data_context:
+        return response_text
+
+    reformat_instruction = (
+        "You must reformat the response using ONLY the existing JSON context and without inventing data.\n"
+        "The output MUST be a valid markdown table format parseable by strict renderers.\n"
+        "Return exactly in this structure:\n"
+        "LOAD Patients per Doctor SUMMARY\n"
+        "<one sentence with average patients per doctor>\n"
+        "DATA TABLE\n"
+        "| doctor_name | patient_count | status | active_load | shift_progress_percent | efficiency_percent |\n"
+        "|---|---:|---|---|---:|---:|\n"
+        "<at least 3 rows>\n"
+        "AI Insight: <one short sentence>\n"
+        "If data is missing, still return the table with available rows and do not leave the table empty."
+    )
+    if _has_required_doctor_load_table(response_text):
+        return response_text
+
+    first_retry_context = (
+        f"{data_context}\n\n"
+        "PREVIOUS NON-TABULAR RESPONSE:\n"
+        f"{response_text}\n\n"
+        f"REFORMAT INSTRUCTION:\n{reformat_instruction}"
+    )
+    try:
+        repaired = llm_service.generate_response(
+            user_query=query,
+            data_context=first_retry_context,
+            conversation_history=conversation_history,
+        )
+        if _has_required_doctor_load_table(repaired):
+            return repaired
+
+        second_retry_context = (
+            f"{data_context}\n\n"
+            "FIRST RESPONSE:\n"
+            f"{response_text}\n\n"
+            "FIRST REFORMAT ATTEMPT:\n"
+            f"{repaired}\n\n"
+            "FINAL INSTRUCTION:\n"
+            "Return only the final answer, and ensure the DATA TABLE section contains at least 3 valid markdown rows."
+        )
+        repaired_again = llm_service.generate_response(
+            user_query=query,
+            data_context=second_retry_context,
+            conversation_history=conversation_history,
+        )
+        return repaired_again if _has_required_doctor_load_table(repaired_again) else repaired
+    except Exception:
+        return response_text
+
+
 def _build_healthcare_llm_instruction(query: str) -> str:
-    return (
+    base = (
         "You are VOXA, a Healthcare Analytics Assistant.\n"
         "Answer every question by analyzing ONLY the JSON data context provided below.\n"
         "Rules:\n"
@@ -352,6 +503,18 @@ def _build_healthcare_llm_instruction(query: str) -> str:
         "4. If the user asks outside healthcare data scope, politely explain scope and offer a healthcare-data alternative.\n"
         "5. Keep answers concise and factual."
     )
+    q = (query or "").lower()
+    if "patients per doctor" in q or "patient per doctor" in q or "doctor load" in q:
+        base += (
+            "\n6. For doctor-load questions, ALWAYS return:\n"
+            "- Start with this heading line exactly: LOAD Patients per Doctor SUMMARY\n"
+            "- Then one summary sentence with average patients per doctor.\n"
+            "- Then add this heading line exactly: DATA TABLE\n"
+            "- Then a markdown table with columns: doctor_name, patient_count, status, active_load, shift_progress_percent, efficiency_percent.\n"
+            "- End with one short AI reassignment insight sentence.\n"
+            "- Use only values grounded in the provided JSON context."
+        )
+    return base
 
 
 def _fallback_healthcare_response() -> str:
@@ -400,13 +563,25 @@ def _generate_healthcare_response(query: str, conversation_history: list[dict] |
         data_context += f"\n\nADDITIONAL DATABASE DATA:\n{json.dumps(additional_data, ensure_ascii=True, indent=2)}"
     
     try:
-        return llm_service.generate_response(
+        response_text = llm_service.generate_response(
             user_query=query,
             data_context=data_context,
             conversation_history=conversation_history,
         )
+        return _ensure_doctor_load_structure(
+            query,
+            response_text,
+            data_context=data_context,
+            conversation_history=conversation_history,
+        )
     except Exception:
-        return _fallback_healthcare_response()
+        fallback = _fallback_healthcare_response()
+        return _ensure_doctor_load_structure(
+            query,
+            fallback,
+            data_context=data_context,
+            conversation_history=conversation_history,
+        )
 
 
 async def _stream_healthcare_response(
@@ -418,6 +593,29 @@ async def _stream_healthcare_response(
         "HEALTHCARE JSON DATA CONTEXT:\n"
         f"{_build_healthcare_data_context(query)}"
     )
+    if _is_doctor_load_prompt(query):
+        try:
+            response_text = llm_service.generate_response(
+                user_query=query,
+                data_context=data_context,
+                conversation_history=conversation_history,
+            )
+            yield _ensure_doctor_load_structure(
+                query,
+                response_text,
+                data_context=data_context,
+                conversation_history=conversation_history,
+            )
+            return
+        except Exception:
+            yield _ensure_doctor_load_structure(
+                query,
+                _fallback_healthcare_response(),
+                data_context=data_context,
+                conversation_history=conversation_history,
+            )
+            return
+
     try:
         async for token in llm_service.stream_response(
             user_query=query,
@@ -500,188 +698,10 @@ def _normalize_legacy_query_to_healthcare(query: str) -> str:
 
 def _execute_healthcare_analytics(query: str) -> str | None:
     """
-    Deterministic healthcare analytics for high-precision requests.
-    Returns markdown directly when a query matches a deterministic pattern.
+    Deterministic healthcare analytics are disabled.
+    Route all healthcare questions through JSON-grounded LLM responses
+    to keep behavior consistent across free-form and predefined prompts.
     """
-    q = (query or "").strip().lower()
-    data_svc = get_data_service()
-    schemas = data_svc.get_table_schemas()
-
-    def has_table(name: str) -> bool:
-        return name in schemas
-
-    # KPI dashboard summary
-    if ("dashboard" in q or "kpi" in q) and "healthcare" in q and has_table("patients"):
-        active_patients = 0
-        critical_patients = 0
-        top_doctor = "N/A"
-        top_region = "N/A"
-        top_service = "N/A"
-        total_revenue = 0.0
-        active_doctors = 0
-
-        try:
-            if has_table("patients"):
-                active_patients = int(
-                    data_svc.execute_query(
-                        "SELECT COUNT(*) AS c FROM patients WHERE LOWER(COALESCE(status, '')) = 'active'"
-                    ).iloc[0]["c"]
-                )
-                top_region_df = data_svc.execute_query(
-                    "SELECT region, COUNT(*) AS c FROM patients WHERE region IS NOT NULL GROUP BY region ORDER BY c DESC LIMIT 1"
-                )
-                if not top_region_df.empty:
-                    top_region = str(top_region_df.iloc[0]["region"])
-
-            if has_table("vitals"):
-                critical_patients = int(
-                    data_svc.execute_query(
-                        "SELECT COUNT(*) AS c FROM vitals WHERE LOWER(COALESCE(alert_level, '')) IN ('critical', 'high')"
-                    ).iloc[0]["c"]
-                )
-
-            if has_table("operations"):
-                top_service_df = data_svc.execute_query(
-                    "SELECT service_id, COUNT(*) AS c FROM operations WHERE service_id IS NOT NULL GROUP BY service_id ORDER BY c DESC LIMIT 1"
-                )
-                if not top_service_df.empty:
-                    top_service = str(top_service_df.iloc[0]["service_id"])
-
-            if has_table("billing"):
-                total_revenue = float(
-                    data_svc.execute_query("SELECT COALESCE(SUM(amount), 0) AS total FROM billing").iloc[0]["total"]
-                )
-                top_doctor_df = data_svc.execute_query(
-                    "SELECT doctor_id, COALESCE(SUM(amount), 0) AS rev FROM billing "
-                    "WHERE doctor_id IS NOT NULL GROUP BY doctor_id ORDER BY rev DESC LIMIT 1"
-                )
-                if not top_doctor_df.empty:
-                    top_doctor = str(top_doctor_df.iloc[0]["doctor_id"])
-
-            if has_table("doctors"):
-                active_doctors = int(data_svc.execute_query("SELECT COUNT(*) AS c FROM doctors").iloc[0]["c"])
-        except Exception as e:
-            logger.warning(f"Deterministic KPI query failed, falling back to LLM: {e}")
-            return None
-
-        return (
-            "KPI\n"
-            "Healthcare Dashboard Report\n"
-            f"SUMMARY Total Revenue: ${total_revenue:,.2f} | Active Patients: {active_patients} | "
-            f"Critical Patients: {critical_patients} | Active Doctors: {active_doctors} | "
-            f"Top Doctor: {top_doctor} | Top Region: {top_region} | Most Used Service: {top_service}\n\n"
-            "DATA TABLE\n\n"
-            "| metric | value |\n"
-            "|---|---|\n"
-            f"| total_revenue | {total_revenue:,.2f} |\n"
-            f"| active_patients | {active_patients} |\n"
-            f"| critical_patients | {critical_patients} |\n"
-            f"| active_doctors | {active_doctors} |\n"
-            f"| top_doctor | {top_doctor} |\n"
-            f"| top_region | {top_region} |\n"
-            f"| top_service | {top_service} |\n"
-        )
-
-    # Inactive patients
-    if "inactive patient" in q and has_table("patients"):
-        df = data_svc.execute_query(
-            "SELECT id, name, age, gender, region, status "
-            "FROM patients WHERE LOWER(COALESCE(status, '')) IN ('inactive', 'completed', 'discharged') "
-            "ORDER BY id LIMIT 10"
-        )
-        if df.empty:
-            return "SUMMARY No inactive patients found.\n\nDATA TABLE\n\n| id | name | status |\n|---|---|---|\n"
-        return (
-            f"SUMMARY Found {len(df)} inactive/completed/discharged patients.\n\n"
-            f"DATA TABLE\n\n{df.to_markdown(index=False)}"
-        )
-
-    # Patients from region (e.g., Algeria/New York)
-    region_match = re.search(r"(?:from|in)\s+([a-z][a-z\s\-]{1,40})", q)
-    if ("patient" in q and region_match and has_table("patients")):
-        region = region_match.group(1).strip()
-        if region in {"the", "a", "an"}:
-            return None
-        limit = 5 if "5" in q or "five" in q else 10
-        safe_region = region.replace("'", "''")
-        df = data_svc.execute_query(
-            f"SELECT id, name, age, gender, region, condition, service_type, doctor_id, admission_date, discharge_date, status "
-            f"FROM patients WHERE LOWER(COALESCE(region, '')) = '{safe_region}' "
-            f"ORDER BY id LIMIT {limit}"
-        )
-        if df.empty:
-            return f"SUMMARY No patients found for region '{region.title()}'.\n\nDATA TABLE\n\n| id | name | region |\n|---|---|---|\n"
-        return f"SUMMARY Showing {len(df)} patients from {region.title()}.\n\nDATA TABLE\n\n{df.to_markdown(index=False)}"
-
-    # Region with highest patients
-    if ("region" in q and ("higher" in q or "highest" in q or "top" in q) and has_table("patients")):
-        df = data_svc.execute_query(
-            "SELECT region AS region_name, COUNT(*) AS total_patients "
-            "FROM patients WHERE region IS NOT NULL GROUP BY region ORDER BY total_patients DESC LIMIT 5"
-        )
-        if df.empty:
-            return "SUMMARY No region data found.\n\nDATA TABLE\n\n| region_name | total_patients |\n|---|---|\n"
-        top = df.iloc[0]
-        return (
-            f"SUMMARY Region with highest patients: {top['region_name']} ({int(top['total_patients'])}).\n\n"
-            f"DATA TABLE\n\n{df.to_markdown(index=False)}"
-        )
-
-    # Youngest / Oldest patient
-    if ("youngest patient" in q or "oldest patient" in q) and has_table("patients"):
-        order = "ASC" if "youngest" in q else "DESC"
-        df = data_svc.execute_query(
-            f"SELECT id, name, age, gender, region, status FROM patients WHERE age IS NOT NULL ORDER BY age {order}, id LIMIT 1"
-        )
-        if df.empty:
-            return None
-        kind = "youngest" if "youngest" in q else "oldest"
-        row = df.iloc[0]
-        return (
-            f"SUMMARY The {kind} patient is {row['name']} ({int(row['age'])} years).\n\n"
-            f"DATA TABLE\n\n{df.to_markdown(index=False)}"
-        )
-
-    # Youngest doctor (prefer age, fallback experience_years)
-    if "youngest doctor" in q and has_table("doctors"):
-        doctor_cols = {c["name"] for c in schemas.get("doctors", [])}
-        doctor_id_col = "doctor_id" if "doctor_id" in doctor_cols else ("id" if "id" in doctor_cols else None)
-        doctor_name_col = "doctor_name" if "doctor_name" in doctor_cols else ("name" if "name" in doctor_cols else None)
-        specialty_col = "specialty" if "specialty" in doctor_cols else ("specialization" if "specialization" in doctor_cols else None)
-        if not doctor_id_col and not doctor_name_col:
-            return "SUMMARY Doctor identifier fields are unavailable.\n\nDATA TABLE\n\n| id | name |\n|---|---|\n"
-
-        selected_cols = []
-        if doctor_id_col:
-            selected_cols.append(f"{doctor_id_col} AS doctor_id")
-        if doctor_name_col:
-            selected_cols.append(f"{doctor_name_col} AS doctor_name")
-        if specialty_col:
-            selected_cols.append(f"{specialty_col} AS specialty")
-
-        if "age" in doctor_cols:
-            sql = (
-                f"SELECT {', '.join(selected_cols)}, age "
-                "FROM doctors WHERE age IS NOT NULL ORDER BY age ASC LIMIT 1"
-            )
-            basis = "age"
-        elif "experience_years" in doctor_cols:
-            sql = (
-                f"SELECT {', '.join(selected_cols)}, experience_years FROM doctors "
-                "WHERE experience_years IS NOT NULL ORDER BY experience_years ASC LIMIT 1"
-            )
-            basis = "experience_years"
-        else:
-            return "SUMMARY Doctor age/experience fields are unavailable.\n\nDATA TABLE\n\n| doctor_id | doctor_name |\n|---|---|\n"
-        df = data_svc.execute_query(sql)
-        if df.empty:
-            return None
-        row = df.iloc[0]
-        return (
-            f"SUMMARY The youngest available doctor by {basis} is {row.get('doctor_name', row.get('doctor_id', 'Unknown'))}.\n\n"
-            f"DATA TABLE\n\n{df.to_markdown(index=False)}"
-        )
-
     return None
 
 # ── Intent Categories ──

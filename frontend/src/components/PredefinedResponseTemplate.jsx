@@ -32,6 +32,13 @@ function splitPipeRow(line) {
     .map((cell) => cleanCell(cell));
 }
 
+function isPipeLikeRow(line) {
+  const s = String(line || '').trim();
+  if (!s || !s.includes('|')) return false;
+  const cells = s.replace(/^\|/, '').replace(/\|$/, '').split('|');
+  return cells.length >= 2;
+}
+
 function cleanCell(value) {
   return String(value || '')
     .replace(/`/g, '')
@@ -55,7 +62,7 @@ function parseMarkdownTable(content) {
   for (let i = 0; i < lines.length - 1; i += 1) {
     const current = lines[i].trim();
     const next = lines[i + 1].trim();
-    if (!current.startsWith('|')) continue;
+    if (!isPipeLikeRow(current)) continue;
 
     const separator = next.replace(/\|/g, '').trim();
     if (/^:?-{3,}:?(\s*:?-{3,}:?)*$/.test(separator.replace(/\s+/g, ' '))) {
@@ -69,7 +76,7 @@ function parseMarkdownTable(content) {
   }
 
   let endIndex = startIndex + 2;
-  while (endIndex < lines.length && lines[endIndex].trim().startsWith('|')) {
+  while (endIndex < lines.length && isPipeLikeRow(lines[endIndex].trim())) {
     endIndex += 1;
   }
 
@@ -151,7 +158,7 @@ function pickMetricFromText(text, labels) {
   const source = String(text || '');
   for (const label of labels) {
     const esc = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const m = source.match(new RegExp(`${esc}\\s*[:=-]\\s*([\\$\\d,\\.]+)`, 'i'));
+    const m = source.match(new RegExp(`${esc}\\s*[:=-]\\s*([\\$\\d,\\.]+%?)`, 'i'));
     if (m && m[1]) return m[1];
   }
   return '';
@@ -481,58 +488,144 @@ function AlertTemplate({ parsed }) {
 }
 
 function LoadTemplate({ parsed }) {
+  const summaryText = `${parsed.summary || ''} ${parsed.insight || ''}`;
+  const extractLoadValue = (row) => {
+    const direct = toNumber(pickValue(row, ['patient_count', 'patients_served', 'active_load', 'patients_handled_count']));
+    if (direct > 0) return direct;
+    const activeLoad = String(pickValue(row, ['active_load']) || '');
+    const match = activeLoad.match(/(\d+)/);
+    return match ? toNumber(match[1]) : 0;
+  };
   const doctors = parsed.table.rowObjects.map((row) => ({
     name: pickValue(row, ['doctor_name', 'doctor name']) || pickValue(row, ['provider']) || 'Provider',
-    load: toNumber(pickValue(row, ['patient_count', 'patients_served', 'active_load'])),
+    load: extractLoadValue(row),
   })).filter((item) => item.load > 0);
 
   const top = doctors.slice(0, 8);
-  if (!top.length) {
-    return (
-      <TemplateShell
-        code="LOAD"
-        title="Patients per Doctor"
-        subtitle={parsed.summary || 'Current patient load distribution by doctor.'}
-      >
-        <EmptyState />
-      </TemplateShell>
-    );
-  }
+  const avgLoadRaw = pickMetricFromText(summaryText, [
+    'average number of patients handled by each doctor',
+    'average number of patients handled per doctor',
+    'average patients per doctor',
+    'avg patients per doctor',
+  ]);
+  const avgLoad = toNumber(avgLoadRaw);
 
-  const maxLoad = Math.max(...top.map((d) => d.load), 1);
-  const minLoad = Math.min(...top.map((d) => d.load), maxLoad);
+  const baseAvg = avgLoad > 0 ? avgLoad : 0;
+  const seedDoctors = top;
+  const hasDoctorRows = seedDoctors.length > 0;
+
+  const distribution = seedDoctors.slice(0, 3);
+  const maxLoad = Math.max(...distribution.map((d) => d.load), 1);
+  const minLoad = Math.min(...distribution.map((d) => d.load), maxLoad);
   const spread = maxLoad - minLoad;
+  const avgForStatus = distribution.reduce((sum, d) => sum + d.load, 0) / Math.max(distribution.length, 1);
+
+  const ledgerRows = seedDoctors.slice(0, 6).map((doctor) => {
+    const ratio = avgForStatus > 0 ? doctor.load / avgForStatus : 1;
+    const status = ratio >= 1.2 ? 'Overloaded' : ratio >= 1.05 ? 'High Load' : 'Stable';
+    const capacity = Math.max(Math.round(avgForStatus * 1.2), doctor.load + 1);
+    const efficiency = Math.max(68, Math.min(98, Math.round(98 - Math.max(0, ratio - 1) * 34)));
+    const progress = Math.max(35, Math.min(100, Math.round((doctor.load / capacity) * 100)));
+    return {
+      ...doctor,
+      status,
+      capacity,
+      efficiency,
+      progress,
+    };
+  });
+  const overloadedCount = ledgerRows.filter((r) => r.status !== 'Stable').length;
+  const stableCount = ledgerRows.filter((r) => r.status === 'Stable').length;
 
   return (
     <TemplateShell
       code="LOAD"
-      title="Patients per Doctor"
-      subtitle={parsed.summary || 'Current patient load distribution by doctor.'}
+      title="Doctor Load Analytics"
+      subtitle={'Real-time distribution of patient volume across primary care units. Analysis triggered by query: "Patients per doctor".'}
     >
-      <div className="predef-card">
-        <div className="predef-card-label">Doctor Load Distribution</div>
-        <div className="predef-list">
-          {top.map((doctor) => (
-            <div className="predef-list-row" key={doctor.name}>
-              <div className="predef-list-main">
-                <span>{doctor.name}</span>
-                <strong>{nfInt.format(doctor.load)}</strong>
-              </div>
-              <div className="predef-track">
-                <span style={{ width: `${Math.max((doctor.load / maxLoad) * 100, 8)}%` }} />
-              </div>
+      {!hasDoctorRows ? <EmptyState /> : <>
+      <div className="predef-load-layout">
+        <div className="predef-card predef-load-distribution">
+          <div className="predef-load-head">
+            <div>
+              <div className="predef-card-label">Patient Load Distribution</div>
+              <p>Metric: Active Cases / Primary Physician</p>
             </div>
-          ))}
+            <span className="predef-load-live">Live stream</span>
+          </div>
+          <div className="predef-load-bars">
+            {distribution.map((doctor) => (
+              <div className="predef-load-bar-item" key={doctor.name}>
+                <div className="predef-load-bar-value">{nfInt.format(doctor.load)}</div>
+                <div className="predef-load-bar-track">
+                  <span style={{ width: `${Math.max((doctor.load / maxLoad) * 100, 14)}%` }} />
+                </div>
+                <div className="predef-load-bar-name">{doctor.name}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="predef-card predef-load-logic">
+          <h4>AI Reassignment Logic</h4>
+          <div className="predef-load-alert tone-rose">
+            <strong>Critical Alert</strong>
+            <p>
+              Highest assigned provider load is <strong>{nfInt.format(maxLoad)}</strong>, which is {nfInt.format(spread)}
+              {' '}above the lowest assignment.
+            </p>
+          </div>
+          <div className="predef-load-alert tone-green">
+            <strong>Reassignment Strategy</strong>
+            <p>{parsed.insight || 'Rebalance overflow cases toward stable providers to reduce response latency.'}</p>
+          </div>
+          <button type="button" className="predef-load-btn">Authorize Reassignment</button>
         </div>
       </div>
-      <div className="predef-card insight wide">
-        <div className="predef-card-label">AI Reassignment Logic</div>
-        <p>
-          Load spread is <strong>{nfInt.format(spread)}</strong> patients between highest and lowest assigned doctors.
-          {` `}
-          {parsed.insight || 'No reassignment recommendation returned in response.'}
-        </p>
+
+      <div className="predef-card predef-load-ledger">
+        <div className="predef-load-ledger-head">
+          <h4>Unit Performance Ledger</h4>
+          <div className="predef-load-ledger-tags">
+            <span className="tag tone-rose">{overloadedCount} Overloaded</span>
+            <span className="tag tone-cyan">{stableCount} Stable</span>
+          </div>
+        </div>
+
+        <table className="predef-table">
+          <thead>
+            <tr>
+              <th>Provider</th>
+              <th>Active Load</th>
+              <th>Status</th>
+              <th>Shift Progress</th>
+              <th>Efficiency</th>
+            </tr>
+          </thead>
+          <tbody>
+            {ledgerRows.map((row) => (
+              <tr key={row.name}>
+                <td>{row.name}</td>
+                <td>{nfInt.format(row.load)}/{nfInt.format(row.capacity)}</td>
+                <td>
+                  <span className={`predef-status-pill ${
+                    row.status === 'Overloaded' ? 'rose' : row.status === 'High Load' ? 'amber' : 'green'
+                  }`}>
+                    {row.status}
+                  </span>
+                </td>
+                <td>
+                  <div className="predef-track predef-progress-track">
+                    <span style={{ width: `${row.progress}%` }} />
+                  </div>
+                </td>
+                <td>{row.efficiency}%</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
+      </>}
     </TemplateShell>
   );
 }
@@ -666,16 +759,29 @@ function PayTemplate({ parsed }) {
 function TrendTemplate({ parsed }) {
   const rows = parsed.table.rowObjects;
   const grouped = {};
+  const summaryText = `${parsed.summary || ''} ${parsed.insight || ''}`;
 
   rows.forEach((row) => {
-    const month = pickValue(row, ['month']) || 'Unknown';
-    const outcome = normalizeText(pickValue(row, ['outcome']));
-    const count = toNumber(pickValue(row, ['operations_count', 'operations count', 'count']));
-
+    const month = pickValue(row, ['month', 'period']) || 'Unknown';
     if (!grouped[month]) grouped[month] = { success: 0, failed: 0, ongoing: 0, total: 0 };
 
-    if (outcome.includes('success')) grouped[month].success += count;
-    else if (outcome.includes('fail')) grouped[month].failed += count;
+    const directSuccess = toNumber(pickValue(row, ['success', 'completed', 'recovered']));
+    const directOngoing = toNumber(pickValue(row, ['ongoing', 'active', 'in_progress']));
+    const directFailed = toNumber(pickValue(row, ['failed', 'critical', 'readmissions', 'readmission']));
+
+    if (directSuccess || directOngoing || directFailed) {
+      grouped[month].success += directSuccess;
+      grouped[month].ongoing += directOngoing;
+      grouped[month].failed += directFailed;
+      grouped[month].total += directSuccess + directOngoing + directFailed;
+      return;
+    }
+
+    const outcome = normalizeText(pickValue(row, ['outcome', 'status']));
+    const count = toNumber(pickValue(row, ['operations_count', 'operations count', 'count', 'value']));
+
+    if (outcome.includes('success') || outcome.includes('complete')) grouped[month].success += count;
+    else if (outcome.includes('fail') || outcome.includes('critical') || outcome.includes('readmission')) grouped[month].failed += count;
     else grouped[month].ongoing += count;
 
     grouped[month].total += count;
@@ -684,12 +790,26 @@ function TrendTemplate({ parsed }) {
   const months = Object.keys(grouped).sort();
   const points = months.map((month) => grouped[month].success);
 
+  const parsedRecoveryPct = toNumber(
+    pickMetricFromText(summaryText, ['recovery rate', 'recovery_rate_percent', 'recovery_progress_percent'])
+  );
+  const parsedStabilityPct = toNumber(
+    pickMetricFromText(summaryText, ['stability index', 'stability_index_percent'])
+  );
+  const parsedReadmissionPct = toNumber(
+    pickMetricFromText(summaryText, ['failure/readmission', 'readmission rate', 'readmission_rate_percent'])
+  );
+
   const totalSuccess = months.reduce((sum, month) => sum + grouped[month].success, 0);
   const totalFailed = months.reduce((sum, month) => sum + grouped[month].failed, 0);
   const totalOps = months.reduce((sum, month) => sum + grouped[month].total, 0);
 
-  const recoveryRate = totalOps > 0 ? totalSuccess / totalOps : 0;
-  const readmission = totalOps > 0 ? totalFailed / totalOps : 0;
+  const derivedRecoveryRate = totalOps > 0 ? totalSuccess / totalOps : 0;
+  const derivedReadmission = totalOps > 0 ? totalFailed / totalOps : 0;
+
+  const recoveryRate = parsedRecoveryPct > 0 ? parsedRecoveryPct / 100 : derivedRecoveryRate;
+  const readmission = parsedReadmissionPct > 0 ? parsedReadmissionPct / 100 : derivedReadmission;
+  const stability = parsedStabilityPct > 0 ? parsedStabilityPct / 100 : Math.max(1 - readmission, 0);
 
   return (
     <TemplateShell
@@ -707,7 +827,7 @@ function TrendTemplate({ parsed }) {
 
       <div className="predef-grid three">
         <MetricCard label="Recovery Rate" value={nfPct.format(recoveryRate)} tone="cyan" />
-        <MetricCard label="Stability Index" value={nfPct.format(Math.max(1 - readmission, 0))} tone="green" />
+        <MetricCard label="Stability Index" value={nfPct.format(stability)} tone="green" />
         <MetricCard label="Failure/Readmission" value={nfPct.format(readmission)} tone="rose" />
       </div>
 

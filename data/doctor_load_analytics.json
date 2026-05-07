@@ -1,0 +1,53 @@
+﻿{
+  "dataset": "doctor_load_analytics",
+  "generated_at": "2026-05-06",
+  "query_anchor": "patients per doctor",
+  "summary": {
+    "average_patients_per_doctor": 5.17,
+    "total_active_patients": 620,
+    "total_active_doctors": 120,
+    "overloaded_doctors": 23,
+    "high_load_doctors": 31,
+    "stable_doctors": 66,
+    "recommended_reassignment_cases": 57
+  },
+  "monthly_avg_patients_per_doctor": [
+    { "month": "2026-01", "avg_patients_per_doctor": 4.82 },
+    { "month": "2026-02", "avg_patients_per_doctor": 4.91 },
+    { "month": "2026-03", "avg_patients_per_doctor": 5.03 },
+    { "month": "2026-04", "avg_patients_per_doctor": 5.11 },
+    { "month": "2026-05", "avg_patients_per_doctor": 5.17 }
+  ],
+  "distribution_top_primary_physicians": [
+    { "doctor_id": "DOC119", "doctor_name": "Dr. Helena Carter", "patient_count": 182, "capacity": 150, "status": "Overloaded", "efficiency_percent": 74 },
+    { "doctor_id": "DOC094", "doctor_name": "Dr. Michael Brown", "patient_count": 160, "capacity": 150, "status": "High Load", "efficiency_percent": 82 },
+    { "doctor_id": "DOC067", "doctor_name": "Dr. Sarah Lee", "patient_count": 118, "capacity": 150, "status": "Stable", "efficiency_percent": 98 },
+    { "doctor_id": "DOC101", "doctor_name": "Dr. Julian Brown", "patient_count": 143, "capacity": 150, "status": "High Load", "efficiency_percent": 86 },
+    { "doctor_id": "DOC087", "doctor_name": "Dr. Emily Carter", "patient_count": 132, "capacity": 150, "status": "Stable", "efficiency_percent": 91 }
+  ],
+  "regional_load_distribution": [
+    { "region": "New York", "avg_patients_per_doctor": 5.8, "active_doctors": 24 },
+    { "region": "Texas", "avg_patients_per_doctor": 5.4, "active_doctors": 22 },
+    { "region": "California", "avg_patients_per_doctor": 5.2, "active_doctors": 21 },
+    { "region": "Florida", "avg_patients_per_doctor": 4.9, "active_doctors": 19 },
+    { "region": "North Carolina", "avg_patients_per_doctor": 4.7, "active_doctors": 17 },
+    { "region": "Arizona", "avg_patients_per_doctor": 4.5, "active_doctors": 17 }
+  ],
+  "unit_performance_ledger": [
+    { "provider": "Dr. Helena Carter", "active_load": "182/150", "status": "Overloaded", "shift_progress_percent": 74, "efficiency_percent": 74 },
+    { "provider": "Dr. Michael Brown", "active_load": "160/150", "status": "High Load", "shift_progress_percent": 63, "efficiency_percent": 82 },
+    { "provider": "Dr. Sarah Lee", "active_load": "118/150", "status": "Stable", "shift_progress_percent": 46, "efficiency_percent": 98 },
+    { "provider": "Dr. Julian Brown", "active_load": "143/150", "status": "High Load", "shift_progress_percent": 69, "efficiency_percent": 86 },
+    { "provider": "Dr. Emily Carter", "active_load": "132/150", "status": "Stable", "shift_progress_percent": 58, "efficiency_percent": 91 },
+    { "provider": "Dr. Daniel Ramirez", "active_load": "149/150", "status": "High Load", "shift_progress_percent": 66, "efficiency_percent": 84 },
+    { "provider": "Dr. Deborah Brown", "active_load": "141/150", "status": "High Load", "shift_progress_percent": 61, "efficiency_percent": 87 },
+    { "provider": "Dr. Donna Miller", "active_load": "135/150", "status": "Stable", "shift_progress_percent": 57, "efficiency_percent": 90 },
+    { "provider": "Dr. Elizabeth Miller", "active_load": "128/150", "status": "Stable", "shift_progress_percent": 52, "efficiency_percent": 92 },
+    { "provider": "Dr. Kenneth Brown", "active_load": "124/150", "status": "Stable", "shift_progress_percent": 49, "efficiency_percent": 93 }
+  ],
+  "ai_reassignment_logic": {
+    "critical_alert": "Dr. Helena Carter is exceeding threshold safety limits by 22%. Latency in patient care response is predicted to rise within 2 hours.",
+    "reassignment_strategy": "Transfer 32 patients from overloaded and high-load providers to stable providers with under 85% shift utilization.",
+    "recommended_action": "Authorize Reassignment"
+  }
+}

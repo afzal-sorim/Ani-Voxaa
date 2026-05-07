@@ -1,0 +1,107 @@
+{
+  "dataset": "patient_outcome_trends",
+  "generated_at": "2026-05-01",
+  "time_window_days": 120,
+  "kpis": {
+    "recovery_progress_index": 86.4,
+    "recovery_rate_percent": 91.2,
+    "stability_index_percent": 93.7,
+    "readmission_rate_percent": 7.8,
+    "high_risk_readmission_percent": 2.1
+  },
+  "monthly_outcome_ledger": [
+    { "month": "2026-01", "success": 148, "ongoing": 103, "failed": 17, "readmissions": 14 },
+    { "month": "2026-02", "success": 156, "ongoing": 97, "failed": 15, "readmissions": 13 },
+    { "month": "2026-03", "success": 162, "ongoing": 92, "failed": 14, "readmissions": 12 },
+    { "month": "2026-04", "success": 171, "ongoing": 88, "failed": 13, "readmissions": 11 },
+    { "month": "2026-05", "success": 178, "ongoing": 85, "failed": 12, "readmissions": 10 }
+  ],
+  "segment_outcomes": [
+    {
+      "segment": "Hospice",
+      "recovery_rate_percent": 88.3,
+      "stability_index_percent": 91.1,
+      "readmission_rate_percent": 8.6,
+      "avg_length_of_stay_days": 24.7
+    },
+    {
+      "segment": "Disability",
+      "recovery_rate_percent": 92.4,
+      "stability_index_percent": 94.8,
+      "readmission_rate_percent": 7.1,
+      "avg_length_of_stay_days": 19.2
+    },
+    {
+      "segment": "Personal Care",
+      "recovery_rate_percent": 93.8,
+      "stability_index_percent": 95.1,
+      "readmission_rate_percent": 6.3,
+      "avg_length_of_stay_days": 14.4
+    }
+  ],
+  "regional_outcomes": [
+    {
+      "region": "New York",
+      "active_cases": 73,
+      "recovery_rate_percent": 92.1,
+      "stability_index_percent": 94.3,
+      "readmission_rate_percent": 7.2
+    },
+    {
+      "region": "Texas",
+      "active_cases": 61,
+      "recovery_rate_percent": 90.6,
+      "stability_index_percent": 93.1,
+      "readmission_rate_percent": 8.0
+    },
+    {
+      "region": "California",
+      "active_cases": 58,
+      "recovery_rate_percent": 91.5,
+      "stability_index_percent": 93.9,
+      "readmission_rate_percent": 7.5
+    },
+    {
+      "region": "Florida",
+      "active_cases": 49,
+      "recovery_rate_percent": 89.8,
+      "stability_index_percent": 92.6,
+      "readmission_rate_percent": 8.4
+    },
+    {
+      "region": "North Carolina",
+      "active_cases": 42,
+      "recovery_rate_percent": 90.2,
+      "stability_index_percent": 92.8,
+      "readmission_rate_percent": 8.1
+    }
+  ],
+  "doctor_outcome_highlights": [
+    {
+      "doctor_id": "DOC119",
+      "doctor_name": "Dr. Emily Carter",
+      "patients_managed": 46,
+      "recovery_rate_percent": 95.7,
+      "readmission_rate_percent": 4.9
+    },
+    {
+      "doctor_id": "DOC077",
+      "doctor_name": "Dr. Julian Brown",
+      "patients_managed": 39,
+      "recovery_rate_percent": 93.2,
+      "readmission_rate_percent": 6.1
+    },
+    {
+      "doctor_id": "DOC050",
+      "doctor_name": "Dr. Sarah Lee",
+      "patients_managed": 35,
+      "recovery_rate_percent": 92.6,
+      "readmission_rate_percent": 6.8
+    }
+  ],
+  "insights": [
+    "Recovery velocity improved for five consecutive months, with the strongest uplift in disability services.",
+    "Readmission pressure is concentrated in hospice and high-acuity elderly cohorts.",
+    "New York and California regions remain above network-average stability index."
+  ]
+}

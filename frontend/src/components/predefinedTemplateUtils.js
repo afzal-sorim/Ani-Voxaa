@@ -5,8 +5,8 @@ const TEMPLATE_RULES = [
   { key: 'DOC', patterns: ['doctor performance ranking', 'doc'] },
   { key: 'RISK', patterns: ['active vs critical patient count', 'risk'] },
   { key: 'ALRT', patterns: ['abnormal vitals alerts summary', 'alrt'] },
-  { key: 'LOAD', patterns: ['patients per doctor', 'load'] },
-  { key: 'REG', patterns: ['region-wise patient distribution', 'reg'] },
+  { key: 'LOAD', patterns: ['patients per doctor', 'patient per doctor', 'load'] },
+  { key: 'REG', patterns: ['region wise patient distribution', 'reg'] },
   { key: 'PAY', patterns: ['pending payment cases', 'pay'] },
   { key: 'TRND', patterns: ['patient outcome trends', 'trnd'] },
 ];
@@ -25,8 +25,11 @@ export function getPredefinedTemplateKey(query) {
   for (const rule of TEMPLATE_RULES) {
     const isMatch = rule.patterns.some((pattern) => {
       const p = normalizeText(pattern);
-      // Match exact phrase or when user query contains the full predefined phrase.
-      // Do not match when predefined phrase contains query (e.g. "hi" in "this").
+      // Short aliases (kpi/rev/pay/...) must be exact-only to avoid accidental matches.
+      if (p.length <= 4) {
+        return q === p;
+      }
+      // Long phrases can match exact or "query contains phrase".
       return q === p || q.includes(p);
     });
     if (isMatch) return rule.key;

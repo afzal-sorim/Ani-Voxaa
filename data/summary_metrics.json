@@ -1,7 +1,69 @@
-{
+﻿{
   "total_revenue": 6697114.9,
   "active_patients": 333,
   "top_doctor": "DOC119",
   "top_region": "New York",
-  "most_used_service": "SRV011"
+  "most_used_service": "SRV011",
+  "fiscal_year": 2026,
+  "revenue_overview": {
+    "currency": "USD",
+    "period": "2025-01 to 2026-12",
+    "average_revenue_per_year": 3348557.45,
+    "highest_revenue_year": 2026,
+    "highest_revenue_year_value": 3684912.2
+  },
+  "annual_revenue": [
+    { "year": 2024, "total_revenue": 2912148.4, "paid_revenue": 2709930.1, "pending_revenue": 202218.3 },
+    { "year": 2025, "total_revenue": 3014202.7, "paid_revenue": 2811033.4, "pending_revenue": 203169.3 },
+    { "year": 2026, "total_revenue": 3684912.2, "paid_revenue": 3399228.7, "pending_revenue": 285683.5 }
+  ],
+  "monthly_revenue_2026": [
+    { "month": "2026-01", "total_revenue": 267814.2, "paid_revenue": 247763.8, "pending_revenue": 20050.4 },
+    { "month": "2026-02", "total_revenue": 281205.9, "paid_revenue": 261572.1, "pending_revenue": 19633.8 },
+    { "month": "2026-03", "total_revenue": 298442.7, "paid_revenue": 276339.9, "pending_revenue": 22102.8 },
+    { "month": "2026-04", "total_revenue": 312778.5, "paid_revenue": 287391.1, "pending_revenue": 25387.4 },
+    { "month": "2026-05", "total_revenue": 319105.8, "paid_revenue": 294863.4, "pending_revenue": 24242.4 },
+    { "month": "2026-06", "total_revenue": 327990.1, "paid_revenue": 302116.6, "pending_revenue": 25873.5 },
+    { "month": "2026-07", "total_revenue": 336744.3, "paid_revenue": 309905.7, "pending_revenue": 26838.6 },
+    { "month": "2026-08", "total_revenue": 344550.9, "paid_revenue": 317205.2, "pending_revenue": 27345.7 },
+    { "month": "2026-09", "total_revenue": 351284.6, "paid_revenue": 323980.8, "pending_revenue": 27303.8 },
+    { "month": "2026-10", "total_revenue": 362105.2, "paid_revenue": 333114.7, "pending_revenue": 28990.5 },
+    { "month": "2026-11", "total_revenue": 379445.3, "paid_revenue": 348991.6, "pending_revenue": 30453.7 },
+    { "month": "2026-12", "total_revenue": 403444.5, "paid_revenue": 372983.8, "pending_revenue": 30460.7 }
+  ],
+  "revenue_by_service_2026": [
+    { "service_id": "SRV001", "service_name": "Hospice Home Support", "category": "Hospice", "total_revenue": 612450.0, "billing_count": 192 },
+    { "service_id": "SRV002", "service_name": "Palliative Nursing Care", "category": "Hospice", "total_revenue": 734880.0, "billing_count": 179 },
+    { "service_id": "SRV003", "service_name": "Pain Management Program", "category": "Hospice", "total_revenue": 508200.0, "billing_count": 167 },
+    { "service_id": "SRV004", "service_name": "Disability Daily Living Assistance", "category": "Disability", "total_revenue": 541900.0, "billing_count": 201 },
+    { "service_id": "SRV005", "service_name": "Mobility Rehabilitation", "category": "Disability", "total_revenue": 673050.0, "billing_count": 185 },
+    { "service_id": "SRV006", "service_name": "Occupational Therapy", "category": "Disability", "total_revenue": 579000.0, "billing_count": 193 },
+    { "service_id": "SRV007", "service_name": "Personal Hygiene Support", "category": "Personal Care", "total_revenue": 392400.0, "billing_count": 224 },
+    { "service_id": "SRV008", "service_name": "Meal and Nutrition Assistance", "category": "Personal Care", "total_revenue": 328500.0, "billing_count": 219 },
+    { "service_id": "SRV009", "service_name": "Medication Reminder Services", "category": "Personal Care", "total_revenue": 294000.0, "billing_count": 245 },
+    { "service_id": "SRV010", "service_name": "ICU Transition Support", "category": "Hospice", "total_revenue": 712400.0, "billing_count": 131 },
+    { "service_id": "SRV011", "service_name": "Home Physiotherapy", "category": "Disability", "total_revenue": 821600.0, "billing_count": 256 },
+    { "service_id": "SRV012", "service_name": "Companion Care Visits", "category": "Personal Care", "total_revenue": 386532.2, "billing_count": 242 }
+  ],
+  "revenue_by_region_2026": [
+    { "region": "New York", "total_revenue": 904300.4 },
+    { "region": "Texas", "total_revenue": 812104.8 },
+    { "region": "California", "total_revenue": 781442.7 },
+    { "region": "Florida", "total_revenue": 668920.3 },
+    { "region": "North Carolina", "total_revenue": 517550.1 }
+  ],
+  "outcome_overview": {
+    "period": "last_120_days",
+    "recovery_progress_percent": 86,
+    "recovery_rate_percent": 91,
+    "stability_index_percent": 94,
+    "readmission_rate_percent": 8
+  },
+  "monthly_outcome_ledger": [
+    { "month": "2026-01", "success": 148, "ongoing": 103, "failed": 17 },
+    { "month": "2026-02", "success": 156, "ongoing": 97, "failed": 15 },
+    { "month": "2026-03", "success": 162, "ongoing": 92, "failed": 14 },
+    { "month": "2026-04", "success": 171, "ongoing": 88, "failed": 13 },
+    { "month": "2026-05", "success": 178, "ongoing": 85, "failed": 12 }
+  ]
 }
