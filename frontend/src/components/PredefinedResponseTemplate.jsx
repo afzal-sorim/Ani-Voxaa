@@ -111,6 +111,7 @@ function parseContent(content) {
 
   if (table.startIndex === -1) {
     return {
+      rawContent: fullText,
       summary: fullText,
       insight: '',
       table,
@@ -139,6 +140,7 @@ function parseContent(content) {
     .match(/\d[\d,.]*/g) || [];
 
   return {
+    rawContent: fullText,
     summary,
     insight,
     table,
@@ -154,6 +156,22 @@ function pickValue(row, keys) {
   return '';
 }
 
+function resolveRegionLabel(row) {
+  const direct = pickValue(row, ['region', 'region_name', 'region name', 'state', 'city', 'location', 'zone']);
+  const cleanedDirect = cleanCell(direct);
+  if (cleanedDirect && normalizeText(cleanedDirect) !== 'region') return cleanedDirect;
+
+  const values = Object.values(row || {})
+    .map((v) => cleanCell(v))
+    .filter(Boolean);
+  for (const value of values) {
+    const norm = normalizeText(value);
+    const numericLike = /^[\d$.,%-\s]+$/.test(value);
+    if (!numericLike && norm && norm !== 'region') return value;
+  }
+  return cleanedDirect || 'Region';
+}
+
 function pickMetricFromText(text, labels) {
   const source = String(text || '');
   for (const label of labels) {
@@ -162,6 +180,23 @@ function pickMetricFromText(text, labels) {
     if (m && m[1]) return m[1];
   }
   return '';
+}
+
+function extractJsonBlock(content, marker) {
+  const text = String(content || '');
+  const markerIndex = text.indexOf(marker);
+  if (markerIndex === -1) return null;
+
+  const fenced = text.slice(markerIndex).match(/```json\s*([\s\S]*?)```/i);
+  const raw = fenced?.[1];
+  if (!raw) return null;
+
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : null;
+  } catch {
+    return null;
+  }
 }
 
 function Sparkline({ values, tone = 'cyan' }) {
@@ -238,23 +273,28 @@ function TemplateShell({ code, title, subtitle, children }) {
 function KpiTemplate({ parsed }) {
   const row = parsed.table.rowObjects[0] || {};
   const summaryText = `${parsed.summary || ''} ${parsed.insight || ''}`;
+  const kpiJson = extractJsonBlock(parsed.rawContent, 'KPI_METRICS_JSON') || {};
 
-  const revenueRaw =
-    pickValue(row, ['total_revenue', 'revenue']) ||
-    pickMetricFromText(summaryText, ['total revenue', 'monthly revenue', 'revenue']) ||
-    '0';
-  const patientsRaw =
-    pickValue(row, ['active_patients', 'total_patients', 'patients']) ||
-    pickMetricFromText(summaryText, ['active patients', 'total patients']) ||
-    '0';
-  const criticalRaw =
-    pickValue(row, ['critical_patients', 'critical']) ||
-    pickMetricFromText(summaryText, ['critical patients']) ||
-    '0';
-  const doctorsRaw =
-    pickValue(row, ['active_doctors', 'doctors']) ||
-    pickMetricFromText(summaryText, ['active doctors', 'doctors']) ||
-    '0';
+  const revenueRaw = (
+    kpiJson.monthly_revenue ??
+    pickValue(row, ['total_revenue', 'revenue']) ??
+    pickMetricFromText(summaryText, ['total revenue', 'monthly revenue', 'revenue'])
+  ) || '0';
+  const patientsRaw = (
+    kpiJson.total_patients ??
+    pickValue(row, ['active_patients', 'total_patients', 'patients']) ??
+    pickMetricFromText(summaryText, ['active patients', 'total patients'])
+  ) || '0';
+  const criticalRaw = (
+    kpiJson.critical_patients ??
+    pickValue(row, ['critical_patients', 'critical']) ??
+    pickMetricFromText(summaryText, ['critical patients'])
+  ) || '0';
+  const doctorsRaw = (
+    kpiJson.active_doctors ??
+    pickValue(row, ['active_doctors', 'doctors']) ??
+    pickMetricFromText(summaryText, ['active doctors', 'doctors'])
+  ) || '0';
 
   const totalPatients = toNumber(patientsRaw);
   const revenue = toNumber(revenueRaw);
@@ -632,7 +672,7 @@ function LoadTemplate({ parsed }) {
 
 function RegionTemplate({ parsed }) {
   const regions = parsed.table.rowObjects.map((row) => ({
-    region: pickValue(row, ['region_name', 'region name']) || 'Region',
+    region: resolveRegionLabel(row),
     patients: toNumber(pickValue(row, ['total_patients', 'patient_count', 'patients'])),
     revenue: toNumber(pickValue(row, ['total_revenue', 'revenue'])),
     avgAge: toNumber(pickValue(row, ['avg_patient_age', 'avg patient age'])),

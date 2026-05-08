@@ -47,14 +47,15 @@ export default function Login() {
         {/* Content in Hero */}
         <div className="relative z-10 w-full h-full flex flex-col justify-between p-16 xl:p-24">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gold-gradient flex items-center justify-center shadow-lg shadow-gold-600/20">
-              <svg width="24" height="24" viewBox="0 0 40 40" fill="none">
+            {/* <div className="w-10 h-10 rounded-xl bg-gold-gradient flex items-center justify-center shadow-lg shadow-gold-600/20"> */}
+              {/* <svg width="24" height="24" viewBox="0 0 40 40" fill="none">
                 <circle cx="20" cy="20" r="16" stroke="var(--bg)" strokeWidth="3" />
                 <circle cx="20" cy="20" r="4" fill="var(--bg)" />
                 <path d="M20 8V16M24 23L33 28M16 23L7 28" stroke="var(--bg)" strokeWidth="3" strokeLinecap="round" />
-              </svg>
-            </div>
-            <span className="text-2xl font-black text-[var(--txt)] tracking-tighter">VOXA</span>
+              </svg> */}
+              <img src="./Blue-and-Green-Modern-Medical-Logo-2-scaled-removebg-preview.png" alt="" />
+            {/* </div> */}
+            {/* <span className="text-2xl font-black text-[var(--txt)] tracking-tighter">AniCare Vox</span> */}
           </div>
 
           <div className="max-w-2xl">
@@ -90,13 +91,14 @@ export default function Login() {
 
         {/* Top Header Branding */}
         <div className="absolute top-10 flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-gold-gradient flex items-center justify-center shadow-lg shadow-gold-600/20">
-            <svg width="18" height="18" viewBox="0 0 40 40" fill="none">
+          {/* <div className="w-8 h-8 rounded-lg bg-gold-gradient flex items-center justify-center shadow-lg shadow-gold-600/20"> */}
+            {/* <svg width="18" height="18" viewBox="0 0 40 40" fill="none">
               <circle cx="20" cy="20" r="16" stroke="var(--bg)" strokeWidth="4" />
               <path d="M20 8V16M24 23L33 28M16 23L7 28" stroke="var(--bg)" strokeWidth="4" strokeLinecap="round" />
-            </svg>
-          </div>
-          <span className="text-xl font-black text-[var(--txt)] tracking-tighter">VOXA</span>
+            </svg> */}'
+            <img src="./public/Blue-and-Green-Modern.png" className='w-[50px]' alt="" />'
+          {/* </div> */}
+          <span className="text-xl font-black text-[var(--txt)] tracking-tighter">AniCare Vox</span>
         </div>
 
         <div className="w-full max-w-[340px] animate-fade-in-scale">

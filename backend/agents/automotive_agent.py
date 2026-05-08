@@ -43,6 +43,17 @@ PREDEFINED_RESPONSE_PATTERNS = (
     "pending payment cases",
     "patient outcome trends",
 )
+CHART_REQUEST_KEYWORDS = (
+    "chart",
+    "graph",
+    "pie",
+    "bar",
+    "column",
+    "line",
+    "area",
+    "donut",
+    "doughnut",
+)
 
 _JSON_CONTEXT_CACHE: dict[str, Any] = {"signature": None, "contexts": {}}
 QUERY_TOPIC_KEYWORDS: dict[str, tuple[str, ...]] = {
@@ -253,6 +264,34 @@ def _profile_records(records: list[dict], query: str, sample_items: int = 2) -> 
     return summary
 
 
+def _extract_query_tokens(query: str) -> list[str]:
+    tokens = re.findall(r"[a-z0-9_]+", (query or "").lower())
+    return [t for t in tokens if len(t) >= 3]
+
+
+def _query_focused_rows(records: list[dict], query: str, max_rows: int = 120) -> list[dict]:
+    if not records:
+        return []
+    tokens = _extract_query_tokens(query)
+    if not tokens:
+        return records[:max_rows]
+
+    matched: list[dict] = []
+    for row in records:
+        if not isinstance(row, dict):
+            continue
+        hay = " ".join(str(v).lower() for v in row.values() if v is not None)
+        if any(t in hay for t in tokens):
+            matched.append(row)
+        if len(matched) >= max_rows:
+            break
+
+    if len(matched) < max_rows:
+        needed = max_rows - len(matched)
+        matched.extend(records[:needed])
+    return matched[:max_rows]
+
+
 def _select_relevant_json_files(query: str, json_paths: list[Path], max_files: int = 5) -> list[Path]:
     q = (query or "").lower()
     score_map: dict[Path, int] = {}
@@ -279,7 +318,7 @@ def _select_relevant_json_files(query: str, json_paths: list[Path], max_files: i
     return selected
 
 
-def _build_healthcare_data_context(query: str | None = None, max_chars: int = 4500) -> str:
+def _build_healthcare_data_context(query: str | None = None, max_chars: int = 18000) -> str:
     data_dir = _get_healthcare_data_dir()
     json_paths = sorted(data_dir.glob("*.json"))
     signature = tuple(
@@ -299,12 +338,13 @@ def _build_healthcare_data_context(query: str | None = None, max_chars: int = 45
 
     context_payload: dict[str, Any] = {}
     is_load_prompt = ("patients per doctor" in query_key) or ("doctor load" in query_key)
+    is_performance_prompt = ("doctor performance ranking" in query_key) or ("doctor performance" in query_key and "ranking" in query_key)
     selected_paths = _select_relevant_json_files(
         query or "",
         json_paths,
-        max_files=len(json_paths) if is_load_prompt else 5,
+        max_files=len(json_paths) if (is_load_prompt or is_performance_prompt) else 10,
     )
-    if is_load_prompt:
+    if is_load_prompt or is_performance_prompt:
         priority_order = [
             "doctor_load_analytics.json",
             "doctors.json",
@@ -329,20 +369,25 @@ def _build_healthcare_data_context(query: str | None = None, max_chars: int = 45
             continue
         if isinstance(loaded, list) and loaded and isinstance(loaded[0], dict):
             context_payload[path.name] = {
-                "summary": _summarize_json_payload(loaded, max_full_items=2, sample_items=1),
+                "summary": _summarize_json_payload(loaded, max_full_items=8, sample_items=3),
                 "analytics": _profile_records(loaded[:500], query or "", sample_items=2),
+                "records_excerpt": _query_focused_rows(loaded, query or "", max_rows=120),
             }
         elif isinstance(loaded, dict):
-            enriched: dict[str, Any] = {"summary": _summarize_json_payload(loaded, max_full_items=2, sample_items=1)}
+            enriched: dict[str, Any] = {"summary": _summarize_json_payload(loaded, max_full_items=8, sample_items=3)}
             object_analytics: dict[str, Any] = {}
+            nested_records: dict[str, Any] = {}
             for key, value in loaded.items():
                 if isinstance(value, list) and value and isinstance(value[0], dict):
                     object_analytics[key] = _profile_records(value[:500], query or "", sample_items=2)
+                    nested_records[key] = _query_focused_rows(value, query or "", max_rows=80)
             if object_analytics:
                 enriched["nested_analytics"] = object_analytics
+            if nested_records:
+                enriched["nested_records_excerpt"] = nested_records
             context_payload[path.name] = enriched
         else:
-            context_payload[path.name] = _summarize_json_payload(loaded, max_full_items=2, sample_items=1)
+            context_payload[path.name] = _summarize_json_payload(loaded, max_full_items=8, sample_items=3)
 
     if not context_payload:
         return "No JSON files found in data folder."
@@ -357,7 +402,7 @@ def _build_healthcare_data_context(query: str | None = None, max_chars: int = 45
         indent=2,
     )
 
-    context_limit = 14000 if is_load_prompt else max_chars
+    context_limit = 40000 if (is_load_prompt or is_performance_prompt) else max_chars
     if len(context) > context_limit:
         context = context[:context_limit] + "\n\n[TRUNCATED FOR TOKEN LIMIT]"
 
@@ -369,6 +414,95 @@ def _build_healthcare_data_context(query: str | None = None, max_chars: int = 45
 def _is_doctor_load_prompt(query: str) -> bool:
     q = _normalize_predefined_match_text(query or "")
     return ("patients per doctor" in q) or ("patient per doctor" in q) or ("doctor load" in q)
+
+
+def _is_doctor_performance_prompt(query: str) -> bool:
+    q = _normalize_predefined_match_text(query or "")
+    return ("doctor performance ranking" in q) or ("doctor performance" in q and "ranking" in q)
+
+
+def _is_region_distribution_prompt(query: str) -> bool:
+    q = _normalize_predefined_match_text(query or "")
+    return ("region wise patient distribution" in q) or ("region-wise patient distribution" in q) or ("regional patient distribution" in q)
+
+
+def _is_kpi_dashboard_prompt(query: str) -> bool:
+    q = _normalize_predefined_match_text(query or "")
+    return (
+        ("give me healthcare dashboard report" in q)
+        or ("healthcare dashboard report" in q)
+        or ("healthcare dashboard" in q and "report" in q)
+        or q == "kpi"
+        or ("kpi" in q and "dashboard" in q)
+    )
+
+
+def _build_kpi_metrics_payload() -> dict[str, int | float]:
+    patients = _load_healthcare_json("patients.json") or []
+    doctors = _load_healthcare_json("doctors.json") or []
+    summary = _load_healthcare_json("summary_metrics.json") or {}
+    vitals = _load_healthcare_json("vitals.json") or []
+
+    def _to_int(value: Any) -> int | None:
+        try:
+            if value is None or value == "":
+                return None
+            return int(float(value))
+        except Exception:
+            return None
+
+    def _to_float(value: Any) -> float | None:
+        try:
+            if value is None or value == "":
+                return None
+            return float(value)
+        except Exception:
+            return None
+
+    total_patients = _to_int(summary.get("active_patients"))
+    if total_patients is None and isinstance(patients, list):
+        total_patients = sum(
+            1
+            for p in patients
+            if isinstance(p, dict) and str(p.get("status", "")).strip().lower() == "active"
+        )
+
+    monthly_revenue = _to_float(summary.get("total_revenue"))
+    if monthly_revenue is None and isinstance(summary.get("monthly_revenue_2026"), list):
+        monthly_revenue = sum(
+            float(item.get("total_revenue") or 0)
+            for item in summary.get("monthly_revenue_2026")
+            if isinstance(item, dict)
+        )
+
+    active_doctors = None
+    if isinstance(doctors, list):
+        active_doctors = len(
+            {
+                str(d.get("doctor_id") or d.get("id") or "").strip()
+                for d in doctors
+                if isinstance(d, dict) and str(d.get("doctor_id") or d.get("id") or "").strip()
+            }
+        )
+
+    critical_patients = None
+    if isinstance(vitals, list):
+        critical_patients = len(
+            {
+                str(v.get("patient_id") or "").strip()
+                for v in vitals
+                if isinstance(v, dict)
+                and bool(v.get("alert_flag")) is True
+                and str(v.get("patient_id") or "").strip()
+            }
+        )
+
+    return {
+        "total_patients": int(total_patients or 0),
+        "monthly_revenue": float(round(monthly_revenue or 0.0, 2)),
+        "critical_patients": int(critical_patients or 0),
+        "active_doctors": int(active_doctors or 0),
+    }
 
 
 def _has_markdown_table(text: str) -> bool:
@@ -431,31 +565,168 @@ def _has_required_doctor_load_table(text: str) -> bool:
     return data_rows >= 1
 
 
+def _has_required_doctor_performance_table(text: str) -> bool:
+    src = str(text or "")
+    lines = [ln.strip() for ln in src.splitlines() if ln.strip()]
+    if not lines:
+        return False
+
+    has_data_table_heading = any(ln.strip().lower() == "data table" for ln in lines)
+    if not has_data_table_heading:
+        return False
+
+    for i in range(len(lines) - 2):
+        header = lines[i]
+        sep = lines[i + 1]
+        if "|" not in header:
+            continue
+        sep_core = sep.replace("|", "").replace(":", "").replace(" ", "")
+        if not (sep_core and set(sep_core) == {"-"}):
+            continue
+
+        normalized = re.sub(r"\s+", "", header.lower())
+        has_name = ("doctor_name" in normalized) or ("doctorname" in normalized)
+        has_count = ("patients_served" in normalized) or ("patient_count" in normalized) or ("patientshandledcount" in normalized)
+        if not (has_name and has_count):
+            continue
+
+        row_count = 0
+        for row in lines[i + 2:]:
+            if "|" not in row:
+                if row_count > 0:
+                    break
+                continue
+            cells = [c.strip() for c in row.strip("|").split("|")]
+            if len(cells) >= 2 and any(cells):
+                row_count += 1
+        if row_count >= 3:
+            return True
+    return False
+
+
+def _is_chart_request(query: str) -> bool:
+    q = _normalize_predefined_match_text(query or "")
+    if not q:
+        return False
+    return any(k in q for k in CHART_REQUEST_KEYWORDS)
+
+
+def _build_region_analytics_context(top_n: int = 8) -> str:
+    patients = _load_healthcare_json("patients.json") or []
+    billing = _load_healthcare_json("billing.json") or []
+    if not isinstance(patients, list) or not patients:
+        return ""
+
+    patient_region: dict[str, str] = {}
+    region_stats: dict[str, dict[str, float]] = {}
+
+    for p in patients:
+        if not isinstance(p, dict):
+            continue
+        pid = str(p.get("id") or "").strip()
+        region = str(p.get("region") or "").strip()
+        age = p.get("age")
+        if pid and region:
+            patient_region[pid] = region
+        if not region:
+            continue
+        stats = region_stats.setdefault(region, {"patients": 0.0, "age_sum": 0.0, "age_count": 0.0, "revenue": 0.0})
+        stats["patients"] += 1.0
+        if isinstance(age, (int, float)):
+            stats["age_sum"] += float(age)
+            stats["age_count"] += 1.0
+
+    if isinstance(billing, list):
+        for b in billing:
+            if not isinstance(b, dict):
+                continue
+            pid = str(b.get("patient_id") or "").strip()
+            amount = b.get("amount")
+            if not pid or not isinstance(amount, (int, float)):
+                continue
+            region = patient_region.get(pid)
+            if not region:
+                continue
+            stats = region_stats.setdefault(region, {"patients": 0.0, "age_sum": 0.0, "age_count": 0.0, "revenue": 0.0})
+            stats["revenue"] += float(amount)
+
+    ranked = sorted(region_stats.items(), key=lambda item: item[1]["patients"], reverse=True)[:top_n]
+    if not ranked:
+        return ""
+
+    rows = []
+    for region, stats in ranked:
+        avg_age = (stats["age_sum"] / stats["age_count"]) if stats["age_count"] > 0 else 0.0
+        rows.append(
+            {
+                "region": region,
+                "patient_count": int(stats["patients"]),
+                "total_revenue": round(stats["revenue"], 2),
+                "avg_patient_age": round(avg_age, 1),
+            }
+        )
+    return json.dumps({"regional_distribution_metrics": rows}, ensure_ascii=True, indent=2)
+
+
 def _ensure_doctor_load_structure(
     query: str,
     response_text: str,
     data_context: str | None = None,
     conversation_history: list[dict] | None = None,
 ) -> str:
-    if not _is_doctor_load_prompt(query):
+    is_load_prompt = _is_doctor_load_prompt(query)
+    is_performance_prompt = _is_doctor_performance_prompt(query)
+    is_region_prompt = _is_region_distribution_prompt(query)
+    if not is_load_prompt and not is_performance_prompt and not is_region_prompt:
         return response_text
     if not data_context:
         return response_text
 
-    reformat_instruction = (
-        "You must reformat the response using ONLY the existing JSON context and without inventing data.\n"
-        "The output MUST be a valid markdown table format parseable by strict renderers.\n"
-        "Return exactly in this structure:\n"
-        "LOAD Patients per Doctor SUMMARY\n"
-        "<one sentence with average patients per doctor>\n"
-        "DATA TABLE\n"
-        "| doctor_name | patient_count | status | active_load | shift_progress_percent | efficiency_percent |\n"
-        "|---|---:|---|---|---:|---:|\n"
-        "<at least 3 rows>\n"
-        "AI Insight: <one short sentence>\n"
-        "If data is missing, still return the table with available rows and do not leave the table empty."
-    )
-    if _has_required_doctor_load_table(response_text):
+    if is_load_prompt:
+        reformat_instruction = (
+            "You must reformat the response using ONLY the existing JSON context and without inventing data.\n"
+            "The output MUST be a valid markdown table format parseable by strict renderers.\n"
+            "Return exactly in this structure:\n"
+            "LOAD Patients per Doctor SUMMARY\n"
+            "<one sentence with average patients per doctor>\n"
+            "DATA TABLE\n"
+            "| doctor_name | patient_count | status | active_load | shift_progress_percent | efficiency_percent |\n"
+            "|---|---:|---|---|---:|---:|\n"
+            "<at least 3 rows>\n"
+            "AI Insight: <one short sentence>\n"
+            "If data is missing, still return the table with available rows and do not leave the table empty."
+        )
+        is_valid = _has_required_doctor_load_table(response_text)
+    elif is_performance_prompt:
+        reformat_instruction = (
+            "You must reformat the response using ONLY the existing JSON context and without inventing data.\n"
+            "The output MUST be a valid markdown table format parseable by strict renderers.\n"
+            "Return exactly in this structure:\n"
+            "Doctor Performance Ranking\n"
+            "SUMMARY <one short sentence>\n"
+            "DATA TABLE\n"
+            "| doctor_name | patient_count | rating | experience_years | efficiency_percent |\n"
+            "|---|---:|---:|---:|---:|\n"
+            "<at least 3 rows>\n"
+            "AI Insight: <one short sentence>\n"
+            "Use doctor_load_analytics.json and doctors.json first when available."
+        )
+        is_valid = _has_required_doctor_performance_table(response_text)
+    else:
+        reformat_instruction = (
+            "You must reformat the response using ONLY the existing JSON context and without inventing data.\n"
+            "Return exactly in this structure:\n"
+            "Region-wise Patient Distribution\n"
+            "Summary <one short sentence>\n"
+            "Data Table\n"
+            "| region | total_patients | total_revenue | avg_patient_age |\n"
+            "|---|---:|---:|---:|\n"
+            "<at least 5 rows>\n"
+            "Use numeric values from regional_distribution_metrics when available. Do not output $0 unless actual value is 0."
+        )
+        is_valid = _has_markdown_table(response_text)
+
+    if is_valid:
         return response_text
 
     first_retry_context = (
@@ -470,7 +741,11 @@ def _ensure_doctor_load_structure(
             data_context=first_retry_context,
             conversation_history=conversation_history,
         )
-        if _has_required_doctor_load_table(repaired):
+        if is_load_prompt and _has_required_doctor_load_table(repaired):
+            return repaired
+        if is_performance_prompt and _has_required_doctor_performance_table(repaired):
+            return repaired
+        if is_region_prompt and _has_markdown_table(repaired):
             return repaired
 
         second_retry_context = (
@@ -487,7 +762,13 @@ def _ensure_doctor_load_structure(
             data_context=second_retry_context,
             conversation_history=conversation_history,
         )
-        return repaired_again if _has_required_doctor_load_table(repaired_again) else repaired
+        if is_load_prompt and _has_required_doctor_load_table(repaired_again):
+            return repaired_again
+        if is_performance_prompt and _has_required_doctor_performance_table(repaired_again):
+            return repaired_again
+        if is_region_prompt and _has_markdown_table(repaired_again):
+            return repaired_again
+        return repaired
     except Exception:
         return response_text
 
@@ -514,6 +795,38 @@ def _build_healthcare_llm_instruction(query: str) -> str:
             "- End with one short AI reassignment insight sentence.\n"
             "- Use only values grounded in the provided JSON context."
         )
+    if "doctor performance ranking" in q or ("doctor performance" in q and "ranking" in q):
+        base += (
+            "\n7. For doctor performance ranking questions, ALWAYS return:\n"
+            "- First line exactly: Doctor Performance Ranking\n"
+            "- Then one line starting with SUMMARY and a concise sentence.\n"
+            "- Then add this heading line exactly: DATA TABLE\n"
+            "- Then a markdown table with columns: doctor_name, patient_count, rating, experience_years, efficiency_percent.\n"
+            "- Provide at least 3 doctor rows.\n"
+            "- End with one short line starting with AI Insight:.\n"
+            "- Prefer doctor_load_analytics.json and doctors.json values when available.\n"
+            "- Do not leave DATA TABLE empty."
+        )
+    if "region-wise patient distribution" in q or "region wise patient distribution" in q:
+        base += (
+            "\n8. For region-wise patient distribution, ALWAYS return:\n"
+            "- First line exactly: Region-wise Patient Distribution\n"
+            "- Second line starts with: Summary\n"
+            "- Then line: Data Table\n"
+            "- Then markdown table columns exactly: region, total_patients, total_revenue, avg_patient_age\n"
+            "- At least 5 rows.\n"
+            "- Prefer values from `regional_distribution_metrics` when present.\n"
+            "- Do not emit placeholder values like $0 or '-' unless truly zero or missing in data."
+        )
+    if _is_kpi_dashboard_prompt(query):
+        base += (
+            "\n9. For KPI dashboard report responses, include this exact section at the end:\n"
+            "KPI_METRICS_JSON\n"
+            "```json\n"
+            "{\"total_patients\": number, \"monthly_revenue\": number, \"critical_patients\": number, \"active_doctors\": number}\n"
+            "```\n"
+            "Use only JSON-grounded values from the context."
+        )
     return base
 
 
@@ -525,11 +838,49 @@ def _fallback_healthcare_response() -> str:
     return "I could not find healthcare data in the data folder."
 
 
+def _append_kpi_metrics_json_if_needed(query: str, response_text: str) -> str:
+    if not _is_kpi_dashboard_prompt(query):
+        return response_text
+    base_text = str(response_text or "")
+    if "KPI_METRICS_JSON" in base_text:
+        base_text = re.sub(
+            r"KPI_METRICS_JSON\s*```json[\s\S]*?```",
+            "",
+            base_text,
+            flags=re.IGNORECASE,
+        ).rstrip()
+    payload = _build_kpi_metrics_payload()
+    return (
+        f"{base_text}\n\n"
+        "KPI_METRICS_JSON\n"
+        "```json\n"
+        f"{json.dumps(payload, ensure_ascii=True, indent=2)}\n"
+        "```"
+    )
+
+
 def _generate_healthcare_response(query: str, conversation_history: list[dict] | None = None) -> str:
+    if _is_chart_request(query):
+        chart_context = (
+            f"{_build_chart_llm_instruction(query)}\n\n"
+            "HEALTHCARE JSON DATA CONTEXT:\n"
+            f"{_build_healthcare_data_context(query, max_chars=30000)}"
+        )
+        try:
+            return llm_service.generate_response(
+                user_query=query,
+                data_context=chart_context,
+                conversation_history=conversation_history,
+            )
+        except Exception:
+            chart_response = _build_chart_response_from_json(query)
+            if chart_response:
+                return chart_response
+
     data_context = (
         f"{_build_healthcare_llm_instruction(query)}\n\n"
         "HEALTHCARE JSON DATA CONTEXT:\n"
-        f"{_build_healthcare_data_context(query)}"
+        f"{_build_healthcare_data_context(query, max_chars=30000)}"
     )
     
     # Also include data from DuckDB tables if available
@@ -561,6 +912,10 @@ def _generate_healthcare_response(query: str, conversation_history: list[dict] |
     
     if additional_data:
         data_context += f"\n\nADDITIONAL DATABASE DATA:\n{json.dumps(additional_data, ensure_ascii=True, indent=2)}"
+    if _is_region_distribution_prompt(query):
+        region_context = _build_region_analytics_context(top_n=8)
+        if region_context:
+            data_context += f"\n\nREGIONAL_DERIVED_METRICS:\n{region_context}"
     
     try:
         response_text = llm_service.generate_response(
@@ -568,55 +923,91 @@ def _generate_healthcare_response(query: str, conversation_history: list[dict] |
             data_context=data_context,
             conversation_history=conversation_history,
         )
-        return _ensure_doctor_load_structure(
+        repaired = _ensure_doctor_load_structure(
             query,
             response_text,
             data_context=data_context,
             conversation_history=conversation_history,
         )
+        return _append_kpi_metrics_json_if_needed(query, repaired)
     except Exception:
         fallback = _fallback_healthcare_response()
-        return _ensure_doctor_load_structure(
+        repaired = _ensure_doctor_load_structure(
             query,
             fallback,
             data_context=data_context,
             conversation_history=conversation_history,
         )
+        return _append_kpi_metrics_json_if_needed(query, repaired)
 
 
 async def _stream_healthcare_response(
     query: str,
     conversation_history: list[dict] | None = None,
 ) -> AsyncGenerator[str, None]:
+    if _is_chart_request(query):
+        chart_context = (
+            f"{_build_chart_llm_instruction(query)}\n\n"
+            "HEALTHCARE JSON DATA CONTEXT:\n"
+            f"{_build_healthcare_data_context(query, max_chars=30000)}"
+        )
+        try:
+            response_text = llm_service.generate_response(
+                user_query=query,
+                data_context=chart_context,
+                conversation_history=conversation_history,
+            )
+            yield response_text
+            return
+        except Exception:
+            chart_response = _build_chart_response_from_json(query)
+            if chart_response:
+                yield chart_response
+                return
+
     data_context = (
         f"{_build_healthcare_llm_instruction(query)}\n\n"
         "HEALTHCARE JSON DATA CONTEXT:\n"
-        f"{_build_healthcare_data_context(query)}"
+        f"{_build_healthcare_data_context(query, max_chars=30000)}"
     )
-    if _is_doctor_load_prompt(query):
+    if _is_region_distribution_prompt(query):
+        region_context = _build_region_analytics_context(top_n=8)
+        if region_context:
+            data_context += f"\n\nREGIONAL_DERIVED_METRICS:\n{region_context}"
+    if _is_doctor_load_prompt(query) or _is_doctor_performance_prompt(query):
         try:
             response_text = llm_service.generate_response(
                 user_query=query,
                 data_context=data_context,
                 conversation_history=conversation_history,
             )
-            yield _ensure_doctor_load_structure(
+            repaired = _ensure_doctor_load_structure(
                 query,
                 response_text,
                 data_context=data_context,
                 conversation_history=conversation_history,
             )
+            yield _append_kpi_metrics_json_if_needed(query, repaired)
             return
         except Exception:
-            yield _ensure_doctor_load_structure(
+            repaired = _ensure_doctor_load_structure(
                 query,
                 _fallback_healthcare_response(),
                 data_context=data_context,
                 conversation_history=conversation_history,
             )
+            yield _append_kpi_metrics_json_if_needed(query, repaired)
             return
 
     try:
+        if _is_kpi_dashboard_prompt(query):
+            response_text = llm_service.generate_response(
+                user_query=query,
+                data_context=data_context,
+                conversation_history=conversation_history,
+            )
+            yield _append_kpi_metrics_json_if_needed(query, response_text)
+            return
         async for token in llm_service.stream_response(
             user_query=query,
             data_context=data_context,
@@ -702,6 +1093,412 @@ def _execute_healthcare_analytics(query: str) -> str | None:
     Route all healthcare questions through JSON-grounded LLM responses
     to keep behavior consistent across free-form and predefined prompts.
     """
+    return None
+
+
+def _to_markdown_table(rows: list[dict], columns: list[str]) -> str:
+    if not rows:
+        return ""
+    header = "| " + " | ".join(columns) + " |"
+    sep = "|" + "|".join([" --- " for _ in columns]) + "|"
+    body = []
+    for row in rows:
+        body.append("| " + " | ".join(str(row.get(col, "")) for col in columns) + " |")
+    return "\n".join([header, sep, *body])
+
+
+def _build_chart_response_from_json(query: str) -> str | None:
+    if not _is_chart_request(query):
+        return None
+
+    q = _normalize_predefined_match_text(query or "")
+    summary = _load_healthcare_json("summary_metrics.json") or {}
+    billing_summary = _load_healthcare_json("billing_revenue_summary.json") or {}
+    outcomes = _load_healthcare_json("patient_outcome_trends.json") or {}
+    doctors = _load_healthcare_json("doctors.json") or []
+    doctor_load = _load_healthcare_json("doctor_load_analytics.json") or {}
+
+    chart_pref = "bar"
+    if any(k in q for k in ("pie", "donut", "doughnut")):
+        chart_pref = "pie"
+    elif "line" in q:
+        chart_pref = "line"
+    elif "area" in q:
+        chart_pref = "area"
+    elif any(k in q for k in ("column", "bar")):
+        chart_pref = "bar"
+
+    rows: list[dict] = []
+    heading = "Dynamic Healthcare Chart Summary"
+    insight = "Generated from JSON data context only."
+    wants_doctors = any(k in q for k in ("doctor", "doctors", "physician", "physicians", "provider", "providers"))
+    wants_regions = any(k in q for k in ("region", "regions", "state", "city", "location"))
+    wants_patients = any(k in q for k in ("patient", "patients"))
+    wants_outcomes = any(k in q for k in ("outcome", "recovery", "readmission", "stability"))
+    wants_revenue = any(k in q for k in ("revenue", "billing", "income", "payment", "finance", "financial"))
+    wants_yearly = any(k in q for k in ("yearly", "annual", "year wise", "year-wise", "by year", "per year"))
+    wants_monthly = any(k in q for k in ("monthly", "month wise", "month-wise", "by month", "per month", "month"))
+
+    # Subject-first routing: respect what the user asked to visualize before chart shape.
+    if wants_doctors and wants_regions:
+        region_counts: dict[str, int] = {}
+        if isinstance(doctors, list):
+            for d in doctors:
+                if not isinstance(d, dict):
+                    continue
+                region = str(d.get("region") or "").strip()
+                if not region:
+                    continue
+                region_counts[region] = region_counts.get(region, 0) + 1
+
+        if not region_counts:
+            regional = (doctor_load.get("regional_load_distribution") or [])[:12]
+            rows = [
+                {"region": r.get("region", ""), "doctor_count": r.get("active_doctors", 0)}
+                for r in regional if isinstance(r, dict)
+            ]
+        else:
+            rows = [
+                {"region": region, "doctor_count": count}
+                for region, count in sorted(region_counts.items(), key=lambda item: item[1], reverse=True)
+            ][:12]
+
+        heading = "Doctors by Region"
+        insight = "Regional physician distribution from doctors.json."
+    elif wants_patients and wants_regions:
+        regional = (outcomes.get("regional_outcomes") or [])[:12]
+        rows = [
+            {"region": r.get("region", ""), "active_cases": r.get("active_cases", 0)}
+            for r in regional if isinstance(r, dict)
+        ]
+        heading = "Patients by Region"
+        insight = "Regional active case distribution from patient_outcome_trends.json."
+    elif wants_outcomes:
+        monthly_outcomes = (outcomes.get("monthly_outcome_ledger") or [])[:12]
+        rows = [
+            {
+                "month": r.get("month", ""),
+                "success": r.get("success", 0),
+                "ongoing": r.get("ongoing", 0),
+                "failed": r.get("failed", 0),
+            }
+            for r in monthly_outcomes if isinstance(r, dict)
+        ]
+        heading = "Patient Outcome Trend"
+        insight = "Outcome trend from patient_outcome_trends.json."
+    elif wants_revenue:
+        if wants_yearly:
+            annual = (summary.get("annual_revenue") or billing_summary.get("annual_totals") or [])[:12]
+            rows = [
+                {"year": r.get("year", ""), "total_revenue": r.get("total_revenue", 0)}
+                for r in annual if isinstance(r, dict)
+            ]
+            heading = "Yearly Revenue"
+            insight = "Year-over-year revenue trend from annual totals."
+        elif wants_monthly or chart_pref in {"line", "area"}:
+            monthly = (summary.get("monthly_revenue_2026") or billing_summary.get("monthly_revenue_2026") or [])[:12]
+            rows = [
+                {"month": str(r.get("month", "")), "total_revenue": r.get("total_revenue", 0)}
+                for r in monthly if isinstance(r, dict)
+            ]
+            heading = "Monthly Revenue Trend"
+            insight = "Use line/area view for month-over-month movement."
+        elif chart_pref == "pie":
+            regions = summary.get("revenue_by_region_2026") or []
+            rows = [
+                {"region": r.get("region", ""), "total_revenue": r.get("total_revenue", 0)}
+                for r in regions if isinstance(r, dict)
+            ]
+            heading = "Revenue Distribution"
+            insight = "Use pie/donut view for contribution share."
+        else:
+            services = (billing_summary.get("revenue_by_service_month_2026_04") or summary.get("revenue_by_service_2026") or [])[:10]
+            rows = [
+                {
+                    "service_name": r.get("service_name", ""),
+                    "category": r.get("category", ""),
+                    "total_revenue": r.get("total_revenue", 0),
+                }
+                for r in services if isinstance(r, dict)
+            ]
+            heading = "Revenue by Service"
+            insight = "Use bar/column view for ranked category comparison."
+
+    if not rows and chart_pref in {"line", "area"}:
+        monthly = (summary.get("monthly_revenue_2026") or billing_summary.get("monthly_revenue_2026") or [])[:12]
+        rows = [
+            {"month": str(r.get("month", "")), "total_revenue": r.get("total_revenue", 0)}
+            for r in monthly if isinstance(r, dict)
+        ]
+        heading = "Monthly Revenue Trend"
+        insight = "Use line/area view for month-over-month movement."
+    elif not rows and chart_pref == "pie":
+        regions = summary.get("revenue_by_region_2026") or []
+        rows = [
+            {"region": r.get("region", ""), "total_revenue": r.get("total_revenue", 0)}
+            for r in regions if isinstance(r, dict)
+        ]
+        if not rows:
+            services = (summary.get("revenue_by_service_2026") or [])[:8]
+            rows = [
+                {"service_name": r.get("service_name", ""), "total_revenue": r.get("total_revenue", 0)}
+                for r in services if isinstance(r, dict)
+            ]
+        heading = "Revenue Distribution"
+        insight = "Use pie/donut view for contribution share."
+    elif not rows:
+        services = (billing_summary.get("revenue_by_service_month_2026_04") or summary.get("revenue_by_service_2026") or [])[:10]
+        rows = [
+            {
+                "service_name": r.get("service_name", ""),
+                "category": r.get("category", ""),
+                "total_revenue": r.get("total_revenue", 0),
+            }
+            for r in services if isinstance(r, dict)
+        ]
+        heading = "Revenue by Service"
+        insight = "Use bar/column view for ranked category comparison."
+
+    if not rows:
+        monthly_outcomes = (outcomes.get("monthly_outcome_ledger") or [])[:8]
+        rows = [
+            {
+                "month": r.get("month", ""),
+                "success": r.get("success", 0),
+                "ongoing": r.get("ongoing", 0),
+                "failed": r.get("failed", 0),
+            }
+            for r in monthly_outcomes if isinstance(r, dict)
+        ]
+        heading = "Outcome Trend"
+        insight = "Fallback chart built from patient outcomes data."
+
+    if not rows:
+        return "SUMMARY No data available for this chart request."
+
+    columns = list(rows[0].keys())
+    return (
+        f"{heading}\n"
+        "SUMMARY Auto-generated chart dataset from healthcare JSON files.\n"
+        "DATA TABLE\n"
+        f"{_to_markdown_table(rows, columns)}\n"
+        f"INSIGHTS {insight} Requested chart preference: {chart_pref}."
+    )
+
+
+def _build_chart_llm_instruction(query: str) -> str:
+    q = _normalize_predefined_match_text(query or "")
+    chart_pref = "bar"
+    if any(k in q for k in ("pie", "donut", "doughnut")):
+        chart_pref = "pie"
+    elif "line" in q:
+        chart_pref = "line"
+    elif "area" in q:
+        chart_pref = "area"
+    elif any(k in q for k in ("column", "bar")):
+        chart_pref = "bar"
+
+    return (
+        "You are VOXA Healthcare Analytics.\n"
+        "Use ONLY the provided JSON data context.\n"
+        "Do not invent values.\n"
+        "Return exactly in this format:\n"
+        "SUMMARY <one concise sentence>\n"
+        "DATA TABLE\n"
+        "<valid markdown table with at least 3 rows and at least 2 columns>\n"
+        "INSIGHTS <one concise sentence>\n"
+        f"Requested chart preference: {chart_pref}.\n"
+        "Important: choose table columns based on user subject first "
+        "(e.g., doctors by region, yearly revenue, monthly revenue, outcomes), "
+        "not only by chart type."
+    )
+
+
+def _execute_predefined_healthcare_report(query: str) -> str | None:
+    q = _normalize_predefined_match_text(query or "")
+    if not _is_predefined_request_response(q):
+        return None
+
+    summary = _load_healthcare_json("summary_metrics.json") or {}
+    doctors = _load_healthcare_json("doctors.json") or []
+    vitals = _load_healthcare_json("vitals.json") or []
+    patients = _load_healthcare_json("patients.json") or []
+    billing_summary = _load_healthcare_json("billing_revenue_summary.json") or {}
+    doctor_load = _load_healthcare_json("doctor_load_analytics.json") or {}
+    outcomes = _load_healthcare_json("patient_outcome_trends.json") or {}
+
+    if "give me healthcare dashboard report" in q or q == "kpi" or "healthcare dashboard report" in q:
+        m = _build_kpi_metrics_payload()
+        annual = (summary.get("annual_revenue") or [])[:3]
+        annual_rows = [
+            {
+                "year": r.get("year", ""),
+                "total_revenue": r.get("total_revenue", 0),
+                "paid_revenue": r.get("paid_revenue", 0),
+                "pending_revenue": r.get("pending_revenue", 0),
+            }
+            for r in annual if isinstance(r, dict)
+        ]
+        report = (
+            "HEALTHCARE DASHBOARD REPORT SUMMARY\n"
+            "Snapshot of revenue, patient load, and operational risk from healthcare JSON datasets.\n"
+            "DATA TABLE\n"
+            + _to_markdown_table(annual_rows, ["year", "total_revenue", "paid_revenue", "pending_revenue"])
+            + "\n\nINSIGHTS\n"
+            f"- Top region: {summary.get('top_region', 'N/A')} | Top doctor: {summary.get('top_doctor', 'N/A')}\n"
+            f"- Most used service: {summary.get('most_used_service', 'N/A')}\n"
+        )
+        return _append_kpi_metrics_json_if_needed(query, report)
+
+    if "revenue by service this month" in q or q == "rev":
+        rows = (billing_summary.get("revenue_by_service_month_2026_04") or [])[:8]
+        table_rows = [
+            {
+                "service_name": r.get("service_name", ""),
+                "category": r.get("category", ""),
+                "total_revenue": r.get("total_revenue", 0),
+                "billing_count": r.get("billing_count", 0),
+            }
+            for r in rows if isinstance(r, dict)
+        ]
+        return (
+            "REVENUE BY SERVICE THIS MONTH SUMMARY\n"
+            "April 2026 service revenue from billing_revenue_summary.json.\n"
+            "DATA TABLE\n"
+            + _to_markdown_table(table_rows, ["service_name", "category", "total_revenue", "billing_count"])
+        )
+
+    if "total patients served today" in q or q == "pt":
+        latest_date = ""
+        count = 0
+        if isinstance(patients, list):
+            latest_date = max((str(p.get("admission_date") or "") for p in patients if isinstance(p, dict)), default="")
+            count = sum(1 for p in patients if isinstance(p, dict) and str(p.get("admission_date") or "") == latest_date)
+        return (
+            "TOTAL PATIENTS SERVED TODAY SUMMARY\n"
+            f"Latest available service date in dataset: {latest_date or 'N/A'}.\n"
+            "DATA TABLE\n"
+            + _to_markdown_table([{"date": latest_date or "N/A", "patients_served": count}], ["date", "patients_served"])
+        )
+
+    if "doctor performance ranking" in q or q == "doc":
+        top = (doctor_load.get("distribution_top_primary_physicians") or [])[:6]
+        rows = [
+            {
+                "doctor_name": r.get("doctor_name", ""),
+                "patient_count": r.get("patient_count", 0),
+                "status": r.get("status", ""),
+                "efficiency_percent": r.get("efficiency_percent", 0),
+            }
+            for r in top if isinstance(r, dict)
+        ]
+        return (
+            "Doctor Performance Ranking\n"
+            "SUMMARY Ranked by managed patient volume and efficiency.\n"
+            "DATA TABLE\n"
+            + _to_markdown_table(rows, ["doctor_name", "patient_count", "status", "efficiency_percent"])
+            + "\nAI Insight: Overloaded providers should be rebalanced to stable providers."
+        )
+
+    if "active vs critical patient count" in q or q == "risk":
+        active = sum(1 for p in patients if isinstance(p, dict) and str(p.get("status", "")).lower() == "active")
+        critical = len({str(v.get("patient_id") or "").strip() for v in vitals if isinstance(v, dict) and v.get("alert_flag") and str(v.get("patient_id") or "").strip()})
+        return (
+            "ACTIVE VS CRITICAL PATIENT COUNT SUMMARY\n"
+            "Live risk split from patients.json and vitals.json.\n"
+            "DATA TABLE\n"
+            + _to_markdown_table([{"active_patients": active, "critical_patients": critical}], ["active_patients", "critical_patients"])
+        )
+
+    if "abnormal vitals alerts summary" in q or q == "alrt":
+        alerts = [v for v in vitals if isinstance(v, dict) and bool(v.get("alert_flag"))]
+        total = len(alerts)
+        unique_patients = len({str(v.get("patient_id") or "").strip() for v in alerts if str(v.get("patient_id") or "").strip()})
+        return (
+            "ABNORMAL VITALS ALERTS SUMMARY\n"
+            "Alert volume from vitals.json.\n"
+            "DATA TABLE\n"
+            + _to_markdown_table([{"total_alert_records": total, "unique_patients_flagged": unique_patients}], ["total_alert_records", "unique_patients_flagged"])
+        )
+
+    if "patients per doctor" in q or "patient per doctor" in q or q == "load":
+        top = (doctor_load.get("distribution_top_primary_physicians") or [])[:6]
+        rows = [
+            {
+                "doctor_name": r.get("doctor_name", ""),
+                "patient_count": r.get("patient_count", 0),
+                "status": r.get("status", ""),
+                "active_load": f"{r.get('patient_count', 0)}/{r.get('capacity', 0)}",
+                "shift_progress_percent": r.get("efficiency_percent", 0),
+                "efficiency_percent": r.get("efficiency_percent", 0),
+            }
+            for r in top if isinstance(r, dict)
+        ]
+        avg = (doctor_load.get("summary") or {}).get("average_patients_per_doctor", 0)
+        return (
+            "LOAD Patients per Doctor SUMMARY\n"
+            f"Average patients per doctor is {avg}.\n"
+            "DATA TABLE\n"
+            + _to_markdown_table(rows, ["doctor_name", "patient_count", "status", "active_load", "shift_progress_percent", "efficiency_percent"])
+            + "\nAI Insight: Reassign overflow from overloaded to stable providers."
+        )
+
+    if "region wise patient distribution" in q or "region-wise patient distribution" in q or q == "reg":
+        reg = (doctor_load.get("regional_load_distribution") or [])[:8]
+        rows = [
+            {
+                "region": r.get("region", ""),
+                "total_patients": int(round((r.get("avg_patients_per_doctor", 0) or 0) * (r.get("active_doctors", 0) or 0))),
+                "total_revenue": "",
+                "avg_patient_age": "",
+            }
+            for r in reg if isinstance(r, dict)
+        ]
+        return (
+            "Region-wise Patient Distribution\n"
+            "Summary Regional load distribution derived from doctor_load_analytics.json.\n"
+            "Data Table\n"
+            + _to_markdown_table(rows, ["region", "total_patients", "total_revenue", "avg_patient_age"])
+        )
+
+    if "pending payment cases" in q or q == "pay":
+        seg = (billing_summary.get("pending_payment_segments") or [])[:6]
+        rows = [
+            {"segment": r.get("segment", ""), "cases": r.get("cases", 0), "amount": r.get("amount", 0)}
+            for r in seg if isinstance(r, dict)
+        ]
+        return (
+            "PENDING PAYMENT CASES SUMMARY\n"
+            "Pending payment aging buckets from billing_revenue_summary.json.\n"
+            "DATA TABLE\n"
+            + _to_markdown_table(rows, ["segment", "cases", "amount"])
+        )
+
+    if "patient outcome trends" in q or q == "trnd":
+        kpis = (outcomes.get("kpis") or {})
+        monthly = (outcomes.get("monthly_outcome_ledger") or [])[:6]
+        kpi_line = (
+            f"Recovery={kpis.get('recovery_rate_percent', 0)}%, "
+            f"Stability={kpis.get('stability_index_percent', 0)}%, "
+            f"Readmission={kpis.get('readmission_rate_percent', 0)}%"
+        )
+        rows = [
+            {
+                "month": r.get("month", ""),
+                "success": r.get("success", 0),
+                "ongoing": r.get("ongoing", 0),
+                "failed": r.get("failed", 0),
+                "readmissions": r.get("readmissions", 0),
+            }
+            for r in monthly if isinstance(r, dict)
+        ]
+        return (
+            "PATIENT OUTCOME TRENDS SUMMARY\n"
+            f"{kpi_line}\n"
+            "DATA TABLE\n"
+            + _to_markdown_table(rows, ["month", "success", "ongoing", "failed", "readmissions"])
+        )
+
     return None
 
 # ── Intent Categories ──
@@ -4218,6 +5015,9 @@ async def process_query(
     query = _fix_common_typos(original_query)
     typo_correction_note = ""
     query = _normalize_legacy_query_to_healthcare(query)
+    predefined_deterministic = _execute_predefined_healthcare_report(query)
+    if predefined_deterministic:
+        return predefined_deterministic
     try:
         healthcare_analytics_response = _execute_healthcare_analytics(query)
     except Exception as e:
@@ -4376,6 +5176,10 @@ async def stream_query(
     query = _fix_common_typos(original_query)
     typo_correction_note = ""
     query = _normalize_legacy_query_to_healthcare(query)
+    predefined_deterministic = _execute_predefined_healthcare_report(query)
+    if predefined_deterministic:
+        yield predefined_deterministic
+        return
     try:
         healthcare_analytics_response = _execute_healthcare_analytics(query)
     except Exception as e:

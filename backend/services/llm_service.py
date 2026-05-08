@@ -18,11 +18,24 @@ except ImportError:
 
 logger = logging.getLogger("voxa.llm")
 
-# Conservative prompt-size guards to avoid Groq 413 errors on large contexts.
-MAX_DATA_CONTEXT_CHARS = 6000
-MAX_SYSTEM_CONTENT_CHARS = 9000
+# Prompt-size guards. Increased to allow richer JSON-grounded responses.
+MAX_DATA_CONTEXT_CHARS = 28000
+MAX_SYSTEM_CONTENT_CHARS = 36000
 MAX_HISTORY_MESSAGES = 6
 MAX_HISTORY_MESSAGE_CHARS = 800
+FALLBACK_DATA_CONTEXT_CHARS = 4200
+FALLBACK_SYSTEM_CONTENT_CHARS = 8000
+
+
+def _is_payload_too_large_error(err: Exception) -> bool:
+    msg = str(err).lower()
+    return "413" in msg or "payload too large" in msg or "request too large" in msg
+
+
+def _model_limits(model_name: str) -> tuple[int, int, int]:
+    if model_name == FALLBACK_MODEL:
+        return FALLBACK_DATA_CONTEXT_CHARS, FALLBACK_SYSTEM_CONTENT_CHARS, 768
+    return MAX_DATA_CONTEXT_CHARS, MAX_SYSTEM_CONTENT_CHARS, 2048
 
 # Clients (lazy init)
 _sync_client: Groq | None = None
@@ -74,19 +87,43 @@ def generate_response(
     client = _get_sync_client()
     target_model = model or PRIMARY_MODEL
 
-    messages = _build_messages(user_query, data_context, conversation_history)
+    data_limit, system_limit, max_tokens = _model_limits(target_model)
+    messages = _build_messages(
+        user_query,
+        data_context,
+        conversation_history,
+        data_context_limit=data_limit,
+        system_content_limit=system_limit,
+    )
 
     try:
         response = client.chat.completions.create(
             model=target_model,
             messages=messages,
-            temperature=0.3,  # Lower temp for more factual/consistent responses
-            max_tokens=2048,
+            temperature=0.0,
+            max_tokens=max_tokens,
             top_p=0.9,
         )
         return response.choices[0].message.content
 
     except Exception as e:
+        if _is_payload_too_large_error(e):
+            compact_limit = min(2200, data_limit)
+            compact_messages = _build_messages(
+                user_query,
+                data_context,
+                conversation_history,
+                data_context_limit=compact_limit,
+                system_content_limit=min(system_limit, 7000),
+            )
+            response = client.chat.completions.create(
+                model=target_model,
+                messages=compact_messages,
+                temperature=0.0,
+                max_tokens=min(max_tokens, 512),
+                top_p=0.9,
+            )
+            return response.choices[0].message.content
         if target_model == PRIMARY_MODEL:
             logger.warning(f"Primary model ({PRIMARY_MODEL}) failed: {e}. Trying fallback...")
             return generate_response(
@@ -131,19 +168,44 @@ def generate_explanation(
 ) -> str:
     client = _get_sync_client()
     target_model = model or PRIMARY_MODEL
-    messages = _build_explanation_messages(user_query, result_context, data_context, conversation_history)
+    data_limit, system_limit, max_tokens = _model_limits(target_model)
+    messages = _build_explanation_messages(
+        user_query,
+        result_context,
+        data_context,
+        conversation_history,
+        data_context_limit=data_limit,
+        system_content_limit=system_limit,
+    )
 
     try:
         response = client.chat.completions.create(
             model=target_model,
             messages=messages,
-            temperature=0.2, # Lowered for even higher consistency
-            max_tokens=2048,
+            temperature=0.0,
+            max_tokens=max_tokens,
             top_p=0.9,
         )
         raw_text = response.choices[0].message.content
         return _validate_response(raw_text, result_context)
     except Exception as e:
+        if _is_payload_too_large_error(e):
+            compact_messages = _build_explanation_messages(
+                user_query,
+                result_context,
+                data_context,
+                conversation_history,
+                data_context_limit=min(2200, data_limit),
+                system_content_limit=min(system_limit, 7000),
+            )
+            response = client.chat.completions.create(
+                model=target_model,
+                messages=compact_messages,
+                temperature=0.0,
+                max_tokens=min(max_tokens, 512),
+                top_p=0.9,
+            )
+            return _validate_response(response.choices[0].message.content, result_context)
         if target_model == PRIMARY_MODEL:
             logger.warning(f"Primary model ({PRIMARY_MODEL}) failed: {e}. Trying fallback...")
             return generate_explanation(
@@ -169,14 +231,21 @@ async def stream_response(
     client = _get_async_client()
     target_model = model or PRIMARY_MODEL
 
-    messages = _build_messages(user_query, data_context, conversation_history)
+    data_limit, system_limit, max_tokens = _model_limits(target_model)
+    messages = _build_messages(
+        user_query,
+        data_context,
+        conversation_history,
+        data_context_limit=data_limit,
+        system_content_limit=system_limit,
+    )
 
     try:
         stream = await client.chat.completions.create(
             model=target_model,
             messages=messages,
-            temperature=0.3,
-            max_tokens=2048,
+            temperature=0.0,
+            max_tokens=max_tokens,
             top_p=0.9,
             stream=True,
         )
@@ -187,6 +256,27 @@ async def stream_response(
                 yield delta.content
 
     except Exception as e:
+        if _is_payload_too_large_error(e):
+            compact_messages = _build_messages(
+                user_query,
+                data_context,
+                conversation_history,
+                data_context_limit=min(2200, data_limit),
+                system_content_limit=min(system_limit, 7000),
+            )
+            stream = await client.chat.completions.create(
+                model=target_model,
+                messages=compact_messages,
+                temperature=0.0,
+                max_tokens=min(max_tokens, 512),
+                top_p=0.9,
+                stream=True,
+            )
+            async for chunk in stream:
+                delta = chunk.choices[0].delta
+                if delta and delta.content:
+                    yield delta.content
+            return
         if target_model == PRIMARY_MODEL:
             logger.warning(f"Primary model streaming failed: {e}. Trying fallback...")
             async for token in stream_response(
@@ -202,6 +292,8 @@ def _build_messages(
     user_query: str,
     data_context: str = "",
     conversation_history: list[dict] | None = None,
+    data_context_limit: int = MAX_DATA_CONTEXT_CHARS,
+    system_content_limit: int = MAX_SYSTEM_CONTENT_CHARS,
 ) -> list[dict]:
     """
     Build the messages array for the LLM call.
@@ -216,17 +308,17 @@ def _build_messages(
 
     if data_context:
         safe_data_context = data_context
-        if len(safe_data_context) > MAX_DATA_CONTEXT_CHARS:
+        if len(safe_data_context) > data_context_limit:
             safe_data_context = (
-                safe_data_context[:MAX_DATA_CONTEXT_CHARS]
+                safe_data_context[:data_context_limit]
                 + "\n\n[DATA CONTEXT TRUNCATED FOR TOKEN LIMIT]"
             )
         system_content += f"\n\n--- DATA CONTEXT ---\n{safe_data_context}\n--- END DATA CONTEXT ---"
 
     system_content += f"\n\nCurrent date/time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S (%A)')}"
-    if len(system_content) > MAX_SYSTEM_CONTENT_CHARS:
+    if len(system_content) > system_content_limit:
         system_content = (
-            system_content[:MAX_SYSTEM_CONTENT_CHARS]
+            system_content[:system_content_limit]
             + "\n\n[SYSTEM CONTEXT TRUNCATED FOR TOKEN LIMIT]"
         )
 
@@ -251,6 +343,8 @@ def _build_explanation_messages(
     result_context: str,
     data_context: str = "",
     conversation_history: list[dict] | None = None,
+    data_context_limit: int = MAX_DATA_CONTEXT_CHARS,
+    system_content_limit: int = MAX_SYSTEM_CONTENT_CHARS,
 ) -> list[dict]:
     from datetime import datetime
 
@@ -261,17 +355,17 @@ def _build_explanation_messages(
 
     if data_context:
         safe_data_context = data_context
-        if len(safe_data_context) > MAX_DATA_CONTEXT_CHARS:
+        if len(safe_data_context) > data_context_limit:
             safe_data_context = (
-                safe_data_context[:MAX_DATA_CONTEXT_CHARS]
+                safe_data_context[:data_context_limit]
                 + "\n\n[DATA CONTEXT TRUNCATED FOR TOKEN LIMIT]"
             )
         system_content += f"\n\n--- DATA CONTEXT ---\n{safe_data_context}\n--- END DATA CONTEXT ---"
 
     system_content += f"\n\nCurrent date/time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S (%A)')}"
-    if len(system_content) > MAX_SYSTEM_CONTENT_CHARS:
+    if len(system_content) > system_content_limit:
         system_content = (
-            system_content[:MAX_SYSTEM_CONTENT_CHARS]
+            system_content[:system_content_limit]
             + "\n\n[SYSTEM CONTEXT TRUNCATED FOR TOKEN LIMIT]"
         )
 

@@ -9,6 +9,7 @@ import { toast } from 'react-hot-toast';
 
 import UserAvatar from './UserAvatar';
 import PredefinedResponseTemplate from './PredefinedResponseTemplate';
+import DynamicResponseTemplate from './DynamicResponseTemplate';
 import { getPredefinedTemplateKey } from './predefinedTemplateUtils';
 
 import useUIStore from '../store/useUIStore';
@@ -138,6 +139,11 @@ export default function MessageBubble({ message, onRetry, onRegenerate, onEdit, 
     return getPredefinedTemplateKey(triggerQuery);
   }, [isUser, isError, triggerQuery, isStreaming]);
   const hasPredefinedTemplate = Boolean(predefinedTemplateKey);
+  const hasChartIntent = useMemo(() => {
+    if (isUser || isError || !triggerQuery || isStreaming) return false;
+    const q = String(triggerQuery || '').toLowerCase();
+    return ['chart', 'graph', 'pie', 'bar', 'column', 'line', 'area', 'donut', 'doughnut'].some((k) => q.includes(k));
+  }, [isUser, isError, triggerQuery, isStreaming]);
 
   const isWide = useMemo(() => {
     // All assistant responses should now fit the screen width for a consistent executive dashboard feel
@@ -231,6 +237,10 @@ export default function MessageBubble({ message, onRetry, onRegenerate, onEdit, 
           ) : hasPredefinedTemplate ? (
             <div className="w-full flex flex-col gap-3">
               <PredefinedResponseTemplate templateKey={predefinedTemplateKey} content={content} />
+            </div>
+          ) : hasChartIntent ? (
+            <div className="w-full flex flex-col gap-3">
+              <DynamicResponseTemplate content={content} query={triggerQuery} />
             </div>
           ) : (
             <div className={`prose-gold chatbot-reference-markdown overflow-x-auto ${isError ? 'text-red-400' : ''}`}>
