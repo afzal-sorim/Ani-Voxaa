@@ -26,12 +26,12 @@ try:
     from backend.config import HOST, PORT, CORS_ORIGINS, DATA_DIR
     from backend.services.data_service import init_data_service
     from backend.services.stt_service import init_stt_service
-    from backend.routers import health, speech, chat, query, history, auth
+    from backend.routers import health, speech, chat, query, history, auth, documents
 except ImportError:
     from config import HOST, PORT, CORS_ORIGINS, DATA_DIR
     from services.data_service import init_data_service
     from services.stt_service import init_stt_service
-    from routers import health, speech, chat, query, history, auth
+    from routers import health, speech, chat, query, history, auth, documents
 
 # Configure logging
 logging.basicConfig(
@@ -107,6 +107,7 @@ app.include_router(chat.router, prefix="/api", tags=["Chat"])
 app.include_router(query.router, prefix="/api", tags=["Query"])
 app.include_router(history.router, prefix="/api", tags=["History"])
 app.include_router(auth.router, prefix="/api/auth", tags=["Auth"])
+app.include_router(documents.router, prefix="/api/documents", tags=["Documents"])
 
 # Serve static files from the uploads directory
 app.mount("/uploads", StaticFiles(directory=str(uploads_dir)), name="uploads")

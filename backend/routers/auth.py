@@ -73,12 +73,15 @@ async def signup(request: SignupRequest):
        user_service.get_user_by_email_or_username(request.username):
         raise HTTPException(status_code=400, detail="Email or username already registered")
     
-    new_user = user_service.create_user(
-        name=request.name,
-        username=request.username,
-        email=request.email,
-        password=request.password
-    )
+    try:
+        new_user = user_service.create_user(
+            name=request.name,
+            username=request.username,
+            email=request.email,
+            password=request.password
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     
     token = create_token(request.email)
     return {
@@ -99,12 +102,11 @@ async def get_me(current_user: dict = Depends(get_current_user)):
     return {k: v for k, v in current_user.items() if k != "password"}
 
 from fastapi import UploadFile, File
-import shutil
 from pathlib import Path
 try:
-    from backend.config import DATA_DIR
+    from backend.services.storage_service import get_storage_service
 except ImportError:
-    from config import DATA_DIR
+    from services.storage_service import get_storage_service
 
 @router.post("/profile-pic")
 async def upload_profile_pic(
@@ -114,21 +116,17 @@ async def upload_profile_pic(
     """
     Uploads a profile picture for the current user.
     """
-    uploads_dir = DATA_DIR / "uploads"
-    uploads_dir.mkdir(parents=True, exist_ok=True)
-    
-    # Generate unique filename
+    # Generate deterministic key so new upload replaces old avatar for user
     file_extension = Path(file.filename).suffix
     filename = f"user_{current_user['id']}{file_extension}"
-    file_path = uploads_dir / filename
-    
-    # Save file
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+    key = f"profile_pics/{filename}"
+    content = await file.read()
+    storage = get_storage_service()
+    stored = storage.save_bytes(key=key, data=content, content_type=file.content_type)
         
     # Update DB
     user_id = current_user['id']
-    profile_pic_url = f"/uploads/{filename}"
+    profile_pic_url = stored.url
     user_service = get_user_service()
     user_service.update_profile_pic(user_id, profile_pic_url)
     

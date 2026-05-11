@@ -256,7 +256,7 @@ function TemplateShell({ code, title, subtitle, children }) {
             <h3>{title}</h3>
             <p>{subtitle}</p>
           </div>
-          <div className="predef-live-pill">Live feed active</div>
+          <div className="predef-live-pill">  <span class="animate-ping absolute inline-flex rounded-full bg-red-400 opacity-75"></span>Live feed active</div>
         </header>
         {children}
         <div className="predef-bottombar">

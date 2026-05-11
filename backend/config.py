@@ -24,6 +24,22 @@ CORS_ORIGINS = [o.strip() for o in os.getenv("CORS_ORIGINS", "http://localhost:5
 
 # -- Data --
 DATA_DIR = Path(os.getenv("DATA_DIR", str(BACKEND_DIR / ".." / "data"))).resolve()
+DATA_BACKEND = os.getenv("DATA_BACKEND", "local").lower()
+
+# -- MongoDB (optional cloud backend) --
+MONGO_URI = os.getenv("MONGO_URI", "")
+MONGO_DB_NAME = os.getenv("MONGO_DB_NAME", "voxa")
+MONGO_USERS_COLLECTION = os.getenv("MONGO_USERS_COLLECTION", "users")
+MONGO_CHATS_COLLECTION = os.getenv("MONGO_CHATS_COLLECTION", "chats")
+
+# -- Object Storage (optional cloud uploads) --
+STORAGE_BACKEND = os.getenv("STORAGE_BACKEND", "local").lower()  # local | supabase
+
+# -- Supabase Storage (optional cloud uploads) --
+SUPABASE_URL = os.getenv("SUPABASE_URL", "")
+SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
+SUPABASE_STORAGE_BUCKET = os.getenv("SUPABASE_STORAGE_BUCKET", "")
+SUPABASE_PUBLIC_BASE_URL = os.getenv("SUPABASE_PUBLIC_BASE_URL", "")
 
 # -- Conversation Memory --
 MEMORY_BACKEND = os.getenv("MEMORY_BACKEND", "memory").lower()

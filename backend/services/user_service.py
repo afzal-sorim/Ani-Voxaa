@@ -2,6 +2,16 @@ import duckdb
 from pathlib import Path
 import logging
 from typing import Optional, Dict, Any
+from datetime import datetime
+import uuid
+
+try:
+    from pymongo import MongoClient
+    from pymongo.errors import DuplicateKeyError, PyMongoError
+except Exception:  # optional dependency for local-only setups
+    MongoClient = None
+    DuplicateKeyError = Exception
+    PyMongoError = Exception
 
 logger = logging.getLogger("voxa.users")
 
@@ -99,16 +109,119 @@ class UserService:
         finally:
             conn.close()
 
+
+class MongoUserService:
+    def __init__(self, mongo_uri: str, db_name: str, collection_name: str = "users"):
+        if not mongo_uri:
+            raise ValueError("MONGO_URI is required when DATA_BACKEND=mongo")
+        if MongoClient is None:
+            raise RuntimeError("pymongo is not installed. Please install pymongo.")
+        self.client = MongoClient(mongo_uri)
+        self.db = self.client[db_name]
+        self.col = self.db[collection_name]
+        self._init_collection()
+
+    def _init_collection(self):
+        self.col.create_index("email", unique=True)
+        self.col.create_index("username", unique=True)
+        self.col.create_index("id", unique=True)
+
+        # Seed default user for dev parity with local mode.
+        exists = self.col.find_one({"username": "user"})
+        if not exists:
+            self.col.insert_one({
+                "id": "1",
+                "name": "Plant Manager",
+                "username": "user",
+                "email": "user@voxa.ai",
+                "password": "password123",
+                "role": "manager",
+                "profile_pic": None,
+                "created_at": datetime.utcnow(),
+            })
+
+    def _public_user(self, doc: Dict[str, Any]) -> Dict[str, Any]:
+        return {
+            "id": str(doc.get("id", "")),
+            "name": doc.get("name"),
+            "username": doc.get("username"),
+            "email": doc.get("email"),
+            "password": doc.get("password"),
+            "role": doc.get("role", "user"),
+            "profile_pic": doc.get("profile_pic"),
+        }
+
+    def get_user_by_email_or_username(self, identifier: str) -> Optional[Dict[str, Any]]:
+        try:
+            doc = self.col.find_one(
+                {"$or": [{"email": identifier}, {"username": identifier}]},
+                {"_id": 0},
+            )
+            if not doc:
+                return None
+            return self._public_user(doc)
+        except PyMongoError as e:
+            logger.error(f"Mongo get_user_by_email_or_username failed: {e}")
+            return None
+
+    def create_user(self, name: str, username: str, email: str, password: str) -> Dict[str, Any]:
+        user = {
+            "id": uuid.uuid4().hex,
+            "name": name,
+            "username": username,
+            "email": email,
+            "password": password,
+            "role": "user",
+            "profile_pic": None,
+            "created_at": datetime.utcnow(),
+        }
+        try:
+            self.col.insert_one(user)
+            return {k: v for k, v in user.items() if k != "password"} | {"role": "user"}
+        except DuplicateKeyError:
+            raise ValueError("Email or username already registered")
+        except PyMongoError as e:
+            logger.error(f"Mongo create_user failed: {e}")
+            raise
+
+    def update_password(self, username: str, new_password: str):
+        try:
+            self.col.update_one(
+                {"$or": [{"username": username}, {"email": username}]},
+                {"$set": {"password": new_password, "updated_at": datetime.utcnow()}},
+            )
+        except PyMongoError as e:
+            logger.error(f"Mongo update_password failed: {e}")
+            raise
+
+    def update_profile_pic(self, user_id: str, profile_pic_url: str):
+        try:
+            self.col.update_one(
+                {"id": str(user_id)},
+                {"$set": {"profile_pic": profile_pic_url, "updated_at": datetime.utcnow()}},
+            )
+        except PyMongoError as e:
+            logger.error(f"Mongo update_profile_pic failed: {e}")
+            raise
+
 _user_service = None
 
 def get_user_service(db_path: Optional[Path] = None) -> UserService:
     global _user_service
     if _user_service is None:
-        if db_path is None:
-            try:
-                from backend.config import DATA_DIR
-            except ImportError:
-                from config import DATA_DIR
-            db_path = DATA_DIR / "voxa_system.duckdb"
-        _user_service = UserService(db_path)
+        try:
+            from backend.config import DATA_BACKEND, DATA_DIR, MONGO_URI, MONGO_DB_NAME, MONGO_USERS_COLLECTION
+        except ImportError:
+            from config import DATA_BACKEND, DATA_DIR, MONGO_URI, MONGO_DB_NAME, MONGO_USERS_COLLECTION
+
+        if DATA_BACKEND == "mongo":
+            _user_service = MongoUserService(
+                mongo_uri=MONGO_URI,
+                db_name=MONGO_DB_NAME,
+                collection_name=MONGO_USERS_COLLECTION,
+            )
+        else:
+            if db_path is None:
+                db_path = DATA_DIR / "voxa_system.duckdb"
+            _user_service = UserService(db_path)
     return _user_service

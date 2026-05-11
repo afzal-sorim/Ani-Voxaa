@@ -30,7 +30,7 @@ export default function DocumentUpload({ isOpen, onClose }) {
       });
       if (res.ok) {
         const data = await res.json();
-        setDocuments(data);
+        setDocuments(Array.isArray(data) ? data : (data?.documents || []));
       }
     } catch (err) {
       console.warn('Failed to fetch documents:', err);

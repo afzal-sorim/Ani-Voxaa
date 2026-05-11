@@ -1444,19 +1444,41 @@ def _execute_predefined_healthcare_report(query: str) -> str | None:
         )
 
     if "region wise patient distribution" in q or "region-wise patient distribution" in q or q == "reg":
-        reg = (doctor_load.get("regional_load_distribution") or [])[:8]
+        # Build complete region metrics from patients + billing so UI can render revenue/age profile.
+        region_ctx = _build_region_analytics_context(top_n=10)
+        derived_rows = []
+        if region_ctx:
+            try:
+                parsed = json.loads(region_ctx)
+                derived_rows = parsed.get("regional_distribution_metrics", []) if isinstance(parsed, dict) else []
+            except Exception:
+                derived_rows = []
+
         rows = [
             {
                 "region": r.get("region", ""),
-                "total_patients": int(round((r.get("avg_patients_per_doctor", 0) or 0) * (r.get("active_doctors", 0) or 0))),
-                "total_revenue": "",
-                "avg_patient_age": "",
+                "total_patients": r.get("patient_count", 0),
+                "total_revenue": r.get("total_revenue", 0),
+                "avg_patient_age": r.get("avg_patient_age", 0),
             }
-            for r in reg if isinstance(r, dict)
+            for r in derived_rows if isinstance(r, dict)
         ]
+
+        # Fallback only if derived analytics not available.
+        if not rows:
+            reg = (doctor_load.get("regional_load_distribution") or [])[:8]
+            rows = [
+                {
+                    "region": r.get("region", ""),
+                    "total_patients": int(round((r.get("avg_patients_per_doctor", 0) or 0) * (r.get("active_doctors", 0) or 0))),
+                    "total_revenue": 0,
+                    "avg_patient_age": 0,
+                }
+                for r in reg if isinstance(r, dict)
+            ]
         return (
             "Region-wise Patient Distribution\n"
-            "Summary Regional load distribution derived from doctor_load_analytics.json.\n"
+            "Summary Regional patient, revenue, and age distribution derived from healthcare JSON data.\n"
             "Data Table\n"
             + _to_markdown_table(rows, ["region", "total_patients", "total_revenue", "avg_patient_age"])
         )
